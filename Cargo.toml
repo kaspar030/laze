@@ -1,0 +1,22 @@
+[package]
+name = "deprs"
+version = "0.1.0"
+authors = ["Kaspar Schleiser <kaspar@schleiser.de>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "2.33.1"
+derive_builder = "0.9.0"
+exitfailure = { version = "*" }
+anyhow = { version = "*" }
+petgraph = { version = "*" }
+simple-error = { version = "*" }
+indexmap = { version = "1.3" }
+
+serde = "1.0"
+serde_derive = "1.0"
+serde_yaml = "0.8"
+
+pathdiff = "0.2"
