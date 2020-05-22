@@ -1,0 +1,26 @@
+builder:
+  - name: single_builder
+    rule:
+        - name: CC
+          in: 'c'
+          out: 'o'
+          cmd: 'echo ${LOCAL_VAR} ${GLOBAL_VAR} ${in} > ${out}'
+        - name: LINK
+          in: 'o'
+          options:
+              combine: true
+          cmd: 'cat ${in} > ${out}'
+
+    vars:
+      LOCAL_VAR: will-be-overridden
+      GLOBAL_VAR: will-be-overridden
+app:
+  - name: single_app
+    sources:
+      - single_app.c
+
+    env:
+      local:
+        LOCAL_VAR: local_var
+      global:
+        GLOBAL_VAR: global_var
