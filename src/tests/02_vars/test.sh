@@ -1,17 +1,13 @@
 #!/bin/sh
 
-: ${LAZERS:=lazers}
+. ../test-common.sh
 
-rm -f single_app.o single_app.elf build.ninja .ninja_deps .ninja_log
-
-set -e
-
-${LAZERS} generate
-ninja -v
+cleanup
+build
 
 test "$(cat single_app.o)" = "local_var global_var single_app.c"
 test "$(cat single_app.elf)" = "$(cat single_app.o)"
 
-rm -f single_app.o single_app.elf build.ninja .ninja_deps .ninja_log
-
 echo TEST_OK
+
+cleanup
