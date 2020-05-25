@@ -57,7 +57,8 @@ pub struct Module {
     name: String,
     context_name: String,
 
-    depends: Vec<String>,
+    selects: Vec<String>,
+    imports: Vec<String>,
     sources: Vec<String>,
 
     env_local: Env,
@@ -132,15 +133,23 @@ impl Context {
         module_name: &String,
         bag: &'b ContextBag,
     ) -> Option<(&'b Context, &'b Module)> {
+        //println!("resolving module {} in {}...", module_name, self.name);
         let module = self.modules.get(module_name);
         match module {
-            Some(module) => Some((&self, module)),
+            Some(module) => {
+                //println!("found module {} in {}.", module_name, self.name);
+                Some((&self, module))
+            }
             None => match self.parent_index {
                 Some(id) => {
                     let parent = &bag.contexts[id];
+                    //println!("descending");
                     parent.resolve_module(module_name, bag)
                 }
-                None => None,
+                None => {
+                    //println!("no more parents, module not found");
+                    None
+                }
             },
         }
     }
@@ -363,8 +372,8 @@ impl Module {
         Module {
             name,
             context_name: context_name.unwrap_or_else(|| "default".to_string()),
-            depends: Vec::new(),
-            // imports: Vec::new(),
+            selects: Vec::new(),
+            imports: Vec::new(),
             // exports: Vec::new(),
             sources: Vec::new(),
             env_local: Env::new(),
@@ -379,7 +388,7 @@ impl Module {
     //    contexts.context_is_in(self.context_id.unwrap(), context.index.unwrap())
     //}
     //
-    fn get_deps_recursive<'a>(
+    fn get_imports_recursive<'a>(
         &'a self,
         modules: &IndexMap<&String, &'a Module>,
         seen: Option<&mut HashSet<&'a String>>,
@@ -398,10 +407,11 @@ impl Module {
         }
         seen.insert(&self.name);
 
-        for dep in &module.depends {
-            let other_module = *modules.get(&dep).unwrap();
-            let mut other_deps = other_module.get_deps_recursive(modules, Some(seen));
-            result.append(&mut other_deps);
+        for dep in &module.imports {
+            if let Some(other_module) = modules.get(&dep) {
+                let mut other_deps = other_module.get_imports_recursive(modules, Some(seen));
+                result.append(&mut other_deps);
+            }
         }
 
         result.push(self);
@@ -415,8 +425,8 @@ impl Module {
         /* merge in the global build context env */
         nested_env::merge(&mut module_env, global_env);
 
-        /* from each (recursive) dependency ... */
-        let deps = self.get_deps_recursive(&modules, None);
+        /* from each (recursive) import ... */
+        let deps = self.get_imports_recursive(&modules, None);
         for dep in &deps {
             /* merge that dependency's exported env */
             nested_env::merge(&mut module_env, &dep.env_export);
@@ -492,7 +502,7 @@ impl<'a: 'b, 'b> Build<'b> {
         build
     }
 
-    fn resolve_modules(&self) -> Result<IndexMap<&String, &Module>, Error> {
+    fn resolve_selects(&self) -> Result<IndexMap<&String, &Module>, Error> {
         let mut unresolved = VecDeque::new();
         let mut modules = IndexMap::new();
 
@@ -500,7 +510,7 @@ impl<'a: 'b, 'b> Build<'b> {
         unresolved.push_back(self.binary);
 
         while let Some(entry) = unresolved.pop_front() {
-            for dep_name in &entry.depends {
+            for dep_name in &entry.selects {
                 let optional = dep_name.starts_with('?');
                 let dep_name = if optional {
                     dep_name[1..].to_string()
@@ -516,12 +526,16 @@ impl<'a: 'b, 'b> Build<'b> {
                     match self.build_context.resolve_module(&dep_name, self.bag) {
                         Some(x) => x,
                         None => {
-                            bail!(
-                                "binary {} for builder {} depends on unavailable module {}",
-                                self.binary.name,
-                                self.builder.name,
-                                dep_name
-                            );
+                            if optional {
+                                continue;
+                            } else {
+                                bail!(
+                                    "binary {} for builder {} depends on unavailable module {}",
+                                    self.binary.name,
+                                    self.builder.name,
+                                    dep_name
+                                );
+                            }
                         }
                     };
                 unresolved.push_back(module);
@@ -577,7 +591,7 @@ fn generate(project_root: &Path) -> Result<()> {
 
             /* resolve all dependency names to specific modules.
              * this also determines if all dependencies are met */
-            let modules = match build.resolve_modules() {
+            let modules = match build.resolve_selects() {
                 Err(e) => {
                     println!("error: {}", e);
                     continue;

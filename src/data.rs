@@ -37,6 +37,8 @@ struct YamlModule {
     name: String,
     context: Option<String>,
     depends: Option<Vec<String>>,
+    selects: Option<Vec<String>>,
+    uses: Option<Vec<String>>,
     sources: Option<Vec<String>>,
     env: Option<YamlModuleEnv>,
     #[serde(skip)]
@@ -143,12 +145,45 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> &'a ContextBag
             module.context.as_ref().unwrap_or(&"none".to_string()),
             module.name
         );
-        if let Some(depends) = &module.depends {
-            for dep_name in depends {
+        // convert module dependencies
+        // "selects" means "module will be part of the build"
+        // "uses" means "if module is part of the build, transitively import its exported env vars"
+        // "depends" means both select and use a module
+        // a build configuration fails if a selected or depended on module is not
+        // available.
+        if let Some(selects) = &module.selects {
+            println!("selects:");
+            for dep_name in selects {
                 println!("- {}", dep_name);
-                m.depends.push(dep_name.clone());
+                m.selects.push(dep_name.clone());
             }
         }
+        if let Some(uses) = &module.uses {
+            println!("uses:");
+            for dep_name in uses {
+                println!("- {}", dep_name);
+                m.imports.push(dep_name.clone());
+            }
+        }
+        if let Some(depends) = &module.depends {
+            println!("depends:");
+            for dep_name in depends {
+                println!("- {}", dep_name);
+                m.selects.push(dep_name.clone());
+
+                // when "depends" are specified, they can be prefixed with "?"
+                // to make them optional (depend on when available, ignore if not).
+                // as all imports are optional, remove trailing "?" if present.
+                let import_name = if dep_name.starts_with("?") {
+                    dep_name[1..].to_string()
+                } else {
+                    dep_name.clone()
+                };
+                m.imports.push(import_name);
+            }
+        }
+
+        // copy over environment
         if let Some(env) = &module.env {
             if let Some(local) = &env.local {
                 super::nested_env::merge(&mut m.env_local, local);
