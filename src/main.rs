@@ -34,7 +34,9 @@ mod data;
 use data::load;
 
 mod ninja;
-use ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder, NinjaRuleDeps, NinjaWriter};
+use ninja::{
+    NinjaBuildBuilder, NinjaCmdBuilder, NinjaRule, NinjaRuleBuilder, NinjaRuleDeps, NinjaWriter,
+};
 
 #[derive(PartialEq, Eq)]
 pub struct Context {
@@ -774,11 +776,11 @@ fn main() {
             eprintln!("laze: error: {}", e);
             std::process::exit(1);
         }
-        Ok(_) => {}
+        Ok(code) => std::process::exit(code),
     };
 }
 
-fn try_main() -> Result<()> {
+fn try_main() -> Result<i32> {
     let matches = App::new("laze in rust")
         .version(crate_version!())
         .author("Kaspar Schleiser <kaspar@schleiser.de>")
@@ -799,8 +801,8 @@ fn try_main() -> Result<()> {
                 .required(false),
         )
         .subcommand(
-            SubCommand::with_name("generate")
-                .about("generate build files")
+            SubCommand::with_name("build")
+                .about("generate build files and build")
                 .arg(
                     Arg::with_name("builders")
                         .short("b")
@@ -818,6 +820,12 @@ fn try_main() -> Result<()> {
                         .takes_value(true)
                         .multiple(true)
                         .require_delimiter(true),
+                )
+                .arg(
+                    Arg::with_name("generate-only")
+                        .short("G")
+                        .help("generate build files only, don't start build")
+                        .required(false),
                 ),
         )
         .get_matches();
@@ -844,15 +852,15 @@ fn try_main() -> Result<()> {
         .context(format!("cannot change to \"{}\"", &project_root.display()))?;
 
     match matches.subcommand() {
-        ("generate", Some(generate_matches)) => {
+        ("build", Some(build_matches)) => {
             // collect builder names from args
-            let mut builders = generate_matches
+            let mut builders = build_matches
                 .values_of("builders")
                 .unwrap_or_default()
                 .collect::<Vec<_>>();
 
             // collect app names from args
-            let mut apps = generate_matches
+            let mut apps = build_matches
                 .values_of("apps")
                 .unwrap_or_default()
                 .collect::<Vec<_>>();
@@ -874,9 +882,22 @@ fn try_main() -> Result<()> {
             println!("building {:?} for {:?}", &apps, &builders);
 
             generate(&project_file)?;
+            if build_matches.is_present("generate-only") {
+                return Ok(0);
+            }
+
+            let ninja_exit = NinjaCmdBuilder::default().build().unwrap().run()?;
+            if !ninja_exit.success() {
+                match ninja_exit.code() {
+                    Some(code) => {
+                        return Ok(code);
+                    }
+                    None => return Err(anyhow!("ninja probably killed by signal")),
+                };
+            }
         }
         _ => {}
     };
 
-    Ok(())
+    Ok(0)
 }
