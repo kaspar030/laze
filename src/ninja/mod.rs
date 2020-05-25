@@ -1,14 +1,14 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufWriter, Write};
 use std::path::Path;
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
 pub struct NinjaWriter {
-    pub file: File,
+    pub file: BufWriter<File>,
     pub rules: HashSet<u64>,
 }
 
@@ -128,7 +128,7 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
 impl NinjaWriter {
     pub fn new(path: &Path) -> std::io::Result<NinjaWriter> {
         Ok(NinjaWriter {
-            file: File::create(path)?,
+            file: BufWriter::new(File::create(path)?),
             rules: HashSet::new(),
         })
     }
