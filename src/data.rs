@@ -25,7 +25,7 @@ struct YamlFile {
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlContext {
     name: String,
-    parent: Option<String>,
+    context: Option<String>,
     env: Option<Env>,
     rule: Option<Vec<Rule>>,
     #[serde(skip)]
@@ -97,7 +97,10 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> &'a ContextBag
         filename: &PathBuf,
     ) {
         let context_name = &context.name;
-
+        let context_parent = match &context.context {
+            Some(x) => x.clone(),
+            None => "default".to_string(),
+        };
         println!(
             "{} {} parent {}",
             match is_builder {
@@ -105,14 +108,11 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> &'a ContextBag
                 false => "context",
             },
             context_name,
-            match &context.parent {
-                Some(x) => x.clone(),
-                None => "None".to_string(),
-            }
+            context_parent,
         );
         let mut context_ = contexts
             .add_context_or_builder(
-                Context::new(context_name.clone(), context.parent.clone()),
+                Context::new(context_name.clone(), Some(context_parent)),
                 is_builder,
             )
             .unwrap();
