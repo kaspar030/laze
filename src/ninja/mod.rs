@@ -3,6 +3,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
+use std::process::{Command, ExitStatus};
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -153,6 +154,25 @@ impl NinjaWriter {
 
     pub fn write_build(&mut self, build: &NinjaBuild) -> std::io::Result<()> {
         self.file.write_all(format!("{}", build).as_bytes())
+    }
+}
+
+#[derive(Default, Builder, Debug, Clone)]
+#[builder(setter(into))]
+pub struct NinjaCmd<'a> {
+    #[builder(setter(into), default = "\"ninja\"")]
+    binary: &'a str,
+
+    #[builder(setter(into), default = "\"build.ninja\"")]
+    build_file: &'a str,
+}
+
+impl<'a> NinjaCmd<'a> {
+    pub fn run(&self) -> std::io::Result<ExitStatus> {
+        Command::new(self.binary)
+            .arg("-f")
+            .arg(self.build_file)
+            .status()
     }
 }
 
