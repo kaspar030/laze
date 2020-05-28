@@ -2,6 +2,7 @@ extern crate pathdiff;
 extern crate serde_yaml;
 
 use indexmap::{IndexMap, IndexSet};
+use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -36,13 +37,27 @@ struct YamlContext {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+enum StringOrMapString {
+    String(String),
+    Map(HashMap<String, Vec<String>>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+enum StringOrVecString {
+    Single(String),
+    List(Vec<String>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 struct YamlModule {
-    name: String,
+    name: Option<String>,
     context: Option<String>,
-    depends: Option<Vec<String>>,
+    depends: Option<Vec<StringOrMapString>>,
     selects: Option<Vec<String>>,
     uses: Option<Vec<String>>,
-    sources: Option<Vec<String>>,
+    sources: Option<Vec<StringOrMapString>>,
     env: Option<YamlModuleEnv>,
     #[serde(skip)]
     is_binary: bool,
@@ -120,7 +135,13 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         );
         let mut context_ = contexts
             .add_context_or_builder(
-                Context::new(context_name.clone(), Some(context_parent)),
+                Context::new(
+                    context_name.clone(),
+                    match context_name.as_str() {
+                        "default" => None,
+                        _ => Some(context_parent),
+                    },
+                ),
                 is_builder,
             )
             .unwrap();
@@ -141,7 +162,11 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
     }
 
     fn convert_module(module: &YamlModule, is_binary: bool, filename: &PathBuf) -> Module {
-        let mut m = Module::new(module.name.clone(), module.context.clone());
+        let module_name = match &module.name {
+            Some(name) => name.clone(),
+            None => filename.parent().unwrap().to_str().unwrap().to_string(),
+        };
+        let mut m = Module::new(module_name.clone(), module.context.clone());
         println!(
             "{} {}:{}",
             match is_binary {
@@ -149,7 +174,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
                 false => "module".to_string(),
             },
             module.context.as_ref().unwrap_or(&"none".to_string()),
-            module.name
+            module_name
         );
         // convert module dependencies
         // "selects" means "module will be part of the build"
@@ -173,19 +198,23 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         }
         if let Some(depends) = &module.depends {
             println!("depends:");
-            for dep_name in depends {
-                println!("- {}", dep_name);
-                m.selects.push(dep_name.clone());
+            for dep_spec in depends {
+                if let StringOrMapString::String(dep_name) = dep_spec {
+                    println!("- {}", dep_name);
+                    m.selects.push(dep_name.clone());
 
-                // when "depends" are specified, they can be prefixed with "?"
-                // to make them optional (depend on when available, ignore if not).
-                // as all imports are optional, remove trailing "?" if present.
-                let import_name = if dep_name.starts_with("?") {
-                    dep_name[1..].to_string()
+                    // when "depends" are specified, they can be prefixed with "?"
+                    // to make them optional (depend on when available, ignore if not).
+                    // as all imports are optional, remove trailing "?" if present.
+                    let import_name = if dep_name.starts_with("?") {
+                        dep_name[1..].to_string()
+                    } else {
+                        dep_name.clone()
+                    };
+                    m.imports.push(import_name);
                 } else {
-                    dep_name.clone()
-                };
-                m.imports.push(import_name);
+                    println!("warning: optional dependency map not implemented (ignored)");
+                }
             }
         }
 
@@ -203,7 +232,14 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         }
 
         if let Some(sources) = &module.sources {
-            m.sources = sources.clone();
+            let mut sources_ = Vec::new();
+            for source in sources {
+                match source {
+                    StringOrMapString::String(source) => sources_.push(source.clone()),
+                    StringOrMapString::Map(source) => continue,
+                }
+            }
+            m.sources = sources_;
         }
 
         m.is_binary = is_binary;
@@ -244,7 +280,6 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         for (list, is_binary) in [(&data.module, false), (&data.app, true)].iter() {
             if let Some(module_list) = list {
                 for module in module_list {
-                    println!("m:{}", module.name);
                     contexts
                         .add_module(convert_module(
                             &module,
