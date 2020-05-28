@@ -686,6 +686,7 @@ fn generate(project_root: &Path) -> Result<()> {
             );
 
             let (ninja_link_rule, bindir) = {
+                // TODO: catch nonexisting link rule
                 let link_rule = rules.values().find(|rule| rule.name == "LINK").unwrap();
                 let mut link_env = Env::new();
                 nested_env::merge(&mut link_env, &in_out);
