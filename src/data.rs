@@ -4,6 +4,7 @@ extern crate serde_yaml;
 use indexmap::{IndexMap, IndexSet};
 use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use super::nested_env::Env;
 use super::{Context, ContextBag, Module, Rule};
@@ -66,6 +67,8 @@ fn load_one<'a>(filename: &PathBuf) -> Result<YamlFile> {
 }
 
 pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a ContextBag> {
+    let start = Instant::now();
+
     // yaml_datas holds all parsed yaml data
     let mut yaml_datas = Vec::new();
 
@@ -253,6 +256,12 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
             }
         }
     }
+
+    println!(
+        "laze: reading {} files took {:?}",
+        filenames.len(),
+        start.elapsed(),
+    );
 
     Ok(contexts)
 }
