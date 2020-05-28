@@ -557,7 +557,7 @@ impl<'a: 'b, 'b> Build<'b> {
 
 fn generate(project_root: &Path) -> Result<()> {
     let mut contexts = ContextBag::new();
-    let contexts = load(project_root, &mut contexts);
+    let contexts = load(project_root, &mut contexts)?;
 
     let mut ninja_writer = NinjaWriter::new(Path::new("build.ninja")).unwrap();
 
@@ -787,7 +787,7 @@ fn main() {
     let result = try_main();
     match result {
         Err(e) => {
-            eprintln!("laze: error: {}", e);
+            eprintln!("laze: error: {:#}", e);
             std::process::exit(1);
         }
         Ok(code) => std::process::exit(code),
@@ -895,7 +895,9 @@ fn try_main() -> Result<i32> {
 
             println!("building {:?} for {:?}", &apps, &builders);
 
+            // arguments parsed, launch generation of ninja file(s)
             generate(&project_file)?;
+
             if build_matches.is_present("generate-only") {
                 return Ok(0);
             }
