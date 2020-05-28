@@ -25,7 +25,7 @@ extern crate serde_derive;
 use indexmap::IndexMap;
 
 use anyhow::{Context as _, Error, Result};
-use clap::{crate_version, App, Arg, SubCommand};
+use clap::{crate_version, App, AppSettings, Arg, SubCommand};
 
 mod nested_env;
 use nested_env::Env;
@@ -800,6 +800,7 @@ fn try_main() -> Result<i32> {
         .version(crate_version!())
         .author("Kaspar Schleiser <kaspar@schleiser.de>")
         .about("Build a lot, fast")
+        .setting(AppSettings::InferSubcommands)
         .arg(
             Arg::with_name("chdir")
                 .short("C")
