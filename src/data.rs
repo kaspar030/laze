@@ -8,6 +8,8 @@ use std::path::{Path, PathBuf};
 use super::nested_env::Env;
 use super::{Context, ContextBag, Module, Rule};
 
+use anyhow::{Context as _, Result};
+
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlFile {
     context: Option<Vec<YamlContext>>,
@@ -25,7 +27,7 @@ struct YamlFile {
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlContext {
     name: String,
-    context: Option<String>,
+    parent: Option<String>,
     env: Option<Env>,
     rule: Option<Vec<Rule>>,
     #[serde(skip)]
@@ -52,17 +54,18 @@ struct YamlModuleEnv {
     global: Option<Env>,
 }
 
-fn load_one<'a>(filename: &PathBuf) -> YamlFile {
+fn load_one<'a>(filename: &PathBuf) -> Result<YamlFile> {
     let file = read_to_string(filename).unwrap();
     let docs: Vec<&str> = file.split("\n---\n").collect();
-    let mut data: YamlFile = serde_yaml::from_str(&docs[0]).unwrap();
+    let mut data: YamlFile = serde_yaml::from_str(&docs[0])
+        .with_context(|| format!("while parsing {}", filename.display()))?;
 
     data.filename = Some(filename.clone());
 
-    data
+    Ok(data)
 }
 
-pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> &'a ContextBag {
+pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a ContextBag> {
     // yaml_datas holds all parsed yaml data
     let mut yaml_datas = Vec::new();
 
@@ -76,7 +79,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> &'a ContextBag
     let mut filenames_pos = 0;
     while filenames_pos < filenames.len() {
         let filename = filenames.get_index(filenames_pos).unwrap();
-        yaml_datas.push(load_one(filename));
+        yaml_datas.push(load_one(filename)?);
         filenames_pos += 1;
 
         let last = &yaml_datas[yaml_datas.len() - 1];
@@ -99,7 +102,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> &'a ContextBag
         filename: &PathBuf,
     ) {
         let context_name = &context.name;
-        let context_parent = match &context.context {
+        let context_parent = match &context.parent {
             Some(x) => x.clone(),
             None => "default".to_string(),
         };
@@ -251,5 +254,5 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> &'a ContextBag
         }
     }
 
-    contexts
+    Ok(contexts)
 }
