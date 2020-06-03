@@ -384,6 +384,24 @@ impl Module {
             defined_in: None,
         }
     }
+
+    fn from(defaults: &Module, name: String, context_name: Option<String>) -> Module {
+        Module {
+            name,
+            context_name: context_name.unwrap_or_else(|| defaults.context_name.clone()),
+            selects: defaults.selects.clone(),
+            imports: defaults.imports.clone(),
+            // exports: Vec::new(),
+            sources: defaults.sources.clone(),
+            env_local: defaults.env_local.clone(),
+            env_export: defaults.env_export.clone(),
+            env_global: defaults.env_global.clone(),
+            context_id: None,
+            is_binary: false,
+            defined_in: None,
+        }
+    }
+
     //fn can_build_for(&self, context: &Context, contexts: &ContextBag) -> bool {
     //    contexts.context_is_in(self.context_id.unwrap(), context.index.unwrap())
     //}
