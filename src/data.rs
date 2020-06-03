@@ -20,6 +20,7 @@ struct YamlFile {
     app: Option<Vec<YamlModule>>,
     import: Option<Vec<String>>,
     subdirs: Option<Vec<String>>,
+    defaults: Option<HashMap<String, YamlModule>>,
     #[serde(skip)]
     filename: Option<PathBuf>,
     #[serde(skip)]
@@ -161,12 +162,20 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         context_.defined_in = Some(filename.clone());
     }
 
-    fn convert_module(module: &YamlModule, is_binary: bool, filename: &PathBuf) -> Module {
+    fn convert_module(
+        module: &YamlModule,
+        is_binary: bool,
+        filename: &PathBuf,
+        defaults: Option<&Module>,
+    ) -> Module {
         let module_name = match &module.name {
             Some(name) => name.clone(),
             None => filename.parent().unwrap().to_str().unwrap().to_string(),
         };
-        let mut m = Module::new(module_name.clone(), module.context.clone());
+        let mut m = match defaults {
+            Some(defaults) => Module::from(defaults, module_name.clone(), module.context.clone()),
+            None => Module::new(module_name.clone(), module.context.clone()),
+        };
         println!(
             "{} {}:{}",
             match is_binary {
@@ -232,14 +241,12 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         }
 
         if let Some(sources) = &module.sources {
-            let mut sources_ = Vec::new();
             for source in sources {
                 match source {
-                    StringOrMapString::String(source) => sources_.push(source.clone()),
+                    StringOrMapString::String(source) => m.sources.push(source.clone()),
                     StringOrMapString::Map(source) => continue,
                 }
             }
-            m.sources = sources_;
         }
 
         m.is_binary = is_binary;
@@ -277,6 +284,21 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
     // }
 
     for data in &yaml_datas {
+        let module_defaults = if let Some(defaults) = &data.defaults {
+            if let Some(module_defaults) = defaults.get("module") {
+                Some(convert_module(
+                    &module_defaults,
+                    false,
+                    &data.filename.as_ref().unwrap(),
+                    None,
+                ))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         for (list, is_binary) in [(&data.module, false), (&data.app, true)].iter() {
             if let Some(module_list) = list {
                 for module in module_list {
@@ -285,6 +307,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
                             &module,
                             *is_binary,
                             &data.filename.as_ref().unwrap(),
+                            module_defaults.as_ref(),
                         ))
                         .unwrap();
                 }
