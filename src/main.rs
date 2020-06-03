@@ -59,15 +59,18 @@ pub struct Module {
 
     selects: Vec<String>,
     imports: Vec<String>,
+
     sources: Vec<String>,
 
     env_local: Env,
     env_export: Env,
     env_global: Env,
+    env_early: Env,
 
     context_id: Option<usize>,
-    is_binary: bool,
     defined_in: Option<PathBuf>,
+    srcdir: Option<PathBuf>,
+    is_binary: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
@@ -379,9 +382,11 @@ impl Module {
             env_local: Env::new(),
             env_export: Env::new(),
             env_global: Env::new(),
+            env_early: Env::new(),
             context_id: None,
             is_binary: false,
             defined_in: None,
+            srcdir: None,
         }
     }
 
@@ -396,9 +401,14 @@ impl Module {
             env_local: defaults.env_local.clone(),
             env_export: defaults.env_export.clone(),
             env_global: defaults.env_global.clone(),
+            env_early: Env::new(),
             context_id: None,
             is_binary: false,
             defined_in: None,
+            srcdir: match &defaults.srcdir {
+                Some(dir) => Some(dir.clone()),
+                None => None,
+            },
         }
     }
 

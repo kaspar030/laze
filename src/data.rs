@@ -7,7 +7,7 @@ use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use super::nested_env::Env;
+use super::nested_env::{Env, EnvKey};
 use super::{Context, ContextBag, Module, Rule};
 
 use anyhow::{Context as _, Result};
@@ -168,9 +168,10 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         filename: &PathBuf,
         defaults: Option<&Module>,
     ) -> Module {
+        let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
         let module_name = match &module.name {
             Some(name) => name.clone(),
-            None => filename.parent().unwrap().to_str().unwrap().to_string(),
+            None => relpath.clone(),
         };
         let mut m = match defaults {
             Some(defaults) => Module::from(defaults, module_name.clone(), module.context.clone()),
@@ -227,6 +228,9 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
             }
         }
 
+        // populate "early env"
+        m.env_early
+            .insert("relpath".into(), EnvKey::Single(relpath));
         // copy over environment
         if let Some(env) = &module.env {
             if let Some(local) = &env.local {
