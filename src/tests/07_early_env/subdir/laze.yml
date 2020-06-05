@@ -1,0 +1,14 @@
+app:
+  - name: single_app
+    sources:
+      - single_app.c
+
+    env:
+      local:
+        LOCAL_VAR: local_var relpath:${relpath} OTHER:${OTHER}
+        OTHER: other_value
+      global:
+        GLOBAL_VAR: global_var
+
+subdirs:
+  - deeper_subdir

@@ -1,0 +1,20 @@
+builder:
+  - name: single_builder
+    rule:
+        - name: CC
+          in: 'c'
+          out: 'o'
+          cmd: 'echo ${LOCAL_VAR} ${LOCAL_VAR2} ${GLOBAL_VAR} ${GLOBAL_VAR2} ${in} > ${out} && cat ${in} >> ${out}'
+        - name: LINK
+          in: 'o'
+          options:
+              combine: true
+          cmd: 'cat ${in} > ${out}'
+
+context:
+  - name: default
+    env:
+      bindir: build/${builder}/${app}
+
+subdirs:
+  - subdir

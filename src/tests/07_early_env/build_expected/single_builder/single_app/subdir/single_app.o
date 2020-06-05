@@ -1,0 +1,2 @@
+local_var relpath:subdir OTHER:other_value global_var subdir/single_app.c
+content of subdir/single_app.c
