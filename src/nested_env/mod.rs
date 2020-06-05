@@ -3,7 +3,7 @@ use std::vec::Vec;
 
 mod expand;
 
-pub use expand::expand;
+pub use expand::{expand, IfMissing};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -57,8 +57,29 @@ pub fn flatten(env: &Env) -> HashMap<&String, String> {
 pub fn flatten_expand<'a>(flattened: &'a HashMap<&String, String>) -> HashMap<&'a String, String> {
     flattened
         .iter()
-        .map(|(key, value)| (*key, expand(value, flattened, true).unwrap()))
+        .map(|(key, value)| (*key, expand(value, flattened, IfMissing::Error).unwrap()))
         .collect()
+}
+
+pub fn expand_env(env: &Env, values: &Env) -> Env {
+    let values = flatten(values);
+
+    fn expand_envkey(envkey: &EnvKey, values: &HashMap<&String, String>) -> EnvKey {
+        match envkey {
+            EnvKey::Single(key) => EnvKey::Single(expand(key, values, IfMissing::Ignore).unwrap()),
+            EnvKey::List(keys) => EnvKey::List({
+                keys.iter()
+                    .map(|x| expand(x, values, IfMissing::Ignore).unwrap())
+                    .collect()
+            }),
+        }
+    }
+
+    let mut result = Env::with_capacity(env.len());
+    for (key, value) in env {
+        result.insert(key.clone(), expand_envkey(value, &values));
+    }
+    result
 }
 
 #[cfg(test)]

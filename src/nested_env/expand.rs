@@ -11,6 +11,13 @@ pub enum ExpandError {
     Cycle(String),
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum IfMissing {
+    Error,
+    Ignore,
+    Empty,
+}
+
 impl fmt::Display for ExpandError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -31,21 +38,21 @@ impl error::Error for ExpandError {
 pub fn expand<SI, H>(
     f: SI,
     r: &HashMap<&String, String, H>,
-    error_if_missing: bool,
+    if_missing: IfMissing,
 ) -> Result<String, ExpandError>
 where
     SI: AsRef<str>,
     H: std::hash::BuildHasher,
 {
     let seen = Vec::new();
-    expand_recursive::<SI, H>(f, r, seen, error_if_missing)
+    expand_recursive::<SI, H>(f, r, seen, if_missing)
 }
 
 fn expand_recursive<'a, SI: 'a, H>(
     f: SI,
     r: &HashMap<&String, String, H>,
     seen: Vec<&'a str>,
-    error_if_missing: bool,
+    if_missing: IfMissing,
 ) -> Result<String, ExpandError>
 where
     SI: AsRef<str>,
@@ -111,14 +118,16 @@ where
         seen.push(key_);
 
         match r.get(key_) {
-            Some(val) => {
-                result.push_str(expand_recursive(val, r, seen, error_if_missing)?.as_ref())
-            }
-            None => {
-                if error_if_missing {
-                    return Err(ExpandError::Missing(key.into()));
+            Some(val) => result.push_str(expand_recursive(val, r, seen, if_missing)?.as_ref()),
+            None => match if_missing {
+                IfMissing::Error => return Err(ExpandError::Missing(key.into())),
+                IfMissing::Ignore => {
+                    result.push_str("${");
+                    result.push_str(key_);
+                    result.push_str("}")
                 }
-            }
+                IfMissing::Empty => (),
+            },
         };
         cursor = end;
     }
@@ -143,7 +152,7 @@ mod tests {
     fn no_expansion() {
         let vars = HashMap::new();
         assert_eq!(
-            expand("simple string", &vars, true),
+            expand("simple string", &vars, IfMissing::Error),
             Ok("simple string".to_string())
         );
     }
@@ -155,7 +164,7 @@ mod tests {
         let vars: HashMap<&String, String> =
             vars.iter().map(|(k, v)| (k.into(), v.into())).collect();
         assert_eq!(
-            expand("${A} simple string", &vars, true),
+            expand("${A} simple string", &vars, IfMissing::Error),
             Ok("a simple string".to_string())
         );
     }
@@ -168,7 +177,7 @@ mod tests {
         let vars: HashMap<&String, String> =
             vars.iter().map(|(k, v)| (k.into(), v.into())).collect();
         assert_eq!(
-            expand("${A} simple string ${B}", &vars, true),
+            expand("${A} simple string ${B}", &vars, IfMissing::Error),
             Ok("a simple string with variables".to_string())
         );
     }
@@ -177,7 +186,7 @@ mod tests {
     fn error_missing() {
         let vars = HashMap::new();
         assert_eq!(
-            expand("simple string ${A}", &vars, true),
+            expand("simple string ${A}", &vars, IfMissing::Error),
             Err(ExpandError::Missing("A".to_string()))
         );
     }
@@ -186,7 +195,7 @@ mod tests {
     fn no_error_missing() {
         let vars = HashMap::new();
         assert_eq!(
-            expand("simple string ${A}", &vars, false),
+            expand("simple string ${A}", &vars, IfMissing::Empty),
             Ok("simple string ".to_string())
         );
     }
@@ -198,7 +207,10 @@ mod tests {
         vars.insert("B".to_string(), "b()".to_string());
         let vars: HashMap<&String, String> =
             vars.iter().map(|(k, v)| (k.into(), v.into())).collect();
-        assert_eq!(expand("x${A}x", &vars, true), Ok("xa(b())x".to_string()));
+        assert_eq!(
+            expand("x${A}x", &vars, IfMissing::Error),
+            Ok("xa(b())x".to_string())
+        );
     }
 
     #[test]
@@ -208,7 +220,7 @@ mod tests {
         let vars: HashMap<&String, String> =
             vars.iter().map(|(k, v)| (k.into(), v.into())).collect();
         assert_eq!(
-            expand("${A} simple string", &vars, true),
+            expand("${A} simple string", &vars, IfMissing::Error),
             Ok("${a} simple string".to_string())
         );
     }
