@@ -255,6 +255,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
 
         m.is_binary = is_binary;
         m.defined_in = Some(filename.clone());
+        m.apply_early_env();
         m
     }
 

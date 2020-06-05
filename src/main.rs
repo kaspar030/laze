@@ -465,6 +465,12 @@ impl Module {
 
         module_env
     }
+
+    pub fn apply_early_env(&mut self) {
+        self.env_local = nested_env::expand_env(&self.env_local, &self.env_early);
+        self.env_export = nested_env::expand_env(&self.env_export, &self.env_early);
+        self.env_global = nested_env::expand_env(&self.env_global, &self.env_early);
+    }
 }
 
 impl Hash for Module {
