@@ -28,7 +28,7 @@ use anyhow::{Context as _, Error, Result};
 use clap::{crate_version, App, AppSettings, Arg, SubCommand};
 
 mod nested_env;
-use nested_env::Env;
+use nested_env::{Env, IfMissing};
 
 mod data;
 use data::load;
@@ -672,7 +672,8 @@ fn generate(project_root: &Path) -> Result<()> {
                             }
                         };
                         let expanded =
-                            nested_env::expand(&rule.cmd, &flattened_env, false).unwrap();
+                            nested_env::expand(&rule.cmd, &flattened_env, IfMissing::Empty)
+                                .unwrap();
 
                         NinjaRuleBuilder::default()
                             .name(&*rule.name)
@@ -720,7 +721,8 @@ fn generate(project_root: &Path) -> Result<()> {
                 nested_env::merge(&mut link_env, &in_out);
                 nested_env::merge(&mut link_env, &global_env);
                 let flattened_env = nested_env::flatten(&link_env);
-                let expanded = nested_env::expand(&link_rule.cmd, &flattened_env, false).unwrap();
+                let expanded =
+                    nested_env::expand(&link_rule.cmd, &flattened_env, IfMissing::Empty).unwrap();
 
                 (
                     NinjaRuleBuilder::default()
@@ -729,7 +731,7 @@ fn generate(project_root: &Path) -> Result<()> {
                         .command(&*expanded)
                         .build()
                         .unwrap(),
-                    nested_env::expand("${bindir}", &flattened_env, false).unwrap(),
+                    nested_env::expand("${bindir}", &flattened_env, IfMissing::Empty).unwrap(),
                 )
             };
 
