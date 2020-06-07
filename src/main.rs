@@ -48,6 +48,7 @@ pub struct Context {
     pub modules: IndexMap<String, Module>,
     pub rules: Option<IndexMap<String, Rule>>,
     pub env: Option<Env>,
+    pub env_early: Env,
     pub is_builder: bool,
     pub defined_in: Option<PathBuf>,
 }
@@ -95,6 +96,7 @@ impl Context {
             parent_index: None,
             modules: IndexMap::new(),
             env: None,
+            env_early: Env::new(),
             rules: None,
             is_builder: false,
             defined_in: None,
@@ -111,6 +113,7 @@ impl Context {
             parent_index: Some(builder_index),
             modules: IndexMap::new(),
             env: None,
+            env_early: Env::new(),
             rules: None,
             is_builder: false,
             defined_in: None,
@@ -184,6 +187,12 @@ impl Context {
             }
         }
         result
+    }
+
+    pub fn apply_early_env(&mut self) {
+        if let Some(env) = &self.env {
+            self.env = Some(nested_env::expand_env(env, &self.env_early));
+        }
     }
 }
 

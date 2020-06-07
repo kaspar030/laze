@@ -159,6 +159,13 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
                     .insert(rule.name.clone(), rule);
             }
         }
+        // populate "early env"
+        let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
+        context_
+            .env_early
+            .insert("relpath".into(), EnvKey::Single(relpath));
+        context_.apply_early_env();
+
         context_.defined_in = Some(filename.clone());
     }
 
