@@ -12,6 +12,15 @@ pub enum EnvKey {
     List(Vec<String>),
 }
 
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+pub struct MergeOption {
+    joiner: Option<String>,
+    prefix: Option<String>,
+    suffix: Option<String>,
+    start: Option<String>,
+    end: Option<String>,
+}
+
 impl EnvKey {
     fn merge(&self, other: &EnvKey) -> EnvKey {
         match self {
@@ -35,6 +44,55 @@ impl EnvKey {
             EnvKey::List(list) => list.join(" "),
         }
     }
+
+    fn flatten_with_opts(&self, opts: &MergeOption) -> String {
+        let mut res = String::new();
+        if let Some(start) = &opts.start {
+            res.push_str(&start);
+        }
+
+        match self {
+            EnvKey::Single(s) => {
+                if let Some(prefix) = &opts.prefix {
+                    res.push_str(&prefix);
+                }
+
+                res.push_str(&s);
+
+                if let Some(suffix) = &opts.suffix {
+                    res.push_str(&suffix);
+                }
+            }
+            EnvKey::List(list) => {
+                let joiner = match &opts.joiner {
+                    Some(joiner) => joiner,
+                    None => " ",
+                };
+                let last = list.len() - 1;
+                for (pos, s) in list.iter().enumerate() {
+                    if s.is_empty() {
+                        continue;
+                    }
+                    if let Some(prefix) = &opts.prefix {
+                        res.push_str(&prefix);
+                    }
+
+                    res.push_str(&s);
+
+                    if let Some(suffix) = &opts.suffix {
+                        res.push_str(&suffix);
+                    }
+                    if pos != last {
+                        res.push_str(&joiner);
+                    }
+                }
+            }
+        }
+        if let Some(end) = &opts.end {
+            res.push_str(&end[..]);
+        }
+        res
+    }
 }
 
 pub type Env = HashMap<String, EnvKey>;
@@ -52,6 +110,35 @@ pub fn flatten(env: &Env) -> HashMap<&String, String> {
     env.iter()
         .map(|(key, value)| (key, value.flatten()))
         .collect()
+}
+
+pub fn flatten_with_opts<'a>(
+    env: &'a Env,
+    merge_opts: &HashMap<String, MergeOption>,
+) -> HashMap<&'a String, String> {
+    env.iter()
+        .map(|(key, value)| {
+            (
+                key,
+                if let Some(merge_opts) = merge_opts.get(key) {
+                    value.flatten_with_opts(merge_opts)
+                } else {
+                    value.flatten()
+                },
+            )
+        })
+        .collect()
+}
+
+pub fn flatten_with_opts_option<'a>(
+    env: &'a Env,
+    merge_opts: Option<&HashMap<String, MergeOption>>,
+) -> HashMap<&'a String, String> {
+    if let Some(merge_opts) = merge_opts {
+        flatten_with_opts(env, merge_opts)
+    } else {
+        flatten(env)
+    }
 }
 
 pub fn flatten_expand<'a>(flattened: &'a HashMap<&String, String>) -> HashMap<&'a String, String> {
@@ -232,5 +319,38 @@ mod tests {
         for (key, value) in merged {
             dbg!(key, value);
         }
+    }
+
+    #[test]
+    fn test_mergeopts() {
+        let mut env = Env::new();
+        env.insert(
+            "mykey".to_string(),
+            EnvKey::List(vec![
+                "value_1".to_string(),
+                "value_2".to_string(),
+                "value_3".to_string(),
+                "value_4".to_string(),
+            ]),
+        );
+
+        let mut merge_opts = HashMap::new();
+        merge_opts.insert(
+            "mykey".to_string(),
+            MergeOption {
+                joiner: Some(",".to_string()),
+                prefix: Some("P".to_string()),
+                suffix: Some("S".to_string()),
+                start: Some("(".to_string()),
+                end: Some(")".to_string()),
+            },
+        );
+
+        let flattened = flatten_with_opts(&env, &merge_opts);
+
+        assert_eq!(
+            flattened.get(&"mykey".to_string()).unwrap(),
+            &"(Pvalue_1S,Pvalue_2S,Pvalue_3S,Pvalue_4S)".to_string()
+        );
     }
 }
