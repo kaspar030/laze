@@ -7,7 +7,7 @@ use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use super::nested_env::{Env, EnvKey};
+use super::nested_env::{Env, EnvKey, MergeOption};
 use super::{Context, ContextBag, Module, Rule};
 
 use anyhow::{Context as _, Result};
@@ -33,6 +33,7 @@ struct YamlContext {
     parent: Option<String>,
     env: Option<Env>,
     rule: Option<Vec<Rule>>,
+    var_options: Option<HashMap<String, MergeOption>>,
     #[serde(skip)]
     is_builder: bool,
 }
@@ -159,6 +160,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
                     .insert(rule.name.clone(), rule);
             }
         }
+        context_.var_options = context.var_options.clone();
         // populate "early env"
         let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
         context_

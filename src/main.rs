@@ -28,7 +28,7 @@ use anyhow::{Context as _, Error, Result};
 use clap::{crate_version, App, AppSettings, Arg, SubCommand};
 
 mod nested_env;
-use nested_env::{Env, IfMissing};
+use nested_env::{Env, IfMissing, MergeOption};
 
 mod data;
 use data::load;
@@ -48,6 +48,9 @@ pub struct Context {
     pub modules: IndexMap<String, Module>,
     pub rules: Option<IndexMap<String, Rule>>,
     pub env: Option<Env>,
+
+    pub var_options: Option<HashMap<String, MergeOption>>,
+
     pub env_early: Env,
     pub is_builder: bool,
     pub defined_in: Option<PathBuf>,
@@ -98,6 +101,7 @@ impl Context {
             env: None,
             env_early: Env::new(),
             rules: None,
+            var_options: None,
             is_builder: false,
             defined_in: None,
         }
@@ -115,6 +119,7 @@ impl Context {
             env: None,
             env_early: Env::new(),
             rules: None,
+            var_options: None,
             is_builder: false,
             defined_in: None,
         }
@@ -252,6 +257,7 @@ impl ContextBag {
          * we need to ensure that we process the contexts in an order so that each context is
          * processed after all its parents have been processed.
          * This can be done by topologically sorting them by the total numbers of parents.
+         * Also, collect var_options for each builder.
          */
 
         /* 1. sort by number of parents (ascending) */
@@ -265,7 +271,9 @@ impl ContextBag {
         sorted_by_numparents.sort_by(|a, b| a.1.cmp(&b.1));
 
         /* 2. merge ordered by number of parents (ascending) */
-        for (n, m) in sorted_by_numparents {
+        for (n, m) in &sorted_by_numparents {
+            let n = *n;
+            let m = *m;
             if m == 0 {
                 continue;
             }
@@ -288,6 +296,40 @@ impl ContextBag {
                 }
                 let context = &mut self.contexts[n];
                 context.env = Some(env);
+            }
+        }
+        for (n, m) in sorted_by_numparents {
+            if m == 0 {
+                continue;
+            }
+            // this looks complicated...
+            // the idea is,
+            // if a parent has var_opts,
+            //    if a context has var_opts
+            //       merge parent in context options
+            //    else
+            //       clone parent options
+
+            let context = &self.contexts[n];
+            let parent_var_ops = &self.contexts[context.parent_index.unwrap()].var_options;
+            let combined_var_opts = if let Some(parent_var_ops) = parent_var_ops {
+                if let Some(context_var_opts) = &context.var_options {
+                    Some(
+                        parent_var_ops
+                            .into_iter()
+                            .chain(context_var_opts)
+                            .map(|(k, v)| (k.clone(), v.clone()))
+                            .collect(),
+                    )
+                } else {
+                    Some(parent_var_ops.clone())
+                }
+            } else {
+                None
+            };
+            let mut context = &mut self.contexts[n];
+            if let None = &context.var_options {
+                context.var_options = combined_var_opts;
             }
         }
     }
@@ -645,6 +687,7 @@ fn generate(project_root: &Path) -> Result<()> {
             /* collect build context rules */
             let mut rules = IndexMap::new();
             let rules = build.build_context.collect_rules(&contexts, &mut rules);
+            let merge_opts = &builder.var_options;
 
             /* import global module environments into global build context env */
             for (_, module) in modules.iter().rev() {
@@ -662,7 +705,9 @@ fn generate(project_root: &Path) -> Result<()> {
                 let mut rule_env = Env::new();
                 nested_env::merge(&mut rule_env, &in_out);
                 nested_env::merge(&mut rule_env, &module_env);
-                let flattened_env = nested_env::flatten(&rule_env);
+                let flattened_env =
+                    nested_env::flatten_with_opts_option(&rule_env, merge_opts.as_ref());
+                println!("{:#?}", builder.var_options);
 
                 let mut module_rules: IndexMap<String, NinjaRule> = IndexMap::new();
                 let mut module_builds = Vec::new();
