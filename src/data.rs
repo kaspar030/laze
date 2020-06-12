@@ -83,6 +83,21 @@ fn load_one<'a>(filename: &PathBuf) -> Result<YamlFile> {
     Ok(data)
 }
 
+fn load_all<'a>(filename: &PathBuf) -> Result<Vec<YamlFile>> {
+    let file = read_to_string(filename).unwrap();
+    let docs: Vec<&str> = file.split("\n---\n").collect();
+
+    let mut result = Vec::new();
+    for (n, doc) in docs.iter().enumerate() {
+        let mut parsed: YamlFile = serde_yaml::from_str(doc)
+            .with_context(|| format!("while parsing {}", filename.display()))?;
+        parsed.filename = Some(filename.clone());
+        result.push(parsed);
+    }
+
+    Ok(result)
+}
+
 pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a ContextBag> {
     let start = Instant::now();
 
@@ -98,19 +113,29 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
 
     let mut filenames_pos = 0;
     while filenames_pos < filenames.len() {
-        let filename = filenames.get_index(filenames_pos).unwrap();
-        yaml_datas.push(load_one(filename)?);
+        let filename = filenames.get_index(filenames_pos).unwrap().clone();
+        let new_index_start = yaml_datas.len();
+        yaml_datas.extend(load_all(&filename)?.drain(..));
         filenames_pos += 1;
 
-        let last = &yaml_datas[yaml_datas.len() - 1];
-        if let Some(subdirs) = &last.subdirs {
-            let relpath = filename.parent().unwrap().to_path_buf();
-            for subdir in subdirs {
-                let mut sub_relpath = relpath.clone();
-                sub_relpath.push(subdir);
-                let mut sub_file = sub_relpath.clone();
-                sub_file.push("laze.yml");
-                filenames.insert(sub_file);
+        let new_index_end = yaml_datas.len();
+
+        // no documents in file
+        if new_index_start == new_index_end {
+            continue;
+        }
+
+        for i in new_index_start..new_index_end {
+            let new = &yaml_datas[i];
+            if let Some(subdirs) = &new.subdirs {
+                let relpath = filename.parent().unwrap().to_path_buf();
+                for subdir in subdirs {
+                    let mut sub_relpath = relpath.clone();
+                    sub_relpath.push(subdir);
+                    let mut sub_file = sub_relpath.clone();
+                    sub_file.push("laze.yml");
+                    filenames.insert(sub_file);
+                }
             }
         }
     }
