@@ -25,6 +25,10 @@ struct YamlFile {
     filename: Option<PathBuf>,
     #[serde(skip)]
     included_from: Option<PathBuf>,
+    #[serde(skip)]
+    doc_idx: Option<usize>,
+    #[serde(skip)]
+    included_by: Option<usize>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -72,26 +76,35 @@ struct YamlModuleEnv {
     global: Option<Env>,
 }
 
-fn load_one<'a>(filename: &PathBuf) -> Result<YamlFile> {
-    let file = read_to_string(filename).unwrap();
-    let docs: Vec<&str> = file.split("\n---\n").collect();
-    let mut data: YamlFile = serde_yaml::from_str(&docs[0])
-        .with_context(|| format!("while parsing {}", filename.display()))?;
+// fn load_one<'a>(filename: &PathBuf) -> Result<YamlFile> {
+//     let file = read_to_string(filename).unwrap();
+//     let docs: Vec<&str> = file.split("\n---\n").collect();
+//     let mut data: YamlFile = serde_yaml::from_str(&docs[0])
+//         .with_context(|| format!("while parsing {}", filename.display()))?;
 
-    data.filename = Some(filename.clone());
+//     data.filename = Some(filename.clone());
 
-    Ok(data)
-}
+//     Ok(data)
+// }
 
-fn load_all<'a>(filename: &PathBuf) -> Result<Vec<YamlFile>> {
-    let file = read_to_string(filename).unwrap();
+fn load_all<'a>(
+    filename: &PathBuf,
+    index_start: usize,
+    included_by: Option<usize>,
+) -> Result<Vec<YamlFile>> {
+    let file = read_to_string(filename)
+        .with_context(|| format!("while reading {}", filename.display()))?;
+
     let docs: Vec<&str> = file.split("\n---\n").collect();
 
     let mut result = Vec::new();
     for (n, doc) in docs.iter().enumerate() {
+        let n = n + index_start;
         let mut parsed: YamlFile = serde_yaml::from_str(doc)
             .with_context(|| format!("while parsing {}", filename.display()))?;
         parsed.filename = Some(filename.clone());
+        parsed.doc_idx = Some(n);
+        parsed.included_by = included_by;
         result.push(parsed);
     }
 
@@ -107,34 +120,41 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
     // filenames contains all filenames so far included.
     // when reading files, any "subdir" will be converted to "subdir/laze.yml", then added to the
     // set.
-    // using a set so checking for already included is fast.
-    let mut filenames = IndexSet::new();
-    filenames.insert(PathBuf::from(filename));
+    // using an IndexSet so files can only be added once
+    let mut filenames: IndexSet<(_, Option<usize>)> = IndexSet::new();
+    filenames.insert((PathBuf::from(filename), None));
 
     let mut filenames_pos = 0;
     while filenames_pos < filenames.len() {
-        let filename = filenames.get_index(filenames_pos).unwrap().clone();
+        let (filename, included_by_doc_idx) = filenames.get_index(filenames_pos).unwrap();
+        let filename = filename.clone();
         let new_index_start = yaml_datas.len();
-        yaml_datas.extend(load_all(&filename)?.drain(..));
+
+        let included_by = if let Some(doc_idx) = included_by_doc_idx {
+            Some(*doc_idx)
+        } else {
+            None
+        };
+
+        // load all yaml documents from filename, append to yaml_datas
+        yaml_datas.extend(load_all(&filename, new_index_start, included_by)?.drain(..));
         filenames_pos += 1;
 
         let new_index_end = yaml_datas.len();
 
-        // no documents in file
-        if new_index_start == new_index_end {
-            continue;
-        }
-
+        // iterate over newly added documents
         for i in new_index_start..new_index_end {
             let new = &yaml_datas[i];
             if let Some(subdirs) = &new.subdirs {
                 let relpath = filename.parent().unwrap().to_path_buf();
+
+                // collect subdirs, add do filenames list
                 for subdir in subdirs {
                     let mut sub_relpath = relpath.clone();
                     sub_relpath.push(subdir);
                     let mut sub_file = sub_relpath.clone();
                     sub_file.push("laze.yml");
-                    filenames.insert(sub_file);
+                    filenames.insert((sub_file, new.doc_idx));
                 }
             }
         }
@@ -282,6 +302,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
             for source in sources {
                 match source {
                     StringOrMapString::String(source) => m.sources.push(source.clone()),
+                    // TODO: optional sources
                     StringOrMapString::Map(source) => continue,
                 }
             }
@@ -311,8 +332,8 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         }
     }
 
-    /* after this, there's a default context, context relationships and envs have been set up.
-    modules can now be processed. */
+    // after this, there's a default context, context relationships and envs have been set up.
+    // modules can now be processed.
     contexts.finalize();
 
     // for context in &contexts.contexts {
@@ -321,15 +342,24 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
     //         dbg!(env);
     //     }
     // }
+    let mut subdir_defaults = HashMap::new();
 
     for data in &yaml_datas {
-        let module_defaults = if let Some(defaults) = &data.defaults {
+        // determine inherited "defaults: module: ..."
+        let subdir_module_defaults: Option<&Module> = if let Some(included_by) = &data.included_by {
+            subdir_defaults.get(included_by)
+        } else {
+            None
+        };
+
+        // determine "defaults: module: ..." from yaml document
+        let mut module_defaults = if let Some(defaults) = &data.defaults {
             if let Some(module_defaults) = defaults.get("module") {
                 Some(convert_module(
                     &module_defaults,
                     false,
                     &data.filename.as_ref().unwrap(),
-                    None,
+                    subdir_module_defaults,
                 ))
             } else {
                 None
@@ -337,6 +367,18 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         } else {
             None
         };
+
+        if let None = module_defaults {
+            if let Some(subdir_module_defaults) = subdir_module_defaults {
+                module_defaults = Some(subdir_module_defaults.clone());
+            }
+        }
+
+        if let Some(_) = data.subdirs {
+            if let Some(module_defaults) = &module_defaults {
+                subdir_defaults.insert(data.doc_idx.unwrap(), module_defaults.clone());
+            }
+        }
 
         for (list, is_binary) in [(&data.module, false), (&data.app, true)].iter() {
             if let Some(module_list) = list {
@@ -346,7 +388,11 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
                             &module,
                             *is_binary,
                             &data.filename.as_ref().unwrap(),
-                            module_defaults.as_ref(),
+                            if *is_binary {
+                                None
+                            } else {
+                                module_defaults.as_ref()
+                            },
                         ))
                         .unwrap();
                 }

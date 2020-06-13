@@ -56,7 +56,7 @@ pub struct Context {
     pub defined_in: Option<PathBuf>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Module {
     name: String,
     context_name: String,
