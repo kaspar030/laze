@@ -207,7 +207,15 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         }
         context_.var_options = context.var_options.clone();
         // populate "early env"
-        let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
+        let relpath = {
+            let relpath = filename.parent().unwrap().to_str().unwrap();
+            if relpath == "" {
+                ".".to_string()
+            } else {
+                relpath.to_string()
+            }
+        };
+
         context_
             .env_early
             .insert("relpath".into(), EnvKey::Single(relpath));
