@@ -1,0 +1,52 @@
+builder:
+  - name: single_builder
+    rule:
+        - name: CC
+          in: 'c'
+          out: 'o'
+          cmd: 'echo ${DEFAULT_VAR} ${in} > ${out}'
+        - name: LINK
+          in: 'o'
+          options:
+              combine: true
+          cmd: 'cat ${in} > ${out}'
+    env:
+      bindir: build/${builder}/${app}
+
+defaults:
+  module:
+    env:
+      export:
+        DEFAULT_VAR:
+          - DEFAULT_VAR_laze-project.yml
+
+module:
+  - name: simple_module
+    depends:
+      - another_simple_module
+    env:
+      export:
+        DEFAULT_VAR:
+          - DEFAULT_VAR_from_simple_module
+
+  - name: another_simple_module
+    env:
+      export:
+        DEFAULT_VAR:
+          - DEFAULT_VAR_from_another_simple_module
+
+subdirs:
+  - subdir_a
+    #  - subdir_b
+
+# note the yaml document marker here:
+---
+app:
+  - name: first_app
+    sources:
+      - first_app.c
+    depends:
+      - simple_module
+
+#subdirs:
+#  - subdir_c

@@ -1,0 +1,13 @@
+module:
+  - name: subdir_b_module
+    env:
+      export:
+        DEFAULT_VAR:
+          - DEFAULT_VAR_subdir_b_module
+
+app:
+  - name: third_app
+    sources:
+      - third_app.c
+    depends:
+      - subdir_b_module

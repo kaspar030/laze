@@ -1,0 +1,17 @@
+module:
+  - name: subdir_a_module
+    env:
+      export:
+        DEFAULT_VAR:
+          - DEFAULT_VAR_subdir_a_module
+
+app:
+  - name: second_app
+    sources:
+      - second_app.c
+    depends:
+      - subdir_a_module
+      - simple_module
+
+subdirs:
+  - subdir_b
