@@ -5,7 +5,7 @@
 cleanup
 build
 
-diff -r build build_expected
+diff -r build_expected build
 
 echo TEST_OK
 
