@@ -509,12 +509,35 @@ impl Module {
         for dep in &deps {
             /* merge that dependency's exported env */
             nested_env::merge(&mut module_env, &dep.env_export);
+
+            //
+            let notify_list = module_env
+                .entry("notify".into())
+                .or_insert_with(|| nested_env::EnvKey::List(vec![]));
+
+            match notify_list {
+                nested_env::EnvKey::Single(_) => panic!("unexpected notify value"),
+                nested_env::EnvKey::List(list) => list.push(dep.create_module_define()),
+            }
         }
 
         /* finally, merge the module's local env */
         nested_env::merge(&mut module_env, &self.env_local);
 
         module_env
+    }
+
+    fn create_module_define(&self) -> String {
+        self.name
+            .chars()
+            .map(|x| match x {
+                'a'..='z' => x.to_ascii_uppercase(),
+                '/' => '_',
+                '.' => '_',
+                '-' => '_',
+                _ => x,
+            })
+            .collect()
     }
 
     pub fn apply_early_env(&mut self) {
