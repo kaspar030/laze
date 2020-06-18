@@ -730,7 +730,7 @@ fn generate(project_root: &Path) -> Result<()> {
                 nested_env::merge(&mut rule_env, &module_env);
                 let flattened_env =
                     nested_env::flatten_with_opts_option(&rule_env, merge_opts.as_ref());
-                println!("{:#?}", builder.var_options);
+                //println!("{:#?}", builder.var_options);
 
                 let mut module_rules: IndexMap<String, NinjaRule> = IndexMap::new();
                 let mut module_builds = Vec::new();
