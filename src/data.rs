@@ -350,24 +350,32 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
     //         dbg!(env);
     //     }
     // }
-    let mut subdir_defaults = HashMap::new();
+    let mut subdir_module_defaults_map = HashMap::new();
+    let mut subdir_app_defaults_map = HashMap::new();
 
-    for data in &yaml_datas {
+    fn get_defaults(
+        data: &YamlFile,
+        defaults_map: &HashMap<usize, Module>,
+        key: &str,
+        is_binary: bool,
+    ) -> Option<Module> {
+        // this function determines the module or app defaults for a given YamlFile
+
         // determine inherited "defaults: module: ..."
-        let subdir_module_defaults: Option<&Module> = if let Some(included_by) = &data.included_by {
-            subdir_defaults.get(included_by)
+        let subdir_defaults: Option<&Module> = if let Some(included_by) = &data.included_by {
+            defaults_map.get(included_by)
         } else {
             None
         };
 
         // determine "defaults: module: ..." from yaml document
         let mut module_defaults = if let Some(defaults) = &data.defaults {
-            if let Some(module_defaults) = defaults.get("module") {
+            if let Some(module_defaults) = defaults.get(key) {
                 Some(convert_module(
                     &module_defaults,
-                    false,
+                    is_binary,
                     &data.filename.as_ref().unwrap(),
-                    subdir_module_defaults,
+                    subdir_defaults,
                 ))
             } else {
                 None
@@ -375,16 +383,24 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         } else {
             None
         };
-
         if let None = module_defaults {
-            if let Some(subdir_module_defaults) = subdir_module_defaults {
-                module_defaults = Some(subdir_module_defaults.clone());
+            if let Some(subdir_defaults) = subdir_defaults {
+                module_defaults = Some(subdir_defaults.clone());
             }
         }
+        module_defaults
+    }
+
+    for data in &yaml_datas {
+        let module_defaults = get_defaults(data, &subdir_module_defaults_map, "module", false);
+        let app_defaults = get_defaults(data, &subdir_app_defaults_map, "app", true);
 
         if let Some(_) = data.subdirs {
             if let Some(module_defaults) = &module_defaults {
-                subdir_defaults.insert(data.doc_idx.unwrap(), module_defaults.clone());
+                subdir_module_defaults_map.insert(data.doc_idx.unwrap(), module_defaults.clone());
+            }
+            if let Some(app_defaults) = &app_defaults {
+                subdir_app_defaults_map.insert(data.doc_idx.unwrap(), app_defaults.clone());
             }
         }
 
@@ -397,7 +413,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
                             *is_binary,
                             &data.filename.as_ref().unwrap(),
                             if *is_binary {
-                                None
+                                app_defaults.as_ref()
                             } else {
                                 module_defaults.as_ref()
                             },
