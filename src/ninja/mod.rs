@@ -165,14 +165,21 @@ pub struct NinjaCmd<'a> {
 
     #[builder(setter(into), default = "\"build.ninja\"")]
     build_file: &'a str,
+
+    #[builder(default = "false")]
+    verbose: bool,
 }
 
 impl<'a> NinjaCmd<'a> {
     pub fn run(&self) -> std::io::Result<ExitStatus> {
-        Command::new(self.binary)
-            .arg("-f")
-            .arg(self.build_file)
-            .status()
+        let mut cmd = Command::new(self.binary);
+        cmd.arg("-f").arg(self.build_file);
+
+        if self.verbose {
+            cmd.arg("-v");
+        }
+
+        cmd.status()
     }
 }
 
