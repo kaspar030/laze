@@ -933,6 +933,12 @@ fn try_main() -> Result<i32> {
             SubCommand::with_name("build")
                 .about("generate build files and build")
                 .arg(
+                    Arg::with_name("generate-only")
+                        .short("G")
+                        .help("generate build files only, don't start build")
+                        .required(false),
+                )
+                .arg(
                     Arg::with_name("builders")
                         .short("b")
                         .help("builders to configure")
@@ -951,10 +957,10 @@ fn try_main() -> Result<i32> {
                         .require_delimiter(true),
                 )
                 .arg(
-                    Arg::with_name("generate-only")
-                        .short("G")
-                        .help("generate build files only, don't start build")
-                        .required(false),
+                    Arg::with_name("verbose")
+                        .short("v")
+                        .help("be verbose (e.g., show command lines)")
+                        .multiple(true),
                 ),
         )
         .get_matches();
@@ -976,12 +982,13 @@ fn try_main() -> Result<i32> {
     );
 
     let global = matches.is_present("global");
-
     env::set_current_dir(&project_root)
         .context(format!("cannot change to \"{}\"", &project_root.display()))?;
 
     match matches.subcommand() {
         ("build", Some(build_matches)) => {
+            let verbose = build_matches.occurrences_of("verbose");
+
             // collect builder names from args
             let mut builders = build_matches
                 .values_of("builders")
@@ -1017,7 +1024,11 @@ fn try_main() -> Result<i32> {
                 return Ok(0);
             }
 
-            let ninja_exit = NinjaCmdBuilder::default().build().unwrap().run()?;
+            let ninja_exit = NinjaCmdBuilder::default()
+                .verbose(verbose > 0)
+                .build()
+                .unwrap()
+                .run()?;
             if !ninja_exit.success() {
                 match ninja_exit.code() {
                     Some(code) => {
