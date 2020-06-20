@@ -65,6 +65,7 @@ pub struct Module {
     imports: Vec<String>,
 
     sources: Vec<String>,
+    sources_optional: Option<IndexMap<String, Vec<String>>>,
 
     env_local: Env,
     env_export: Env,
@@ -449,6 +450,7 @@ impl Module {
             imports: Vec::new(),
             // exports: Vec::new(),
             sources: Vec::new(),
+            sources_optional: None,
             env_local: Env::new(),
             env_export: Env::new(),
             env_global: Env::new(),
@@ -469,6 +471,7 @@ impl Module {
             imports: defaults.imports.clone(),
             // exports: Vec::new(),
             sources: defaults.sources.clone(),
+            sources_optional: defaults.sources_optional.clone(),
             env_local: defaults.env_local.clone(),
             env_export: defaults.env_export.clone(),
             env_global: defaults.env_global.clone(),
@@ -761,8 +764,20 @@ fn generate(
             let mut module_rules: IndexMap<String, NinjaRule> = IndexMap::new();
             let mut module_builds = Vec::new();
 
+            // add optional sources, if needed
+            let mut optional_sources = Vec::new();
+            if let Some(optional_sources_map) = &module.sources_optional {
+                for (k, v) in optional_sources_map {
+                    if modules.contains_key(k) {
+                        for entry in v {
+                            optional_sources.push(entry.clone());
+                        }
+                    }
+                }
+            }
+
             /* apply rules to sources */
-            for source in &module.sources {
+            for source in module.sources.iter().chain(optional_sources.iter()) {
                 let ext = Path::new(&source)
                     .extension()
                     .and_then(OsStr::to_str)
@@ -797,7 +812,7 @@ fn generate(
             }
 
             let srcdir = module.defined_in.as_ref().unwrap().parent().unwrap();
-            for source in &module.sources {
+            for source in module.sources.iter().chain(optional_sources.iter()) {
                 let ext = Path::new(&source)
                     .extension()
                     .and_then(OsStr::to_str)

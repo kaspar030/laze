@@ -307,11 +307,34 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         }
 
         if let Some(sources) = &module.sources {
+            let mut sources_optional = IndexMap::new();
             for source in sources {
                 match source {
                     StringOrMapString::String(source) => m.sources.push(source.clone()),
-                    // TODO: optional sources
-                    StringOrMapString::Map(source) => continue,
+                    StringOrMapString::Map(source) => {
+                        // collect optional sources into sources_optional
+                        for (k, v) in source {
+                            let list = sources_optional.entry(k).or_insert(Vec::new());
+                            for entry in v {
+                                list.push(entry.clone());
+                            }
+                        }
+                    }
+                }
+            }
+
+            // if there are optional sources, merge them into the module's
+            // optional sources map
+            if !sources_optional.is_empty() {
+                if let None = m.sources_optional {
+                    m.sources_optional = Some(IndexMap::new());
+                }
+                let m_sources_optional = m.sources_optional.as_mut().unwrap();
+                for (k, v) in sources_optional {
+                    let list = m_sources_optional.entry(k.clone()).or_insert(Vec::new());
+                    for entry in v {
+                        list.push(entry.clone());
+                    }
                 }
             }
         }
