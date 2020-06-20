@@ -4,7 +4,7 @@ cleanup() {
 }
 
 build() {
-    ${LAZERS} build
+    ${LAZERS} build -g
 }
 
 : "${LAZERS:=lazers}"
