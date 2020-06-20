@@ -73,6 +73,7 @@ pub struct Module {
 
     context_id: Option<usize>,
     defined_in: Option<PathBuf>,
+    relpath: Option<PathBuf>,
     srcdir: Option<PathBuf>,
     is_binary: bool,
 }
@@ -437,6 +438,7 @@ impl Module {
             context_id: None,
             is_binary: false,
             defined_in: None,
+            relpath: None,
             srcdir: None,
         }
     }
@@ -456,6 +458,7 @@ impl Module {
             context_id: None,
             is_binary: false,
             defined_in: None,
+            relpath: None,
             srcdir: match &defaults.srcdir {
                 Some(dir) => Some(dir.clone()),
                 None => None,

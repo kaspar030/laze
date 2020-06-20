@@ -292,7 +292,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
 
         // populate "early env"
         m.env_early
-            .insert("relpath".into(), EnvKey::Single(relpath));
+            .insert("relpath".into(), EnvKey::Single(relpath.clone()));
         // copy over environment
         if let Some(env) = &module.env {
             if let Some(local) = &env.local {
@@ -318,6 +318,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
 
         m.is_binary = is_binary;
         m.defined_in = Some(filename.clone());
+        m.relpath = Some(PathBuf::from(relpath));
         m.apply_early_env();
         m
     }
