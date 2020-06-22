@@ -2,7 +2,7 @@ extern crate pathdiff;
 extern crate serde_yaml;
 
 use indexmap::{IndexMap, IndexSet};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -36,6 +36,7 @@ struct YamlContext {
     name: String,
     parent: Option<String>,
     env: Option<Env>,
+    disable_modules: Option<Vec<String>>,
     rule: Option<Vec<Rule>>,
     var_options: Option<HashMap<String, MergeOption>>,
     #[serde(skip)]
@@ -86,6 +87,25 @@ struct YamlModuleEnv {
 
 //     Ok(data)
 // }
+
+fn process_removes(strings: &mut Vec<String>) {
+    let mut removals = HashSet::new();
+    for x in strings.iter() {
+        if x.starts_with("-") {
+            removals.insert(x[1..].to_string());
+        }
+    }
+
+    strings.retain(|x| {
+        if x.starts_with("-") {
+            false
+        } else if removals.contains(&x[..]) {
+            false
+        } else {
+            true
+        }
+    });
+}
 
 fn load_all<'a>(
     filename: &PathBuf,
@@ -289,6 +309,13 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
                 }
             }
         }
+
+        // if a module name starts with "-", remove it from the list, also the
+        // same name without "-".
+        // this allows adding e.g., a dependency in a default: ..., but removing
+        // it later. add/remove/add won't work, though.
+        process_removes(&mut m.selects);
+        process_removes(&mut m.imports);
 
         // populate "early env"
         m.env_early
