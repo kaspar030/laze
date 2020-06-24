@@ -36,7 +36,7 @@ struct YamlContext {
     name: String,
     parent: Option<String>,
     env: Option<Env>,
-    disable_modules: Option<Vec<String>>,
+    disable: Option<Vec<String>>,
     rule: Option<Vec<Rule>>,
     var_options: Option<HashMap<String, MergeOption>>,
     #[serde(skip)]
@@ -64,6 +64,7 @@ struct YamlModule {
     depends: Option<Vec<StringOrMapString>>,
     selects: Option<Vec<String>>,
     uses: Option<Vec<String>>,
+    disable: Option<Vec<String>>,
     sources: Option<Vec<StringOrMapString>>,
     env: Option<YamlModuleEnv>,
     #[serde(skip)]
@@ -239,6 +240,9 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         context_
             .env_early
             .insert("relpath".into(), EnvKey::Single(relpath));
+        context_
+            .env_early
+            .insert("root".into(), EnvKey::Single(".".into()));
         context_.apply_early_env();
 
         context_.defined_in = Some(filename.clone());
@@ -268,12 +272,19 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
             module.context.as_ref().unwrap_or(&"none".to_string()),
             module_name
         );
+
+        m.is_binary = is_binary;
+        m.defined_in = Some(filename.clone());
+        m.relpath = Some(PathBuf::from(relpath.clone()));
+
         // convert module dependencies
         // "selects" means "module will be part of the build"
         // "uses" means "if module is part of the build, transitively import its exported env vars"
         // "depends" means both select and use a module
         // a build configuration fails if a selected or depended on module is not
         // available.
+        // "disable" is only valid for binaries ("apps"), and will make any module
+        // with the specified name unavailable in the binary's build context
         if let Some(selects) = &module.selects {
             println!("selects:");
             for dep_name in selects {
@@ -309,6 +320,20 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
                 }
             }
         }
+        if let Some(disable) = &module.disable {
+            if m.is_binary {
+                if let None = m.disable {
+                    m.disable = Some(Vec::new());
+                }
+                println!("disables:");
+                for dep_name in disable {
+                    println!("- {}", dep_name);
+                    m.disable.as_mut().unwrap().push(dep_name.clone());
+                }
+            } else {
+                println!("warning: \"disable\" ignored on regular modules!");
+            }
+        }
 
         // if a module name starts with "-", remove it from the list, also the
         // same name without "-".
@@ -319,7 +344,9 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
 
         // populate "early env"
         m.env_early
-            .insert("relpath".into(), EnvKey::Single(relpath.clone()));
+            .insert("relpath".into(), EnvKey::Single(relpath));
+        m.env_early
+            .insert("root".into(), EnvKey::Single(".".into()));
         // copy over environment
         if let Some(env) = &module.env {
             if let Some(local) = &env.local {
@@ -366,9 +393,6 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
             }
         }
 
-        m.is_binary = is_binary;
-        m.defined_in = Some(filename.clone());
-        m.relpath = Some(PathBuf::from(relpath));
         m.apply_early_env();
         m
     }

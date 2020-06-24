@@ -48,6 +48,7 @@ pub struct Context {
     pub modules: IndexMap<String, Module>,
     pub rules: Option<IndexMap<String, Rule>>,
     pub env: Option<Env>,
+    pub disable: Option<Vec<String>>,
 
     pub var_options: Option<HashMap<String, MergeOption>>,
 
@@ -63,6 +64,7 @@ pub struct Module {
 
     selects: Vec<String>,
     imports: Vec<String>,
+    disable: Option<Vec<String>>,
 
     sources: Vec<String>,
     sources_optional: Option<IndexMap<String, Vec<String>>>,
@@ -100,6 +102,7 @@ impl Context {
             index: None,
             parent_index: None,
             modules: IndexMap::new(),
+            disable: None,
             env: None,
             env_early: Env::new(),
             rules: None,
@@ -118,6 +121,7 @@ impl Context {
             index: None,
             parent_index: Some(builder_index),
             modules: IndexMap::new(),
+            disable: None,
             env: None,
             env_early: Env::new(),
             rules: None,
@@ -190,6 +194,20 @@ impl Context {
                     if let Some(rule_in) = rule.in_.as_ref() {
                         result.insert(rule_in.clone(), rule);
                     }
+                }
+            }
+        }
+        result
+    }
+
+    pub fn collect_disabled_modules(&self, contexts: &ContextBag) -> HashSet<String> {
+        let mut result = HashSet::new();
+        let mut parents = Vec::new();
+        self.get_parents(contexts, &mut parents);
+        for parent in parents {
+            if let Some(disable) = &parent.disable {
+                for entry in disable {
+                    result.insert(entry.clone());
                 }
             }
         }
@@ -448,6 +466,7 @@ impl Module {
             context_name: context_name.unwrap_or_else(|| "default".to_string()),
             selects: Vec::new(),
             imports: Vec::new(),
+            disable: None,
             // exports: Vec::new(),
             sources: Vec::new(),
             sources_optional: None,
@@ -469,6 +488,7 @@ impl Module {
             context_name: context_name.unwrap_or_else(|| defaults.context_name.clone()),
             selects: defaults.selects.clone(),
             imports: defaults.imports.clone(),
+            disable: defaults.disable.clone(),
             // exports: Vec::new(),
             sources: defaults.sources.clone(),
             sources_optional: defaults.sources_optional.clone(),
@@ -569,6 +589,16 @@ impl Module {
         self.env_export = nested_env::expand_env(&self.env_export, &self.env_early);
         self.env_global = nested_env::expand_env(&self.env_global, &self.env_early);
     }
+
+    pub fn is_dep_optional(dep_name: &String) -> (String, bool) {
+        let optional = dep_name.starts_with('?');
+        let dep_name = if optional {
+            dep_name[1..].to_string()
+        } else {
+            dep_name.clone()
+        };
+        return (dep_name, optional);
+    }
 }
 
 impl Hash for Module {
@@ -634,24 +664,37 @@ impl<'a: 'b, 'b> Build<'b> {
         build
     }
 
-    fn resolve_selects(&self) -> Result<IndexMap<&String, &Module>, Error> {
-        let mut unresolved = VecDeque::new();
+
+    fn resolve_selects(
+        &self,
+        disabled_modules: &HashSet<String>,
+    ) -> Result<IndexMap<&String, &Module>, Error> {
         let mut modules = IndexMap::new();
 
+        let mut unresolved = VecDeque::new();
         /* start with binary module */
         unresolved.push_back(self.binary);
 
         while let Some(entry) = unresolved.pop_front() {
             for dep_name in &entry.selects {
-                let optional = dep_name.starts_with('?');
-                let dep_name = if optional {
-                    dep_name[1..].to_string()
-                } else {
-                    dep_name.clone()
-                };
+                let (dep_name, optional) = Module::is_dep_optional(&dep_name);
 
                 if modules.contains_key(&dep_name) {
                     continue;
+                }
+
+                if disabled_modules.contains(&dep_name) {
+                    if !optional {
+                        bail!(
+                            "binary {} for builder {}: {} depends on disabled module {}",
+                            self.binary.name,
+                            self.builder.name,
+                            entry.name,
+                            dep_name
+                        );
+                    } else {
+                        continue;
+                    }
                 }
 
                 let (_context, module) =
@@ -662,9 +705,10 @@ impl<'a: 'b, 'b> Build<'b> {
                                 continue;
                             } else {
                                 bail!(
-                                    "binary {} for builder {} depends on unavailable module {}",
+                                    "binary {} for builder {}: {} depends on unavailable module {}",
                                     self.binary.name,
                                     self.builder.name,
+                                    entry.name,
                                     dep_name
                                 );
                             }
@@ -726,9 +770,17 @@ fn generate(
         let mut global_env = Env::new();
         nested_env::merge(&mut global_env, &build.build_context.env.as_ref().unwrap());
 
+        // collect disabled modules from app and build context
+        let mut disabled_modules = build.build_context.collect_disabled_modules(&contexts);
+        if let Some(disable) = &binary.disable {
+            for entry in disable {
+                disabled_modules.insert(entry.clone());
+            }
+        }
+
         /* resolve all dependency names to specific modules.
          * this also determines if all dependencies are met */
-        let modules = match build.resolve_selects() {
+        let modules = match build.resolve_selects(&disabled_modules) {
             Err(e) => {
                 println!("error: {}", e);
                 return Ok(0);
