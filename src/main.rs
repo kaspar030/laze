@@ -664,6 +664,71 @@ impl<'a: 'b, 'b> Build<'b> {
         build
     }
 
+    fn resolve_module_deep<'m, 's: 'm>(
+        &'s self,
+        module: &'m Module,
+        module_set: &mut IndexMap<&'m String, &'m Module>,
+        disabled_modules: &HashSet<String>,
+    ) -> Result<(), Error> {
+        let prev_len = module_set.len();
+
+        fn reset(module_set: &mut IndexMap<&String, &Module>, len: usize) {
+            while module_set.len() > len {
+                module_set.pop();
+            }
+        }
+
+        module_set.insert(&module.name, module);
+
+        for dep_name in &module.selects {
+            let (dep_name, optional) = Module::is_dep_optional(&dep_name);
+
+            if module_set.contains_key(&dep_name) {
+                continue;
+            }
+
+            if disabled_modules.contains(&dep_name) {
+                if !optional {
+                    reset(module_set, prev_len);
+                    bail!(
+                        "binary {} for builder {}: {} depends on disabled module {}",
+                        self.binary.name,
+                        self.builder.name,
+                        module.name,
+                        dep_name
+                    );
+                } else {
+                    continue;
+                }
+            }
+
+            let (_context, module) = match self.build_context.resolve_module(&dep_name, self.bag) {
+                Some(x) => x,
+                None => {
+                    if optional {
+                        continue;
+                    } else {
+                        reset(module_set, prev_len);
+                        bail!(
+                            "binary {} for builder {}: {} depends on unavailable module {}",
+                            self.binary.name,
+                            self.builder.name,
+                            module.name,
+                            dep_name
+                        );
+                    }
+                }
+            };
+
+            if let Err(x) = self.resolve_module_deep(module, module_set, disabled_modules) {
+                if !optional {
+                    reset(module_set, prev_len);
+                    return Err(x);
+                }
+            }
+        }
+        Ok(())
+    }
 
     fn resolve_selects(
         &self,
@@ -671,52 +736,8 @@ impl<'a: 'b, 'b> Build<'b> {
     ) -> Result<IndexMap<&String, &Module>, Error> {
         let mut modules = IndexMap::new();
 
-        let mut unresolved = VecDeque::new();
-        /* start with binary module */
-        unresolved.push_back(self.binary);
-
-        while let Some(entry) = unresolved.pop_front() {
-            for dep_name in &entry.selects {
-                let (dep_name, optional) = Module::is_dep_optional(&dep_name);
-
-                if modules.contains_key(&dep_name) {
-                    continue;
-                }
-
-                if disabled_modules.contains(&dep_name) {
-                    if !optional {
-                        bail!(
-                            "binary {} for builder {}: {} depends on disabled module {}",
-                            self.binary.name,
-                            self.builder.name,
-                            entry.name,
-                            dep_name
-                        );
-                    } else {
-                        continue;
-                    }
-                }
-
-                let (_context, module) =
-                    match self.build_context.resolve_module(&dep_name, self.bag) {
-                        Some(x) => x,
-                        None => {
-                            if optional {
-                                continue;
-                            } else {
-                                bail!(
-                                    "binary {} for builder {}: {} depends on unavailable module {}",
-                                    self.binary.name,
-                                    self.builder.name,
-                                    entry.name,
-                                    dep_name
-                                );
-                            }
-                        }
-                    };
-                unresolved.push_back(module);
-            }
-            modules.insert(&entry.name, entry);
+        if let Err(x) = self.resolve_module_deep(&self.binary, &mut modules, disabled_modules) {
+            return Err(x);
         }
         Ok(modules)
     }
