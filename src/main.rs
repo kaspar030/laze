@@ -10,7 +10,7 @@ extern crate derive_builder;
 
 extern crate pathdiff;
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 //use std::error::Error;
 use std::env;
 use std::ffi::OsStr;
@@ -996,7 +996,7 @@ fn generate(
                     }
                 }
                 if !global && module.relpath.as_ref().unwrap() != start_dir {
-                    println!("skipping {}", module.name);
+                    //println!("skipping {}", module.name);
                     continue;
                 }
                 for builder in &selected_builders {
