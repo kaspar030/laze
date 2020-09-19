@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use super::nested_env::{Env, EnvKey, MergeOption};
-use super::{Context, ContextBag, Module, Rule};
+use super::{Context, ContextBag, Dependency, Module, Rule};
 
 use anyhow::{Context as _, Result};
 
@@ -89,18 +89,18 @@ struct YamlModuleEnv {
 //     Ok(data)
 // }
 
-fn process_removes(strings: &mut Vec<String>) {
+fn process_removes(strings: &mut Vec<Dependency>) {
     let mut removals = HashSet::new();
     for x in strings.iter() {
-        if x.starts_with("-") {
-            removals.insert(x[1..].to_string());
+        if x.get_name().starts_with("-") {
+            removals.insert(x.get_name()[1..].to_string());
         }
     }
 
     strings.retain(|x| {
-        if x.starts_with("-") {
+        if x.get_name().starts_with("-") {
             false
-        } else if removals.contains(&x[..]) {
+        } else if removals.contains(&x.get_name()[..]) {
             false
         } else {
             true
@@ -287,38 +287,52 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         // available.
         // "disable" is only valid for binaries ("apps"), and will make any module
         // with the specified name unavailable in the binary's build context
+        //
+        fn dependency_from_string(dep_name: &String) -> Dependency {
+            match dep_name.as_bytes()[0] {
+                b'?' => Dependency::Soft(dep_name[1..].to_string()),
+                _ => Dependency::Hard(dep_name.clone()),
+            }
+        }
+        fn dependency_from_string_if(dep_name: &String, other: &String) -> Dependency {
+            match dep_name.as_bytes()[0] {
+                b'?' => Dependency::IfThenSoft(other.clone(), dep_name[1..].to_string()),
+                _ => Dependency::IfThenHard(other.clone(), dep_name.clone()),
+            }
+        }
         if let Some(selects) = &module.selects {
             println!("selects:");
             for dep_name in selects {
                 println!("- {}", dep_name);
-                m.selects.push(dep_name.clone());
+                m.selects.push(dependency_from_string(dep_name));
             }
         }
         if let Some(uses) = &module.uses {
             println!("uses:");
             for dep_name in uses {
                 println!("- {}", dep_name);
-                m.imports.push(dep_name.clone());
+                m.imports.push(dependency_from_string(dep_name));
             }
         }
         if let Some(depends) = &module.depends {
             println!("depends:");
             for dep_spec in depends {
-                if let StringOrMapString::String(dep_name) = dep_spec {
-                    println!("- {}", dep_name);
-                    m.selects.push(dep_name.clone());
-
-                    // when "depends" are specified, they can be prefixed with "?"
-                    // to make them optional (depend on when available, ignore if not).
-                    // as all imports are optional, remove trailing "?" if present.
-                    let import_name = if dep_name.starts_with("?") {
-                        dep_name[1..].to_string()
-                    } else {
-                        dep_name.clone()
-                    };
-                    m.imports.push(import_name);
-                } else {
-                    println!("warning: optional dependency map not implemented (ignored)");
+                match dep_spec {
+                    StringOrMapString::String(dep_name) => {
+                        println!("- {}", dep_name);
+                        m.selects.push(dependency_from_string(dep_name));
+                        m.imports.push(dependency_from_string(dep_name));
+                    }
+                    StringOrMapString::Map(dep_map) => {
+                        for (k, v) in dep_map {
+                            println!("- {}:", k);
+                            for dep_name in v {
+                                println!("  - {}", dep_name);
+                                m.selects.push(dependency_from_string_if(dep_name, k));
+                                m.imports.push(dependency_from_string_if(dep_name, k));
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -339,7 +353,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
 
         // if a module name starts with "-", remove it from the list, also the
         // same name without "-".
-        // this allows adding e.g., a dependency in a default: ..., but removing
+        // this allows adding e.g., a dependency in "default: ...", but removing
         // it later. add/remove/add won't work, though.
         process_removes(&mut m.selects);
         process_removes(&mut m.imports);

@@ -57,13 +57,34 @@ pub struct Context {
     pub defined_in: Option<PathBuf>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Dependency {
+    Hard(String),
+    Soft(String),
+    //Conflict(String),
+    IfThenHard(String, String),
+    IfThenSoft(String, String),
+    //IfThenConflict(String, String),
+}
+
+impl Dependency {
+    pub fn get_name(&self) -> &String {
+        match self {
+            Dependency::Hard(name) => name,
+            Dependency::Soft(name) => name,
+            Dependency::IfThenHard(_, name) => name,
+            Dependency::IfThenSoft(_, name) => name,
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Module {
     name: String,
     context_name: String,
 
-    selects: Vec<String>,
-    imports: Vec<String>,
+    selects: Vec<Dependency>,
+    imports: Vec<Dependency>,
     disable: Option<Vec<String>>,
 
     sources: Vec<String>,
@@ -531,7 +552,26 @@ impl Module {
         seen.insert(&self.name);
 
         for dep in &module.imports {
-            if let Some(other_module) = modules.get(&dep) {
+            let dep_name = match dep {
+                Dependency::Hard(name) => name,
+                Dependency::Soft(name) => name,
+                Dependency::IfThenHard(other, name) => {
+                    if modules.contains_key(other) {
+                        name
+                    } else {
+                        continue;
+                    }
+                }
+                Dependency::IfThenSoft(other, name) => {
+                    if modules.contains_key(other) {
+                        name
+                    } else {
+                        continue;
+                    }
+                }
+            };
+
+            if let Some(other_module) = modules.get(&dep_name) {
                 let mut other_deps = other_module.get_imports_recursive(modules, Some(seen));
                 result.append(&mut other_deps);
             }
@@ -588,16 +628,6 @@ impl Module {
         self.env_local = nested_env::expand_env(&self.env_local, &self.env_early);
         self.env_export = nested_env::expand_env(&self.env_export, &self.env_early);
         self.env_global = nested_env::expand_env(&self.env_global, &self.env_early);
-    }
-
-    pub fn is_dep_optional(dep_name: &String) -> (String, bool) {
-        let optional = dep_name.starts_with('?');
-        let dep_name = if optional {
-            dep_name[1..].to_string()
-        } else {
-            dep_name.clone()
-        };
-        return (dep_name, optional);
     }
 }
 
@@ -680,14 +710,31 @@ impl<'a: 'b, 'b> Build<'b> {
 
         module_set.insert(&module.name, module);
 
-        for dep_name in &module.selects {
-            let (dep_name, optional) = Module::is_dep_optional(&dep_name);
+        for dep in &module.selects {
+            let (dep_name, optional) = match dep {
+                Dependency::Hard(name) => (name, false),
+                Dependency::Soft(name) => (name, true),
+                Dependency::IfThenHard(other, name) => {
+                    if module_set.contains_key(other) {
+                        (name, false)
+                    } else {
+                        continue;
+                    }
+                }
+                Dependency::IfThenSoft(other, name) => {
+                    if module_set.contains_key(other) {
+                        (name, true)
+                    } else {
+                        continue;
+                    }
+                }
+            };
 
-            if module_set.contains_key(&dep_name) {
+            if module_set.contains_key(dep_name) {
                 continue;
             }
 
-            if disabled_modules.contains(&dep_name) {
+            if disabled_modules.contains(dep_name) {
                 if !optional {
                     reset(module_set, prev_len);
                     bail!(
@@ -702,7 +749,7 @@ impl<'a: 'b, 'b> Build<'b> {
                 }
             }
 
-            let (_context, module) = match self.build_context.resolve_module(&dep_name, self.bag) {
+            let (_context, module) = match self.build_context.resolve_module(dep_name, self.bag) {
                 Some(x) => x,
                 None => {
                     if optional {
