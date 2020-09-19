@@ -246,6 +246,8 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
         context_.apply_early_env();
 
         context_.defined_in = Some(filename.clone());
+
+        context_.disable = context.disable.clone();
     }
 
     fn convert_module(
