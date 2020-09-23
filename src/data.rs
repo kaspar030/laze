@@ -67,6 +67,8 @@ struct YamlModule {
     disable: Option<Vec<String>>,
     sources: Option<Vec<StringOrMapString>>,
     env: Option<YamlModuleEnv>,
+    blocklist: Option<Vec<String>>,
+    allowlist: Option<Vec<String>>,
     #[serde(skip)]
     is_binary: bool,
 }
@@ -407,6 +409,22 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
                     }
                 }
             }
+        }
+
+        if let Some(defaults_blocklist) = &mut m.blocklist {
+            if let Some(module_blocklist) = &module.blocklist {
+                defaults_blocklist.append(&mut (module_blocklist.clone()));
+            }
+        } else {
+            m.blocklist = module.blocklist.clone();
+        }
+
+        if let Some(defaults_allowlist) = &mut m.allowlist {
+            if let Some(module_allowlist) = &module.allowlist {
+                defaults_allowlist.append(&mut (module_allowlist.clone()));
+            }
+        } else {
+            m.allowlist = module.allowlist.clone();
         }
 
         m.apply_early_env();

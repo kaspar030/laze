@@ -87,6 +87,9 @@ pub struct Module {
     imports: Vec<Dependency>,
     disable: Option<Vec<String>>,
 
+    blocklist: Option<Vec<String>>,
+    allowlist: Option<Vec<String>>,
+
     sources: Vec<String>,
     sources_optional: Option<IndexMap<String, Vec<String>>>,
 
@@ -252,6 +255,33 @@ pub struct ContextBag {
     contexts: Vec<Context>,
     context_map: HashMap<String, usize>,
     //    module_map: HashMap<String, usize>,
+}
+
+pub enum IsAncestor {
+    No,
+    Yes(usize, usize),
+}
+
+pub enum BlockAllow {
+    Allowed,
+    AllowedBy(usize),
+    Blocked,
+    BlockedBy(usize),
+}
+
+impl BlockAllow {
+    pub fn allow(index: usize, depth: usize) -> BlockAllow {
+        match depth {
+            0 => BlockAllow::Allowed,
+            _ => BlockAllow::AllowedBy(index),
+        }
+    }
+    pub fn block(index: usize, depth: usize) -> BlockAllow {
+        match depth {
+            0 => BlockAllow::Blocked,
+            _ => BlockAllow::BlockedBy(index),
+        }
+    }
 }
 
 impl ContextBag {
@@ -455,15 +485,78 @@ impl ContextBag {
         &self.contexts[context_id]
     }
 
-    pub fn context_is_in(&self, context_id: usize, other_context_id: usize) -> bool {
+    /// returns true if context_id is parent of other_context_id
+    pub fn is_ancestor(
+        &self,
+        context_id: usize,
+        other_context_id: usize,
+        depth: usize,
+    ) -> IsAncestor {
         if context_id == other_context_id {
-            return true;
+            return IsAncestor::Yes(context_id, depth);
         }
         let context = self.context_by_id(other_context_id);
         match context.parent_index {
-            Some(id) => self.context_is_in(context_id, id),
-            None => false,
+            Some(id) => self.is_ancestor(context_id, id, depth + 1),
+            None => IsAncestor::No,
         }
+    }
+
+    fn is_ancestor_in_list(&self, context: &Context, list: &Vec<String>) -> IsAncestor {
+        for context_name in list {
+            if let Some(listed_context) = self.get_by_name(context_name) {
+                match self.is_ancestor(listed_context.index.unwrap(), context.index.unwrap(), 0) {
+                    IsAncestor::No => continue,
+                    IsAncestor::Yes(index, depth) => return IsAncestor::Yes(index, depth),
+                }
+            }
+        }
+        IsAncestor::No
+    }
+
+    fn is_allowed(
+        &self,
+        context: &Context,
+        blocklist: &Option<Vec<String>>,
+        allowlist: &Option<Vec<String>>,
+    ) -> BlockAllow {
+        let allowlist_entry = match allowlist {
+            Some(list) => self.is_ancestor_in_list(context, list),
+            None => IsAncestor::No,
+        };
+        let blocklist_entry = match blocklist {
+            Some(list) => self.is_ancestor_in_list(context, list),
+            None => IsAncestor::No,
+        };
+
+        if let Some(_) = allowlist {
+            if let Some(_) = blocklist {
+                if let IsAncestor::Yes(allow_index, allow_depth) = allowlist_entry {
+                    if let IsAncestor::Yes(block_index, block_depth) = blocklist_entry {
+                        if allow_depth > block_depth {
+                            return BlockAllow::block(block_index, block_depth);
+                        }
+                    }
+                    return BlockAllow::allow(allow_index, allow_depth);
+                } else {
+                    if let IsAncestor::Yes(block_index, block_depth) = blocklist_entry {
+                        return BlockAllow::block(block_index, block_depth);
+                    }
+                }
+            } else {
+                if let IsAncestor::No = allowlist_entry {
+                    return BlockAllow::Blocked;
+                }
+            }
+        } else {
+            if let Some(_) = blocklist {
+                if let IsAncestor::Yes(block_index, block_depth) = blocklist_entry {
+                    return BlockAllow::block(block_index, block_depth);
+                }
+            }
+        }
+
+        BlockAllow::Allowed
     }
 }
 
@@ -500,6 +593,8 @@ impl Module {
             defined_in: None,
             relpath: None,
             srcdir: None,
+            blocklist: None,
+            allowlist: None,
         }
     }
 
@@ -521,6 +616,8 @@ impl Module {
             is_binary: false,
             defined_in: None,
             relpath: None,
+            blocklist: defaults.blocklist.clone(),
+            allowlist: defaults.blocklist.clone(),
             srcdir: match &defaults.srcdir {
                 Some(dir) => Some(dir.clone()),
                 None => None,
@@ -811,12 +908,39 @@ fn generate(
 
     let mut ninja_writer = NinjaWriter::new(Path::new("build.ninja")).unwrap();
 
-    fn build(
+    fn configure_build(
         binary: &Module,
         contexts: &ContextBag,
         builder: &Context,
         ninja_writer: &mut NinjaWriter,
     ) -> Result<usize> {
+        if !match contexts.is_allowed(builder, &binary.blocklist, &binary.allowlist) {
+            BlockAllow::Allowed => true,
+            BlockAllow::Blocked => {
+                println!("app {}: builder {} blocklisted", binary, builder.name);
+                false
+            }
+            BlockAllow::BlockedBy(index) => {
+                println!(
+                    "app {}: parent {} of builder {} blocklisted",
+                    binary.name,
+                    contexts.context_by_id(index).name,
+                    builder.name
+                );
+                false
+            }
+            BlockAllow::AllowedBy(index) => {
+                println!(
+                    "app {}: parent {} of builder {} allowlisted",
+                    binary.name,
+                    contexts.context_by_id(index).name,
+                    builder.name
+                );
+                true
+            }
+        } {
+            return Ok(0);
+        }
         let mut in_out = HashMap::new();
         in_out.insert(
             "in".to_string(),
@@ -1047,7 +1171,7 @@ fn generate(
                     continue;
                 }
                 for builder in &selected_builders {
-                    num_built += build(module, &contexts, builder, &mut ninja_writer)?;
+                    num_built += configure_build(module, &contexts, builder, &mut ninja_writer)?;
                 }
             }
         }
