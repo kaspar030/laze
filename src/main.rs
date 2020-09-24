@@ -899,6 +899,7 @@ impl<'a: 'b, 'b> Build<'b> {
 fn generate(
     project_root: &Path,
     start_dir: &Path,
+    build_dir: &Path,
     global: bool,
     builders: &IndexSet<&str>,
     apps: &IndexSet<&str>,
@@ -906,13 +907,15 @@ fn generate(
     let mut contexts = ContextBag::new();
     let contexts = load(project_root, &mut contexts)?;
 
-    let mut ninja_writer = NinjaWriter::new(Path::new("build.ninja")).unwrap();
+    std::fs::create_dir_all(&build_dir)?;
+    let mut ninja_writer = NinjaWriter::new(build_dir.join("build.ninja").as_path()).unwrap();
 
     fn configure_build(
         binary: &Module,
         contexts: &ContextBag,
         builder: &Context,
         ninja_writer: &mut NinjaWriter,
+        laze_env: &Env,
     ) -> Result<usize> {
         if !match contexts.is_allowed(builder, &binary.blocklist, &binary.allowlist) {
             BlockAllow::Allowed => true,
@@ -941,15 +944,6 @@ fn generate(
         } {
             return Ok(0);
         }
-        let mut in_out = HashMap::new();
-        in_out.insert(
-            "in".to_string(),
-            nested_env::EnvKey::Single("\\${in}".to_string()),
-        );
-        in_out.insert(
-            "out".to_string(),
-            nested_env::EnvKey::Single("\\${out}".to_string()),
-        );
 
         println!("configuring {} for {}", binary.name, builder.name);
 
@@ -960,6 +954,7 @@ fn generate(
          * Unfortunately we need to create a copy as we cannot get a mutable
          * reference to build_context.env. */
         let mut global_env = Env::new();
+        nested_env::merge(&mut global_env, &laze_env);
         nested_env::merge(&mut global_env, &build.build_context.env.as_ref().unwrap());
 
         // collect disabled modules from app and build context
@@ -999,7 +994,6 @@ fn generate(
 
             /* add escaped ${in} and ${out}, create env for the build rules */
             let mut rule_env = Env::new();
-            nested_env::merge(&mut rule_env, &in_out);
             nested_env::merge(&mut rule_env, &module_env);
             let flattened_env =
                 nested_env::flatten_with_opts_option(&rule_env, merge_opts.as_ref());
@@ -1085,7 +1079,6 @@ fn generate(
             // TODO: catch nonexisting link rule
             let link_rule = rules.values().find(|rule| rule.name == "LINK").unwrap();
             let mut link_env = Env::new();
-            nested_env::merge(&mut link_env, &in_out);
             nested_env::merge(&mut link_env, &global_env);
             let flattened_env = nested_env::flatten(&link_env);
             let expanded =
@@ -1149,6 +1142,20 @@ fn generate(
         Ok(1)
     }
 
+    let mut laze_env = HashMap::new();
+    laze_env.insert(
+        "in".to_string(),
+        nested_env::EnvKey::Single("\\${in}".to_string()),
+    );
+    laze_env.insert(
+        "out".to_string(),
+        nested_env::EnvKey::Single("\\${out}".to_string()),
+    );
+    laze_env.insert(
+        "build-dir".to_string(),
+        nested_env::EnvKey::Single(build_dir.to_string_lossy().into()),
+    );
+
     let selected_builders = if builders.is_empty() {
         contexts.builders_vec()
     } else {
@@ -1171,7 +1178,8 @@ fn generate(
                     continue;
                 }
                 for builder in &selected_builders {
-                    num_built += configure_build(module, &contexts, builder, &mut ninja_writer)?;
+                    num_built +=
+                        configure_build(module, &contexts, builder, &mut ninja_writer, &laze_env)?;
                 }
             }
         }
@@ -1233,6 +1241,14 @@ fn try_main() -> Result<i32> {
             SubCommand::with_name("build")
                 .about("generate build files and build")
                 .arg(
+                    Arg::with_name("build-dir")
+                        .short("B")
+                        .takes_value(true)
+                        .value_name("DIR")
+                        .default_value("build")
+                        .help("specify build dir"),
+                )
+                .arg(
                     Arg::with_name("generate-only")
                         .short("G")
                         .help("generate build files only, don't start build")
@@ -1288,6 +1304,7 @@ fn try_main() -> Result<i32> {
     match matches.subcommand() {
         ("build", Some(build_matches)) => {
             let verbose = build_matches.occurrences_of("verbose");
+            let build_dir = Path::new(build_matches.value_of("build-dir").unwrap());
 
             // collect builder names from args
             let builders = build_matches
@@ -1307,6 +1324,7 @@ fn try_main() -> Result<i32> {
             generate(
                 &project_file,
                 start_relpath.as_ref(),
+                &build_dir,
                 global,
                 &builders,
                 &apps,
@@ -1316,8 +1334,10 @@ fn try_main() -> Result<i32> {
                 return Ok(0);
             }
 
+            let ninja_buildfile = build_dir.join("build.ninja");
             let ninja_exit = NinjaCmdBuilder::default()
                 .verbose(verbose > 0)
+                .build_file(ninja_buildfile.to_str().unwrap())
                 .build()
                 .unwrap()
                 .run()?;
