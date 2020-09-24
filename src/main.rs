@@ -1225,6 +1225,7 @@ fn try_main() -> Result<i32> {
         .arg(
             Arg::with_name("chdir")
                 .short("C")
+                .long("chdir")
                 .help("change working directory before doing anything else")
                 .global(true)
                 .required(false)
@@ -1233,6 +1234,7 @@ fn try_main() -> Result<i32> {
         .arg(
             Arg::with_name("global")
                 .short("g")
+                .long("global")
                 .help("global mode")
                 .global(true)
                 .required(false),
@@ -1243,20 +1245,23 @@ fn try_main() -> Result<i32> {
                 .arg(
                     Arg::with_name("build-dir")
                         .short("B")
+                        .long("build-dir")
                         .takes_value(true)
                         .value_name("DIR")
                         .default_value("build")
-                        .help("specify build dir"),
+                        .help("specify build dir (relative to project root)"),
                 )
                 .arg(
                     Arg::with_name("generate-only")
                         .short("G")
+                        .long("generate-only")
                         .help("generate build files only, don't start build")
                         .required(false),
                 )
                 .arg(
                     Arg::with_name("builders")
                         .short("b")
+                        .long("builders")
                         .help("builders to configure")
                         .required(false)
                         .takes_value(true)
@@ -1266,6 +1271,7 @@ fn try_main() -> Result<i32> {
                 .arg(
                     Arg::with_name("apps")
                         .short("a")
+                        .long("apps")
                         .help("apps to configure")
                         .required(false)
                         .takes_value(true)
@@ -1275,6 +1281,7 @@ fn try_main() -> Result<i32> {
                 .arg(
                     Arg::with_name("verbose")
                         .short("v")
+                        .long("verbose")
                         .help("be verbose (e.g., show command lines)")
                         .multiple(true),
                 ),
