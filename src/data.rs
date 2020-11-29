@@ -194,15 +194,15 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
             Some(x) => x.clone(),
             None => "default".to_string(),
         };
-        println!(
-            "{} {} parent {}",
-            match is_builder {
-                true => "builder",
-                false => "context",
-            },
-            context_name,
-            context_parent,
-        );
+        // println!(
+        //     "{} {} parent {}",
+        //     match is_builder {
+        //         true => "builder",
+        //         false => "context",
+        //     },
+        //     context_name,
+        //     context_parent,
+        // );
         let mut context_ = contexts
             .add_context_or_builder(
                 Context::new(
@@ -267,15 +267,15 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
             Some(defaults) => Module::from(defaults, module_name.clone(), module.context.clone()),
             None => Module::new(module_name.clone(), module.context.clone()),
         };
-        println!(
-            "{} {}:{}",
-            match is_binary {
-                true => "binary".to_string(),
-                false => "module".to_string(),
-            },
-            module.context.as_ref().unwrap_or(&"none".to_string()),
-            module_name
-        );
+        // println!(
+        //     "{} {}:{}",
+        //     match is_binary {
+        //         true => "binary".to_string(),
+        //         false => "module".to_string(),
+        //     },
+        //     module.context.as_ref().unwrap_or(&"none".to_string()),
+        //     module_name
+        // );
 
         m.is_binary = is_binary;
         m.defined_in = Some(filename.clone());
@@ -303,33 +303,33 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
             }
         }
         if let Some(selects) = &module.selects {
-            println!("selects:");
+            // println!("selects:");
             for dep_name in selects {
-                println!("- {}", dep_name);
+                // println!("- {}", dep_name);
                 m.selects.push(dependency_from_string(dep_name));
             }
         }
         if let Some(uses) = &module.uses {
-            println!("uses:");
+            // println!("uses:");
             for dep_name in uses {
-                println!("- {}", dep_name);
+                // println!("- {}", dep_name);
                 m.imports.push(dependency_from_string(dep_name));
             }
         }
         if let Some(depends) = &module.depends {
-            println!("depends:");
+            // println!("depends:");
             for dep_spec in depends {
                 match dep_spec {
                     StringOrMapString::String(dep_name) => {
-                        println!("- {}", dep_name);
+                        // println!("- {}", dep_name);
                         m.selects.push(dependency_from_string(dep_name));
                         m.imports.push(dependency_from_string(dep_name));
                     }
                     StringOrMapString::Map(dep_map) => {
                         for (k, v) in dep_map {
-                            println!("- {}:", k);
+                            // println!("- {}:", k);
                             for dep_name in v {
-                                println!("  - {}", dep_name);
+                                // println!("  - {}", dep_name);
                                 m.selects.push(dependency_from_string_if(dep_name, k));
                                 m.imports.push(dependency_from_string_if(dep_name, k));
                             }
@@ -343,13 +343,13 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
                 if let None = m.disable {
                     m.disable = Some(Vec::new());
                 }
-                println!("disables:");
+                // println!("disables:");
                 for dep_name in disable {
-                    println!("- {}", dep_name);
+                    // println!("- {}", dep_name);
                     m.disable.as_mut().unwrap().push(dep_name.clone());
                 }
             } else {
-                println!("warning: \"disable\" ignored on regular modules!");
+                eprintln!("laze: warning: \"disable\" ignored on regular modules!");
             }
         }
 
