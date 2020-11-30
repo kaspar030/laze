@@ -1132,8 +1132,12 @@ fn generate(
         );
 
         let (ninja_link_rule, bindir) = {
-            // TODO: catch nonexisting link rule
-            let link_rule = rules.values().find(|rule| rule.name == "LINK").unwrap();
+            let link_rule = match rules.values().find(|rule| rule.name == "LINK") {
+                Some(x) => x,
+                // returning an error here won't show, just not configure the build
+                // None => return Err(anyhow!("missing LINK rule for builder {}", builder.name)),
+                None => panic!("missing LINK rule for builder {}", builder.name),
+            };
             let mut link_env = Env::new();
             nested_env::merge(&mut link_env, &global_env);
             let flattened_env = nested_env::flatten(&link_env);
