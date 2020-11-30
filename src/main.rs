@@ -1391,6 +1391,13 @@ fn try_main() -> Result<i32> {
                         .help("specify build dir (relative to project root)"),
                 )
                 .arg(
+                    Arg::with_name("verbose")
+                        .short("v")
+                        .long("verbose")
+                        .help("be verbose (e.g., show command lines)")
+                        .multiple(true),
+                )
+                .arg(
                     Arg::with_name("builder")
                         .short("b")
                         .long("builder")
@@ -1470,7 +1477,7 @@ fn try_main() -> Result<i32> {
             ninja_run(build_dir, verbose > 0)?;
         }
         ("task", Some(task_matches)) => {
-            //let verbose = task_matches.occurrences_of("verbose");
+            let verbose = task_matches.occurrences_of("verbose");
             let build_dir = Path::new(task_matches.value_of("build-dir").unwrap());
 
             let builder = task_matches.value_of("builder");
@@ -1522,7 +1529,7 @@ fn try_main() -> Result<i32> {
 
             let build = builds[0];
 
-            if ninja_run(build_dir, true)? != 0 {
+            if ninja_run(build_dir, verbose > 0)? != 0 {
                 return Err(anyhow!("laze: build error"));
             };
 
