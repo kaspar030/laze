@@ -65,15 +65,20 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn execute(&self, start_dir: &Path) -> Result<(), Error> {
+    pub fn execute(&self, start_dir: &Path, args: Option<Vec<&str>>) -> Result<(), Error> {
         for cmd in &self.cmd {
+            use shell_words::join;
             use std::process::Command;
-            Command::new("sh")
-                .arg("-c")
-                .arg(cmd)
-                .current_dir(start_dir)
-                .status()
-                .expect("command exited with error code");
+            let mut command = Command::new("sh");
+            command.current_dir(start_dir).arg("-c");
+
+            if let Some(args) = &args {
+                command.arg(cmd.clone() + " " + &join(args).to_owned());
+            } else {
+                command.arg(cmd);
+            }
+
+            command.status().expect("command exited with error code");
         }
         Ok(())
     }
@@ -1417,6 +1422,12 @@ fn try_main() -> Result<i32> {
                     Arg::with_name("TASK")
                         .help("name of task to execute")
                         .required(true),
+                )
+                .arg(
+                    Arg::with_name("ARGS")
+                        .help("optional arguments for TASK")
+                        .multiple(true)
+                        .last(true),
                 ),
         )
         .get_matches();
@@ -1484,6 +1495,9 @@ fn try_main() -> Result<i32> {
             let app = task_matches.value_of("app");
 
             let task = task_matches.value_of("TASK").unwrap().to_string();
+            let args = task_matches
+                .values_of("ARGS")
+                .and_then(|x| Some(x.collect::<Vec<_>>()));
 
             let builders = match builder {
                 Some(builder) => iter::once(builder).collect::<IndexSet<_>>(),
@@ -1543,7 +1557,7 @@ fn try_main() -> Result<i32> {
                 .tasks
                 .get(&task)
                 .unwrap()
-                .execute(project_root.as_ref())?;
+                .execute(project_root.as_ref(), args)?;
         }
         _ => {}
     };
