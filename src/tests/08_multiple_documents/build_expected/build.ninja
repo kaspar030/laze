@@ -1,0 +1,48 @@
+rule CC_13867561542713708021
+  command = echo  ${in} > ${out}
+  description = CC
+
+build build//single_app_using/single_app.o: $
+    CC_13867561542713708021 $
+    single_app.c
+
+rule LINK_6088215775825143466
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build//single_app_using/single_app_using.elf: $
+    LINK_6088215775825143466 $
+    build//single_app_using/single_app.o
+
+build build//single_app_selecting/single_app.o: $
+    CC_13867561542713708021 $
+    single_app.c
+
+build build//single_app_selecting/single_app_selecting.elf: $
+    LINK_6088215775825143466 $
+    build//single_app_selecting/single_app.o
+
+rule CC_14454231684986794780
+  command = echo export_from_another_simple_module export_from_simple_module ${in} > ${out}
+  description = CC
+
+build build//single_app_depending/single_app.o: $
+    CC_14454231684986794780 $
+    single_app.c
+
+build build//single_app_depending/single_app_depending.elf: $
+    LINK_6088215775825143466 $
+    build//single_app_depending/single_app.o
+
+rule CC_12110037518820647458
+  command = echo export_from_another_simple_module ${in} > ${out}
+  description = CC
+
+build build//single_app_using_another/single_app.o: $
+    CC_12110037518820647458 $
+    single_app.c
+
+build build//single_app_using_another/single_app_using_another.elf: $
+    LINK_6088215775825143466 $
+    build//single_app_using_another/single_app.o
+

@@ -1,0 +1,29 @@
+rule CC_13867561542713708021
+  command = echo  ${in} > ${out}
+  description = CC
+
+build build//single_app_removing_depends/single_app.o: $
+    CC_13867561542713708021 $
+    single_app.c
+
+rule LINK_6088215775825143466
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build//single_app_removing_depends/single_app_removing_depends.elf: $
+    LINK_6088215775825143466 $
+    build//single_app_removing_depends/single_app.o
+
+build build//single_app_removing_import/single_app.o: $
+    CC_13867561542713708021 $
+    single_app.c
+
+build build//single_app_removing_import/optional.o: $
+    CC_13867561542713708021 $
+    optional.c
+
+build build//single_app_removing_import/single_app_removing_import.elf: $
+    LINK_6088215775825143466 $
+    build//single_app_removing_import/single_app.o $
+    build//single_app_removing_import/optional.o
+

@@ -1,0 +1,21 @@
+rule CC_14454231684986794780
+  command = echo export_from_another_simple_module export_from_simple_module ${in} > ${out}
+  description = CC
+
+build build//single_app/single_app.o: $
+    CC_14454231684986794780 $
+    single_app.c
+
+build build//single_app/optional.o: $
+    CC_14454231684986794780 $
+    optional.c
+
+rule LINK_6088215775825143466
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build//single_app/single_app.elf: $
+    LINK_6088215775825143466 $
+    build//single_app/single_app.o $
+    build//single_app/optional.o
+

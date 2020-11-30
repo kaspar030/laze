@@ -1,0 +1,52 @@
+rule CC_17608718551525903618
+  command = echo -DMODULE_SINGLE_APP_USING ${in} > ${out}
+  description = CC
+
+build build//single_app_using/single_app.o: $
+    CC_17608718551525903618 $
+    single_app.c
+
+rule LINK_6088215775825143466
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build//single_app_using/single_app_using.elf: $
+    LINK_6088215775825143466 $
+    build//single_app_using/single_app.o
+
+rule CC_6088567578202723394
+  command = echo -DMODULE_SINGLE_APP_SELECTING ${in} > ${out}
+  description = CC
+
+build build//single_app_selecting/single_app.o: $
+    CC_6088567578202723394 $
+    single_app.c
+
+build build//single_app_selecting/single_app_selecting.elf: $
+    LINK_6088215775825143466 $
+    build//single_app_selecting/single_app.o
+
+rule CC_3080697431336746828
+  command = echo -DMODULE_ANOTHER_SIMPLE_MODULE -DMODULE_DASHED_MODULE -DMODULE_SLASHED_MODULE -DMODULE_SIMPLE_MODULE -DMODULE_SINGLE_APP_DEPENDING ${in} > ${out}
+  description = CC
+
+build build//single_app_depending/single_app.o: $
+    CC_3080697431336746828 $
+    single_app.c
+
+build build//single_app_depending/single_app_depending.elf: $
+    LINK_6088215775825143466 $
+    build//single_app_depending/single_app.o
+
+rule CC_281746921895251522
+  command = echo -DMODULE_ANOTHER_SIMPLE_MODULE -DMODULE_SINGLE_APP_USING_ANOTHER ${in} > ${out}
+  description = CC
+
+build build//single_app_using_another/single_app.o: $
+    CC_281746921895251522 $
+    single_app.c
+
+build build//single_app_using_another/single_app_using_another.elf: $
+    LINK_6088215775825143466 $
+    build//single_app_using_another/single_app.o
+

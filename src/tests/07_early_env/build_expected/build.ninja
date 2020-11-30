@@ -1,0 +1,28 @@
+rule CC_13794255201832020055
+  command = echo local_var relpath:subdir OTHER:other_value  global_var  ${in} > ${out} && cat ${in} >> ${out}
+  description = CC
+
+build build/single_builder/single_app/subdir/single_app.o: $
+    CC_13794255201832020055 $
+    subdir/single_app.c
+
+rule LINK_6088215775825143466
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build/single_builder/single_app/single_app.elf: $
+    LINK_6088215775825143466 $
+    build/single_builder/single_app/subdir/single_app.o
+
+rule CC_10369607572885286319
+  command = echo local_var relpath:subdir/deeper_subdir OTHER:other_value  global_var  ${in} > ${out} && cat ${in} >> ${out}
+  description = CC
+
+build build/single_builder/second_app/subdir/deeper_subdir/second_app.o: $
+    CC_10369607572885286319 $
+    subdir/deeper_subdir/second_app.c
+
+build build/single_builder/second_app/second_app.elf: $
+    LINK_6088215775825143466 $
+    build/single_builder/second_app/subdir/deeper_subdir/second_app.o
+

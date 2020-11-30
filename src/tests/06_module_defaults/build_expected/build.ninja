@@ -1,0 +1,25 @@
+rule CC_13028245464502519898
+  command = echo   global_var global_var_from_module_default ${in} > ${out} && cat ${in} >> ${out}
+  description = CC
+
+build build/single_builder/single_app/single_app.o: $
+    CC_13028245464502519898 $
+    single_app.c
+
+rule CC_6530427443407169630
+  command = echo local_var local_var_from_module_default global_var global_var_from_module_default ${in} > ${out} && cat ${in} >> ${out}
+  description = CC
+
+build build/single_builder/single_app/module_default.o: $
+    CC_6530427443407169630 $
+    module_default.c
+
+rule LINK_6088215775825143466
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build/single_builder/single_app/single_app.elf: $
+    LINK_6088215775825143466 $
+    build/single_builder/single_app/single_app.o $
+    build/single_builder/single_app/module_default.o
+
