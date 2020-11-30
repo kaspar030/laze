@@ -77,6 +77,16 @@ impl Task {
         }
         Ok(())
     }
+
+    pub fn with_env(&self, env: &HashMap<&String, String>) -> Task {
+        Task {
+            cmd: self
+                .cmd
+                .iter()
+                .map(|cmd| nested_env::expand(cmd, env, nested_env::IfMissing::Ignore).unwrap())
+                .collect(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -248,14 +258,18 @@ impl Context {
         result
     }
 
-    pub fn collect_tasks(&self, contexts: &ContextBag) -> IndexMap<String, Task> {
+    pub fn collect_tasks(
+        &self,
+        contexts: &ContextBag,
+        env: &HashMap<&String, String>,
+    ) -> IndexMap<String, Task> {
         let mut result = IndexMap::new();
         let mut parents = Vec::new();
         self.get_parents(contexts, &mut parents);
         for parent in parents {
             if let Some(tasks) = &parent.tasks {
                 for (name, task) in tasks {
-                    result.insert(name.clone(), task.clone());
+                    result.insert(name.clone(), task.with_env(env));
                 }
             }
         }
@@ -1173,15 +1187,17 @@ fn generate(
         ninja_writer.write_build(&ninja_link_build).unwrap();
 
         // collect tasks
-        let tasks = build.build_context.collect_tasks(&contexts);
+        let mut task_env = Env::new();
+        nested_env::merge(&mut task_env, &global_env);
+        task_env.insert(
+            "out".into(),
+            nested_env::EnvKey::Single(String::from(out_elf.to_str().unwrap())),
+        );
+        let flattened_task_env = nested_env::flatten(&task_env);
+        let tasks = build
+            .build_context
+            .collect_tasks(&contexts, &flattened_task_env);
 
-        //println!("tasks: {:#?}", tasks);
-        // println!(
-        //     "rule: {} src: {} out: {:?}",
-        //     ninja_link_rule,
-        //     objects.join(" "),
-        //     "foo.elf"
-        // );
         Ok(Some(BuildInfo { tasks }))
     }
 
