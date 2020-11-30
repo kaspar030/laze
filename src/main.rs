@@ -17,12 +17,13 @@ use std::ffi::OsStr;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
-use std::{iter::Filter, slice::Iter};
+use std::{iter, iter::Filter, slice::Iter};
 
 #[macro_use]
 extern crate serde_derive;
 
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 
 use anyhow::{Context as _, Error, Result};
 use clap::{crate_version, App, AppSettings, Arg, SubCommand};
@@ -52,9 +53,30 @@ pub struct Context {
 
     pub var_options: Option<HashMap<String, MergeOption>>,
 
+    pub tasks: Option<HashMap<String, Task>>,
     pub env_early: Env,
     pub is_builder: bool,
     pub defined_in: Option<PathBuf>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+pub struct Task {
+    cmd: Vec<String>,
+}
+
+impl Task {
+    pub fn execute(&self, start_dir: &Path) -> Result<(), Error> {
+        for cmd in &self.cmd {
+            use std::process::Command;
+            Command::new("sh")
+                .arg("-c")
+                .arg(cmd)
+                .current_dir(start_dir)
+                .status()
+                .expect("command exited with error code");
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -131,6 +153,7 @@ impl Context {
             env_early: Env::new(),
             rules: None,
             var_options: None,
+            tasks: None,
             is_builder: false,
             defined_in: None,
         }
@@ -150,6 +173,7 @@ impl Context {
             env_early: Env::new(),
             rules: None,
             var_options: None,
+            tasks: None,
             is_builder: false,
             defined_in: None,
         }
@@ -218,6 +242,20 @@ impl Context {
                     if let Some(rule_in) = rule.in_.as_ref() {
                         result.insert(rule_in.clone(), rule);
                     }
+                }
+            }
+        }
+        result
+    }
+
+    pub fn collect_tasks(&self, contexts: &ContextBag) -> IndexMap<String, Task> {
+        let mut result = IndexMap::new();
+        let mut parents = Vec::new();
+        self.get_parents(contexts, &mut parents);
+        for parent in parents {
+            if let Some(tasks) = &parent.tasks {
+                for (name, task) in tasks {
+                    result.insert(name.clone(), task.clone());
                 }
             }
         }
@@ -450,11 +488,7 @@ impl ContextBag {
     }
 
     pub fn builders_vec(&self) -> Vec<&Context> {
-        let mut res = Vec::new();
-        for builder in self.builders() {
-            res.push(builder);
-        }
-        res
+        self.builders().collect()
     }
 
     pub fn builders_by_name(&self, names: &IndexSet<&str>) -> Vec<&Context> {
@@ -896,6 +930,10 @@ impl<'a: 'b, 'b> Build<'b> {
     //    }
 }
 
+struct BuildInfo {
+    tasks: IndexMap<String, Task>,
+}
+
 fn generate(
     project_root: &Path,
     start_dir: &Path,
@@ -903,9 +941,8 @@ fn generate(
     global: bool,
     builders: &IndexSet<&str>,
     apps: &IndexSet<&str>,
-) -> Result<()> {
-    let mut contexts = ContextBag::new();
-    let contexts = load(project_root, &mut contexts)?;
+) -> Result<Vec<(String, String, BuildInfo)>> {
+    let contexts = load(project_root)?;
 
     std::fs::create_dir_all(&build_dir)?;
     let mut ninja_writer = NinjaWriter::new(build_dir.join("build.ninja").as_path()).unwrap();
@@ -916,7 +953,7 @@ fn generate(
         builder: &Context,
         ninja_writer: &mut NinjaWriter,
         laze_env: &Env,
-    ) -> Result<usize> {
+    ) -> Result<Option<BuildInfo>> {
         if !match contexts.is_allowed(builder, &binary.blocklist, &binary.allowlist) {
             BlockAllow::Allowed => true,
             BlockAllow::Blocked => {
@@ -942,7 +979,7 @@ fn generate(
                 true
             }
         } {
-            return Ok(0);
+            return Ok(None);
         }
 
         println!("configuring {} for {}", binary.name, builder.name);
@@ -970,7 +1007,7 @@ fn generate(
         let modules = match build.resolve_selects(&disabled_modules) {
             Err(e) => {
                 println!("error: {}", e);
-                return Ok(0);
+                return Ok(None);
             }
             Ok(val) => val,
         };
@@ -1124,6 +1161,8 @@ fn generate(
         // NinjaBuildBuilder expects a Vec<&Path>, but the loop above creates a Vec<PathBuf>.
         // thus, convert.
         let objects: Vec<&Path> = objects.iter().map(|pathbuf| pathbuf.as_path()).collect();
+
+        // build ninja link target
         let ninja_link_build = NinjaBuildBuilder::default()
             .rule(&*link_rule_name)
             .in_vec(objects)
@@ -1133,13 +1172,17 @@ fn generate(
 
         ninja_writer.write_build(&ninja_link_build).unwrap();
 
+        // collect tasks
+        let tasks = build.build_context.collect_tasks(&contexts);
+
+        //println!("tasks: {:#?}", tasks);
         // println!(
         //     "rule: {} src: {} out: {:?}",
         //     ninja_link_rule,
         //     objects.join(" "),
         //     "foo.elf"
         // );
-        Ok(1)
+        Ok(Some(BuildInfo { tasks }))
     }
 
     let mut laze_env = HashMap::new();
@@ -1156,6 +1199,8 @@ fn generate(
         nested_env::EnvKey::Single(build_dir.to_string_lossy().into()),
     );
 
+    let laze_env = laze_env;
+
     let selected_builders = if builders.is_empty() {
         contexts.builders_vec()
     } else {
@@ -1164,29 +1209,44 @@ fn generate(
 
     let all_apps = apps.is_empty();
 
-    let mut num_built = 0;
-    for builder in &contexts.contexts {
-        for (_, module) in &builder.modules {
-            if module.is_binary {
-                if !all_apps {
-                    if let None = apps.get(&module.name[..]) {
-                        continue;
-                    }
-                }
-                if !global && module.relpath.as_ref().unwrap() != start_dir {
-                    //println!("skipping {}", module.name);
-                    continue;
-                }
-                for builder in &selected_builders {
-                    num_built +=
-                        configure_build(module, &contexts, builder, &mut ninja_writer, &laze_env)?;
-                }
+    // get all "binary" modules
+    let bins = contexts
+        .contexts
+        .iter()
+        .flat_map(|ctx| ctx.modules.iter())
+        .filter(|(_, module)| module.is_binary);
+
+    // filter selected apps, if specified
+    // also filter by apps in the start folder, if not in global mode
+    let bins = bins.filter(move |(_, module)| {
+        if !all_apps {
+            if let None = apps.get(&module.name[..]) {
+                return false;
             }
         }
-    }
+        if !global && module.relpath.as_ref().unwrap() != start_dir {
+            return false;
+        }
+        true
+    });
+
+    // create (builder, bin) tuples
+    let builder_bin_tuples = selected_builders.iter().cartesian_product(bins);
+
+    // actually configure builds
+    let builds = builder_bin_tuples
+        .filter_map(|(builder, (_, bin))| {
+            match configure_build(bin, &contexts, builder, &mut ninja_writer, &laze_env).ok()? {
+                Some(build_info) => Some((builder.name.clone(), bin.name.clone(), build_info)),
+                _ => None,
+            }
+        })
+        .collect::<Vec<(String, String, BuildInfo)>>();
+
+    let num_built = builds.len();
     println!("configured {} builds.", num_built);
 
-    Ok(())
+    Ok(builds)
 }
 
 fn determine_project_root(start: &PathBuf) -> Result<(PathBuf, PathBuf)> {
@@ -1203,6 +1263,22 @@ fn determine_project_root(start: &PathBuf) -> Result<(PathBuf, PathBuf)> {
             None => return Err(anyhow!("cannot find laze-project.yml")),
         }
     }
+}
+
+fn ninja_run(build_dir: &Path, verbose: bool) -> Result<i32, Error> {
+    let ninja_buildfile = build_dir.join("build.ninja");
+    let ninja_exit = NinjaCmdBuilder::default()
+        .verbose(verbose)
+        .build_file(ninja_buildfile.to_str().unwrap())
+        .build()
+        .unwrap()
+        .run()?;
+    match ninja_exit.code() {
+        Some(code) => {
+            return Ok(code);
+        }
+        None => return Err(anyhow!("ninja probably killed by signal")),
+    };
 }
 
 fn main() {
@@ -1286,6 +1362,40 @@ fn try_main() -> Result<i32> {
                         .multiple(true),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("task")
+                .about("run builder specific task")
+                .arg(
+                    Arg::with_name("build-dir")
+                        .short("B")
+                        .long("build-dir")
+                        .takes_value(true)
+                        .value_name("DIR")
+                        .default_value("build")
+                        .help("specify build dir (relative to project root)"),
+                )
+                .arg(
+                    Arg::with_name("builder")
+                        .short("b")
+                        .long("builder")
+                        .help("builder to run task for")
+                        .required(false)
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("app")
+                        .short("a")
+                        .long("app")
+                        .help("application target to run task for")
+                        .required(false)
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("TASK")
+                        .help("name of task to execute")
+                        .required(true),
+                ),
+        )
         .get_matches();
 
     if let Some(dir) = matches.value_of("chdir") {
@@ -1341,21 +1451,76 @@ fn try_main() -> Result<i32> {
                 return Ok(0);
             }
 
-            let ninja_buildfile = build_dir.join("build.ninja");
-            let ninja_exit = NinjaCmdBuilder::default()
-                .verbose(verbose > 0)
-                .build_file(ninja_buildfile.to_str().unwrap())
-                .build()
-                .unwrap()
-                .run()?;
-            if !ninja_exit.success() {
-                match ninja_exit.code() {
-                    Some(code) => {
-                        return Ok(code);
-                    }
-                    None => return Err(anyhow!("ninja probably killed by signal")),
-                };
+            ninja_run(build_dir, verbose > 0)?;
+        }
+        ("task", Some(task_matches)) => {
+            //let verbose = task_matches.occurrences_of("verbose");
+            let build_dir = Path::new(task_matches.value_of("build-dir").unwrap());
+
+            let builder = task_matches.value_of("builder");
+            let app = task_matches.value_of("app");
+
+            let task = task_matches.value_of("TASK").unwrap().to_string();
+
+            let builders = match builder {
+                Some(builder) => iter::once(builder).collect::<IndexSet<_>>(),
+                None => IndexSet::new(),
+            };
+
+            let apps = match app {
+                Some(app) => iter::once(app).collect::<IndexSet<_>>(),
+                None => IndexSet::new(),
+            };
+
+            println!("building {:?} for {:?}", &apps, &builders);
+            // arguments parsed, launch generation of ninja file(s)
+            let builds = generate(
+                &project_file,
+                start_relpath.as_ref(),
+                &build_dir,
+                global,
+                &builders,
+                &apps,
+            )?;
+
+            let builds: Vec<&(String, String, BuildInfo)> = builds
+                .iter()
+                .filter(|(_, _, build_info)| build_info.tasks.contains_key(&task))
+                .collect();
+
+            if builds.len() > 1 {
+                eprintln!("laze: multiple task targets found:");
+                for (builder, bin, _build_info) in builds {
+                    eprintln!("{} {}", builder, bin);
+                }
+
+                return Err(anyhow!("laze: please specify one of these."));
             }
+
+            if builds.len() < 1 {
+                return Err(anyhow!(
+                    "laze: no matching target for task \"{}\" found.",
+                    task
+                ));
+            }
+
+            let build = builds[0];
+
+            if ninja_run(build_dir, true)? != 0 {
+                return Err(anyhow!("laze: build error"));
+            };
+
+            println!(
+                "laze: executing task {} for builder {} bin {} task",
+                task, build.0, build.1,
+            );
+
+            build
+                .2
+                .tasks
+                .get(&task)
+                .unwrap()
+                .execute(project_root.as_ref())?;
         }
         _ => {}
     };

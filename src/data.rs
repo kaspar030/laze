@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use super::nested_env::{Env, EnvKey, MergeOption};
-use super::{Context, ContextBag, Dependency, Module, Rule};
+use super::{Context, ContextBag, Dependency, Module, Rule, Task};
 
 use anyhow::{Context as _, Result};
 
@@ -39,6 +39,7 @@ struct YamlContext {
     disable: Option<Vec<String>>,
     rule: Option<Vec<Rule>>,
     var_options: Option<HashMap<String, MergeOption>>,
+    tasks: Option<HashMap<String, Task>>,
     #[serde(skip)]
     is_builder: bool,
 }
@@ -134,7 +135,8 @@ fn load_all<'a>(
     Ok(result)
 }
 
-pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a ContextBag> {
+pub fn load(filename: &Path) -> Result<ContextBag> {
+    let mut contexts = ContextBag::new();
     let start = Instant::now();
 
     // yaml_datas holds all parsed yaml data
@@ -229,6 +231,9 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
             }
         }
         context_.var_options = context.var_options.clone();
+        if let Some(tasks) = &context.tasks {
+            context_.tasks = Some(tasks.clone());
+        }
         // populate "early env"
         let relpath = {
             let relpath = filename.parent().unwrap().to_str().unwrap();
@@ -440,7 +445,7 @@ pub fn load<'a>(filename: &Path, contexts: &'a mut ContextBag) -> Result<&'a Con
                 for context in context_list {
                     convert_context(
                         context,
-                        contexts,
+                        &mut contexts,
                         *is_builder,
                         &data.filename.as_ref().unwrap(),
                     );
