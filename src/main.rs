@@ -1219,7 +1219,7 @@ fn try_main() -> Result<i32> {
             };
 
             println!(
-                "laze: executing task {} for builder {} bin {} task",
+                "laze: executing task {} for builder {} bin {}",
                 task, build.0, build.1,
             );
 
