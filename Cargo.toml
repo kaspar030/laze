@@ -5,13 +5,14 @@ authors = ["Kaspar Schleiser <kaspar@schleiser.de>"]
 edition = "2018"
 
 [dependencies]
+bincode = "1.3"
 clap = "2.33.1"
 derive_builder = "0.9.0"
 exitfailure = { version = "*" }
 anyhow = { version = "*" }
 petgraph = { version = "*" }
 simple-error = { version = "*" }
-indexmap = { version = "1.3" }
+indexmap = { version = "1.3", features = ["serde-1"] }
 itertools = "0.9.0"
 shell-words = "1.0.0"
 treestate = "0.1.0"

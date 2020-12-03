@@ -31,7 +31,7 @@ mod generate;
 mod nested_env;
 mod ninja;
 
-use generate::{BuildInfo, GenerateMode};
+use generate::{BuildInfo, GenerateMode, Selector};
 use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
 
@@ -506,10 +506,10 @@ impl ContextBag {
         self.builders().collect()
     }
 
-    pub fn builders_by_name(&self, names: &IndexSet<&str>) -> Vec<&Context> {
+    pub fn builders_by_name(&self, names: &IndexSet<String>) -> Vec<&Context> {
         let mut res = Vec::new();
         for builder in self.builders() {
-            if names.contains(&builder.name[..]) {
+            if names.contains(&builder.name) {
                 res.push(builder);
             }
         }
@@ -1125,26 +1125,26 @@ fn try_main() -> Result<i32> {
             let build_dir = Path::new(build_matches.value_of("build-dir").unwrap());
 
             // collect builder names from args
-            let builders = build_matches
-                .values_of("builders")
-                .unwrap_or_default()
-                .collect::<IndexSet<_>>();
+            let builders = match build_matches.values_of_lossy("builders") {
+                Some(mut values) => Selector::Some(values.drain(..).collect::<IndexSet<String>>()),
+                None => Selector::All,
+            };
 
             // collect app names from args
-            let apps = build_matches
-                .values_of("apps")
-                .unwrap_or_default()
-                .collect::<IndexSet<_>>();
+            let apps = match build_matches.values_of_lossy("apps") {
+                Some(mut values) => Selector::Some(values.drain(..).collect::<IndexSet<String>>()),
+                None => Selector::All,
+            };
 
-            println!("building {:?} for {:?}", &apps, &builders);
+            println!("building {} for {}", &apps, &builders);
 
             let mode = match global {
                 true => GenerateMode::Global,
-                false => GenerateMode::Local(start_relpath.as_ref()),
+                false => GenerateMode::Local(start_relpath),
             };
 
             // arguments parsed, launch generation of ninja file(s)
-            generate::generate(&project_file, &build_dir, mode, &builders, &apps)?;
+            generate::generate(&project_file, &build_dir, mode, builders, apps)?;
 
             if build_matches.is_present("generate-only") {
                 return Ok(0);
@@ -1167,26 +1167,31 @@ fn try_main() -> Result<i32> {
                 _ => unreachable!(),
             };
 
+            // collect builder names from args
             let builders = match builder {
-                Some(builder) => iter::once(builder).collect::<IndexSet<_>>(),
-                None => IndexSet::new(),
+                Some(builder) => {
+                    Selector::Some(iter::once(builder.into()).collect::<IndexSet<String>>())
+                }
+                None => Selector::All,
             };
 
+            // collect app names from args
             let apps = match app {
-                Some(app) => iter::once(app).collect::<IndexSet<_>>(),
-                None => IndexSet::new(),
+                Some(app) => Selector::Some(iter::once(app.into()).collect::<IndexSet<String>>()),
+                None => Selector::All,
             };
 
             let mode = match global {
                 true => GenerateMode::Global,
-                false => GenerateMode::Local(start_relpath.as_ref()),
+                false => GenerateMode::Local(start_relpath),
             };
 
-            println!("building {:?} for {:?}", &apps, &builders);
+            println!("building {} for {}", &apps, &builders);
             // arguments parsed, launch generation of ninja file(s)
-            let builds = generate::generate(&project_file, &build_dir, mode, &builders, &apps)?;
+            let builds = generate::generate(&project_file, &build_dir, mode, builders, apps)?;
 
             let builds: Vec<&(String, String, BuildInfo)> = builds
+                .build_infos
                 .iter()
                 .filter(|(_, _, build_info)| build_info.tasks.contains_key(task.into()))
                 .collect();

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::ffi::OsStr;
+use std::fmt;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -15,27 +16,35 @@ use super::{
     BlockAllow, Build, Context, ContextBag, Module, Task,
 };
 
+#[derive(Deserialize, Serialize)]
 pub struct BuildInfo {
     pub tasks: IndexMap<String, Task>,
 }
 
-pub enum GenerateMode<'a> {
+pub type BuildInfoList = Vec<(String, String, BuildInfo)>;
+
+#[derive(Deserialize, Serialize)]
+pub enum GenerateMode {
     Global,
-    Local(&'a Path),
+    Local(PathBuf),
 }
 
 pub fn generate(
     project_root: &Path,
     build_dir: &Path,
     mode: GenerateMode,
-    builders: &IndexSet<&str>,
-    apps: &IndexSet<&str>,
-) -> Result<Vec<(String, String, BuildInfo)>> {
-    if let Ok(cached) = generate_cache(project_root, build_dir, &mode, builders, apps) {
-        return Ok(cached);
+    builders: Selector,
+    apps: Selector,
+) -> Result<GenerateResult> {
+    let start = Instant::now();
+    match GenerateResult::from_cache(project_root, build_dir, &mode, &builders, &apps) {
+        Ok(cached) => {
+            println!("laze: reading cache took {:?}.", start.elapsed());
+            return Ok(cached);
+        }
+        Err(x) => println!("{}", x),
     }
 
-    let start = Instant::now();
     let (contexts, treestate) = load(project_root)?;
 
     std::fs::create_dir_all(&build_dir)?;
@@ -301,13 +310,10 @@ pub fn generate(
 
     let laze_env = laze_env;
 
-    let selected_builders = if builders.is_empty() {
-        contexts.builders_vec()
-    } else {
-        contexts.builders_by_name(builders)
+    let selected_builders = match &builders {
+        Selector::All => contexts.builders_vec(),
+        Selector::Some(builders) => contexts.builders_by_name(builders),
     };
-
-    let all_apps = apps.is_empty();
 
     // get all "binary" modules
     let bins = contexts
@@ -319,12 +325,12 @@ pub fn generate(
     // filter selected apps, if specified
     // also filter by apps in the start folder, if not in global mode
     let bins = bins.filter(|(_, module)| {
-        if !all_apps {
+        if let Selector::Some(apps) = &apps {
             if let None = apps.get(&module.name[..]) {
                 return false;
             }
         }
-        if let GenerateMode::Local(start_dir) = mode {
+        if let GenerateMode::Local(start_dir) = &mode {
             if module.relpath.as_ref().unwrap() != start_dir {
                 return false;
             }
@@ -352,15 +358,117 @@ pub fn generate(
         start.elapsed()
     );
 
-    Ok(builds)
+    let result = GenerateResult::new(mode, builders, apps, builds, treestate);
+    let start = Instant::now();
+    result.to_cache(&build_dir)?;
+    println!("laze: writing cache took {:?}.", start.elapsed());
+    Ok(result)
 }
 
-fn generate_cache(
-    project_root: &Path,
-    build_dir: &Path,
-    mode: &GenerateMode,
-    builders: &IndexSet<&str>,
-    apps: &IndexSet<&str>,
-) -> Result<Vec<(String, String, BuildInfo)>> {
-    Err(anyhow!("cache not implemented"))
+#[derive(Deserialize, Serialize, PartialEq)]
+pub enum Selector {
+    All,
+    Some(IndexSet<String>),
+}
+
+impl Selector {
+    fn is_superset(&self, other: &Selector) -> bool {
+        match self {
+            Selector::All => true,
+            Selector::Some(set) => match other {
+                Selector::All => false,
+                Selector::Some(other_set) => set.is_superset(other_set),
+            },
+        }
+    }
+}
+
+impl fmt::Display for Selector {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Selector::All => write!(f, "all")?,
+            Selector::Some(list) => {
+                let mut it = list.iter();
+                if let Some(entry) = it.next() {
+                    write!(f, "{}", entry)?;
+                    for entry in it {
+                        write!(f, ", {}", entry)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct GenerateResult {
+    pub mode: GenerateMode,
+    pub builders: Selector,
+    pub apps: Selector,
+    pub build_infos: Vec<(String, String, BuildInfo)>,
+    treestate: FileTreeState,
+}
+
+impl GenerateResult {
+    pub fn new(
+        mode: GenerateMode,
+        builders: Selector,
+        apps: Selector,
+        build_infos: BuildInfoList,
+        treestate: FileTreeState,
+    ) -> GenerateResult {
+        GenerateResult {
+            mode,
+            builders,
+            apps,
+            build_infos,
+            treestate,
+        }
+    }
+
+    fn cache_file(build_dir: &Path, mode: &GenerateMode) -> PathBuf {
+        match mode {
+            GenerateMode::Global => build_dir.join("laze-cache-global.bincode"),
+            GenerateMode::Local(_) => build_dir.join("laze-cache-local.bincode"),
+        }
+    }
+
+    pub fn from_cache(
+        _project_root: &Path,
+        build_dir: &Path,
+        mode: &GenerateMode,
+        builders: &Selector,
+        apps: &Selector,
+    ) -> Result<GenerateResult> {
+        use std::fs::File;
+
+        let file = Self::cache_file(build_dir, mode);
+        let file = File::open(file)?;
+        let res: GenerateResult = bincode::deserialize_from(file)?;
+        if !res.builders.is_superset(builders) {
+            return Err(anyhow!("builders don't match"));
+        }
+        if !res.apps.is_superset(apps) {
+            return Err(anyhow!("apps don't match"));
+        }
+        if let GenerateMode::Local(path) = mode {
+            if let GenerateMode::Local(cached_path) = &res.mode {
+                if path != cached_path {
+                    return Err(anyhow!("local paths don't match"));
+                }
+            }
+        }
+        if res.treestate.has_changed() {
+            return Err(anyhow!("laze: build files have changed"));
+        }
+        Ok(res)
+    }
+
+    pub fn to_cache(&self, build_dir: &Path) -> std::result::Result<(), Box<bincode::ErrorKind>> {
+        use std::fs::File;
+        let file = Self::cache_file(build_dir, &self.mode);
+        let file = File::create(file)?;
+        bincode::serialize_into(file, self)
+    }
 }
