@@ -1390,6 +1390,9 @@ fn try_main() -> Result<i32> {
         .subcommand(
             SubCommand::with_name("task")
                 .about("run builder specific task")
+                .usage("lazers task [FLAGS] [OPTIONS] <TASK> [ARGS]...")
+                .setting(AppSettings::AllowExternalSubcommands)
+                .setting(AppSettings::SubcommandRequired)
                 .arg(
                     Arg::with_name("build-dir")
                         .short("B")
@@ -1421,17 +1424,6 @@ fn try_main() -> Result<i32> {
                         .help("application target to run task for")
                         .required(false)
                         .takes_value(true),
-                )
-                .arg(
-                    Arg::with_name("TASK")
-                        .help("name of task to execute")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("ARGS")
-                        .help("optional arguments for TASK")
-                        .multiple(true)
-                        .last(true),
                 ),
         )
         .get_matches();
@@ -1498,10 +1490,13 @@ fn try_main() -> Result<i32> {
             let builder = task_matches.value_of("builder");
             let app = task_matches.value_of("app");
 
-            let task = task_matches.value_of("TASK").unwrap().to_string();
-            let args = task_matches
-                .values_of("ARGS")
-                .and_then(|x| Some(x.collect::<Vec<_>>()));
+            let (task, args) = match task_matches.subcommand() {
+                (name, Some(matches)) => {
+                    let args = matches.values_of("").map(|v| v.collect());
+                    (name, args)
+                }
+                _ => unreachable!(),
+            };
 
             let builders = match builder {
                 Some(builder) => iter::once(builder).collect::<IndexSet<_>>(),
@@ -1526,7 +1521,7 @@ fn try_main() -> Result<i32> {
 
             let builds: Vec<&(String, String, BuildInfo)> = builds
                 .iter()
-                .filter(|(_, _, build_info)| build_info.tasks.contains_key(&task))
+                .filter(|(_, _, build_info)| build_info.tasks.contains_key(task.into()))
                 .collect();
 
             if builds.len() > 1 {
@@ -1559,7 +1554,7 @@ fn try_main() -> Result<i32> {
             build
                 .2
                 .tasks
-                .get(&task)
+                .get(task.into())
                 .unwrap()
                 .execute(project_root.as_ref(), args)?;
         }
