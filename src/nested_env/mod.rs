@@ -141,12 +141,12 @@ pub fn flatten_with_opts_option<'a>(
     }
 }
 
-pub fn flatten_expand<'a>(flattened: &'a HashMap<&String, String>) -> HashMap<&'a String, String> {
-    flattened
-        .iter()
-        .map(|(key, value)| (*key, expand(value, flattened, IfMissing::Error).unwrap()))
-        .collect()
-}
+// pub fn flatten_expand<'a>(flattened: &'a HashMap<&String, String>) -> HashMap<&'a String, String> {
+//     flattened
+//         .iter()
+//         .map(|(key, value)| (*key, expand(value, flattened, IfMissing::Error).unwrap()))
+//         .collect()
+// }
 
 pub fn expand_env(env: &Env, values: &Env) -> Env {
     let values = flatten(values);
