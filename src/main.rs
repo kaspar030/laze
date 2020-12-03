@@ -953,11 +953,15 @@ struct BuildInfo {
     tasks: IndexMap<String, Task>,
 }
 
+enum GenerateMode<'a> {
+    Global,
+    Local(&'a Path),
+}
+
 fn generate(
     project_root: &Path,
-    start_dir: &Path,
     build_dir: &Path,
-    global: bool,
+    mode: GenerateMode,
     builders: &IndexSet<&str>,
     apps: &IndexSet<&str>,
 ) -> Result<Vec<(String, String, BuildInfo)>> {
@@ -1243,14 +1247,16 @@ fn generate(
 
     // filter selected apps, if specified
     // also filter by apps in the start folder, if not in global mode
-    let bins = bins.filter(move |(_, module)| {
+    let bins = bins.filter(|(_, module)| {
         if !all_apps {
             if let None = apps.get(&module.name[..]) {
                 return false;
             }
         }
-        if !global && module.relpath.as_ref().unwrap() != start_dir {
-            return false;
+        if let GenerateMode::Local(start_dir) = mode {
+            if module.relpath.as_ref().unwrap() != start_dir {
+                return false;
+            }
         }
         true
     });
@@ -1467,15 +1473,13 @@ fn try_main() -> Result<i32> {
 
             println!("building {:?} for {:?}", &apps, &builders);
 
+            let mode = match global {
+                true => GenerateMode::Global,
+                false => GenerateMode::Local(start_relpath.as_ref()),
+            };
+
             // arguments parsed, launch generation of ninja file(s)
-            generate(
-                &project_file,
-                start_relpath.as_ref(),
-                &build_dir,
-                global,
-                &builders,
-                &apps,
-            )?;
+            generate(&project_file, &build_dir, mode, &builders, &apps)?;
 
             if build_matches.is_present("generate-only") {
                 return Ok(0);
@@ -1508,16 +1512,14 @@ fn try_main() -> Result<i32> {
                 None => IndexSet::new(),
             };
 
+            let mode = match global {
+                true => GenerateMode::Global,
+                false => GenerateMode::Local(start_relpath.as_ref()),
+            };
+
             println!("building {:?} for {:?}", &apps, &builders);
             // arguments parsed, launch generation of ninja file(s)
-            let builds = generate(
-                &project_file,
-                start_relpath.as_ref(),
-                &build_dir,
-                global,
-                &builders,
-                &apps,
-            )?;
+            let builds = generate(&project_file, &build_dir, mode, &builders, &apps)?;
 
             let builds: Vec<&(String, String, BuildInfo)> = builds
                 .iter()
