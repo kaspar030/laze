@@ -12,6 +12,10 @@ use super::{Context, ContextBag, Dependency, Module, Rule, Task};
 
 use anyhow::{Context as _, Result};
 
+use treestate::{FileState, TreeState};
+
+pub type FileTreeState = TreeState<FileState, PathBuf>;
+
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlFile {
     context: Option<Vec<YamlContext>>,
@@ -135,7 +139,7 @@ fn load_all<'a>(
     Ok(result)
 }
 
-pub fn load(filename: &Path) -> Result<ContextBag> {
+pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
     let mut contexts = ContextBag::new();
     let start = Instant::now();
 
@@ -544,5 +548,6 @@ pub fn load(filename: &Path) -> Result<ContextBag> {
         start.elapsed(),
     );
 
-    Ok(contexts)
+    let treestate = FileTreeState::new(filenames.iter().map(|(path, _)| path));
+    Ok((contexts, treestate))
 }
