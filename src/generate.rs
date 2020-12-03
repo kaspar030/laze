@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use anyhow::Result;
 use indexmap::{IndexMap, IndexSet};
@@ -34,6 +35,7 @@ pub fn generate(
         return Ok(cached);
     }
 
+    let start = Instant::now();
     let (contexts, treestate) = load(project_root)?;
 
     std::fs::create_dir_all(&build_dir)?;
@@ -344,7 +346,11 @@ pub fn generate(
         .collect::<Vec<(String, String, BuildInfo)>>();
 
     let num_built = builds.len();
-    println!("configured {} builds.", num_built);
+    println!(
+        "configured {} builds (took {:?}).",
+        num_built,
+        start.elapsed()
+    );
 
     Ok(builds)
 }

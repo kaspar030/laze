@@ -548,6 +548,13 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
         start.elapsed(),
     );
 
+    let start = Instant::now();
     let treestate = FileTreeState::new(filenames.iter().map(|(path, _)| path));
+    println!(
+        "laze: stat'ing {} files took {:?}",
+        filenames.len(),
+        start.elapsed(),
+    );
+
     Ok((contexts, treestate))
 }
