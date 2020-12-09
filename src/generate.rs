@@ -49,6 +49,7 @@ pub fn generate(
 
     std::fs::create_dir_all(&build_dir)?;
     let mut ninja_writer = NinjaWriter::new(build_dir.join("build.ninja").as_path()).unwrap();
+    ninja_writer.write_var("builddir", build_dir.to_str().unwrap())?;
 
     fn configure_build(
         binary: &Module,

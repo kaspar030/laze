@@ -166,6 +166,11 @@ impl NinjaWriter {
         Ok(name)
     }
 
+    pub fn write_var(&mut self, var: &str, val: &str) -> std::io::Result<()> {
+        self.file
+            .write_all(format!("{} = {}\n", var, val).as_bytes())
+    }
+
     pub fn write_build(&mut self, build: &NinjaBuild) -> std::io::Result<()> {
         self.file.write_all(format!("{}", build).as_bytes())
     }
