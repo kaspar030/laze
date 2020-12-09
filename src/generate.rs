@@ -179,6 +179,8 @@ pub fn generate(
                     NinjaRuleBuilder::default()
                         .name(&*rule.name)
                         .description(&*rule.name)
+                        .rspfile(rule.rspfile.as_deref())
+                        .rspfile_content(rule.rspfile_content.as_deref())
                         .command(&*expanded)
                         .deps(match &rule.gcc_deps {
                             None => NinjaRuleDeps::None,
@@ -233,6 +235,8 @@ pub fn generate(
                     .name(&*link_rule.name)
                     .description(&*link_rule.name)
                     .command(&*expanded)
+                    .rspfile(link_rule.rspfile.as_deref())
+                    .rspfile_content(link_rule.rspfile_content.as_deref())
                     .build()
                     .unwrap(),
                 nested_env::expand("${bindir}", &flattened_env, IfMissing::Empty).unwrap(),

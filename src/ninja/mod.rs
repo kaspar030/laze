@@ -35,13 +35,17 @@ pub struct NinjaRule<'a> {
     env: Option<&'a HashMap<String, String>>,
     #[builder(default = "NinjaRuleDeps::None")]
     deps: NinjaRuleDeps,
+    #[builder(default = "None")]
+    rspfile: Option<&'a str>,
+    #[builder(default = "None")]
+    rspfile_content: Option<&'a str>,
 }
 
 impl<'a> fmt::Display for NinjaRule<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "rule {}\n  command = {}\n{}{}\n",
+            "rule {}\n  command = {}\n{}{}{}{}\n",
             self.name,
             self.command,
             match self.description {
@@ -51,6 +55,14 @@ impl<'a> fmt::Display for NinjaRule<'a> {
             match &self.deps {
                 NinjaRuleDeps::None => format!(""),
                 NinjaRuleDeps::GCC(s) => format!("  deps = gcc\n  depfile = {}\n", s),
+            },
+            match self.rspfile {
+                Some(rspfile) => format!("  rspfile = {}\n", rspfile),
+                None => format!(""),
+            },
+            match self.rspfile_content {
+                Some(rspfile_content) => format!("  rspfile_content = {}\n", rspfile_content),
+                None => format!(""),
             },
         )
     }
@@ -69,6 +81,8 @@ impl<'a> Hash for NinjaRule<'a> {
         self.name.hash(state);
         self.command.hash(state);
         self.description.hash(state);
+        self.rspfile.hash(state);
+        self.rspfile_content.hash(state);
     }
 }
 

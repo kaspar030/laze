@@ -149,6 +149,8 @@ pub struct Rule {
     context: Option<String>,
     options: Option<HashMap<String, String>>,
     gcc_deps: Option<String>,
+    rspfile: Option<String>,
+    rspfile_content: Option<String>,
 }
 
 impl Context {
