@@ -1,3 +1,5 @@
+[![Build Status](https://drone.schleiser.de/api/badges/kaspar030/laze/status.svg)](https://drone.schleiser.de/kaspar030/laze)
+
 # Introduction
 
 Welcome to laze, a ninja build file generator.
