@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fmt;
@@ -178,14 +179,14 @@ pub fn generate(
                         nested_env::expand(&rule.cmd, &flattened_env, IfMissing::Empty).unwrap();
 
                     NinjaRuleBuilder::default()
-                        .name(&*rule.name)
-                        .description(&*rule.name)
-                        .rspfile(rule.rspfile.as_deref())
-                        .rspfile_content(rule.rspfile_content.as_deref())
-                        .command(&*expanded)
+                        .name(Cow::from(&rule.name))
+                        .description(Some(Cow::from(&rule.name)))
+                        .rspfile(rule.rspfile.as_deref().map(Cow::from))
+                        .rspfile_content(rule.rspfile_content.as_deref().map(Cow::from))
+                        .command(expanded.into())
                         .deps(match &rule.gcc_deps {
                             None => NinjaRuleDeps::None,
-                            Some(s) => NinjaRuleDeps::GCC(s.clone()),
+                            Some(s) => NinjaRuleDeps::GCC(s.into()),
                         })
                         .build()
                         .unwrap()
@@ -233,11 +234,11 @@ pub fn generate(
 
             (
                 NinjaRuleBuilder::default()
-                    .name(&*link_rule.name)
-                    .description(&*link_rule.name)
-                    .command(&*expanded)
-                    .rspfile(link_rule.rspfile.as_deref())
-                    .rspfile_content(link_rule.rspfile_content.as_deref())
+                    .name(Cow::from(&link_rule.name))
+                    .description(Some(Cow::from(&link_rule.name)))
+                    .command(expanded.into())
+                    .rspfile(link_rule.rspfile.as_deref().map(Cow::from))
+                    .rspfile_content(link_rule.rspfile_content.as_deref().map(Cow::from))
                     .build()
                     .unwrap(),
                 nested_env::expand("${bindir}", &flattened_env, IfMissing::Empty).unwrap(),
@@ -272,11 +273,11 @@ pub fn generate(
 
         // NinjaBuildBuilder expects a Vec<&Path>, but the loop above creates a Vec<PathBuf>.
         // thus, convert.
-        let objects: Vec<&Path> = objects.iter().map(|pathbuf| pathbuf.as_path()).collect();
+        let objects: Vec<_> = objects.iter().map(|pathbuf| Cow::from(pathbuf)).collect();
 
         // build ninja link target
         let ninja_link_build = NinjaBuildBuilder::default()
-            .rule(&*link_rule_name)
+            .rule(link_rule_name)
             .in_vec(objects)
             .out(out_elf.as_path())
             .build()

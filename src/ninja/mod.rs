@@ -1,12 +1,12 @@
+use std::borrow::Cow;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs::File;
+use std::hash::{Hash, Hasher};
 use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::process::{Command, ExitStatus};
-
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 
 pub struct NinjaWriter {
     pub file: BufWriter<File>,
@@ -26,19 +26,19 @@ impl Default for NinjaRuleDeps {
 }
 
 #[derive(Default, Builder, Debug, PartialEq, Eq, Clone)]
-#[builder(setter(into))]
+//#[builder(setter(into))]
 pub struct NinjaRule<'a> {
-    pub name: &'a str,
-    command: String,
-    description: Option<&'a str>,
+    pub name: Cow<'a, str>,
+    command: Cow<'a, str>,
+    description: Option<Cow<'a, str>>,
     #[builder(setter(into, strip_option), default = "None")]
     env: Option<&'a HashMap<String, String>>,
     #[builder(default = "NinjaRuleDeps::None")]
     deps: NinjaRuleDeps,
     #[builder(default = "None")]
-    rspfile: Option<&'a str>,
+    rspfile: Option<Cow<'a, str>>,
     #[builder(default = "None")]
-    rspfile_content: Option<&'a str>,
+    rspfile_content: Option<Cow<'a, str>>,
 }
 
 impl<'a> fmt::Display for NinjaRule<'a> {
@@ -48,7 +48,7 @@ impl<'a> fmt::Display for NinjaRule<'a> {
             "rule {}\n  command = {}\n{}{}{}{}\n",
             self.name,
             self.command,
-            match self.description {
+            match &self.description {
                 Some(description) => format!("  description = {}\n", description),
                 None => format!(""),
             },
@@ -56,11 +56,11 @@ impl<'a> fmt::Display for NinjaRule<'a> {
                 NinjaRuleDeps::None => format!(""),
                 NinjaRuleDeps::GCC(s) => format!("  deps = gcc\n  depfile = {}\n", s),
             },
-            match self.rspfile {
+            match &self.rspfile {
                 Some(rspfile) => format!("  rspfile = {}\n", rspfile),
                 None => format!(""),
             },
-            match self.rspfile_content {
+            match &self.rspfile_content {
                 Some(rspfile_content) => format!("  rspfile_content = {}\n", rspfile_content),
                 None => format!(""),
             },
@@ -76,7 +76,7 @@ impl<'a> NinjaRule<'a> {
     }
 
     pub fn get_hashed_name(&self, hash: u64) -> String {
-        let mut name = String::from(self.name);
+        let mut name = String::from(self.name.clone());
         name.push_str(&format!("_{}", hash));
         name
     }
@@ -99,16 +99,16 @@ impl<'a> Hash for NinjaRule<'a> {
 #[derive(Builder, Debug)]
 #[builder(setter(into))]
 pub struct NinjaBuild<'a> {
-    rule: &'a str,
-    out: &'a Path,
+    rule: Cow<'a, str>,
+    out: Cow<'a, Path>,
 
     #[builder(setter(strip_option), default = "None")]
-    in_vec: Option<Vec<&'a Path>>,
+    in_vec: Option<Vec<Cow<'a, Path>>>,
     #[builder(setter(strip_option), default = "None")]
-    in_single: Option<&'a Path>,
+    in_single: Option<Cow<'a, Path>>,
 
     #[builder(setter(into, strip_option), default = "None")]
-    deps: Option<Vec<&'a str>>,
+    deps: Option<Vec<Cow<'a, Path>>>,
 
     #[builder(setter(into, strip_option), default = "None")]
     env: Option<&'a HashMap<String, String>>,
@@ -135,7 +135,11 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
         }
 
         if let Some(list) = &self.deps {
-            write!(f, " $\n    | $\n    {}\n", list.join(" $\n    "))?;
+            write!(f, " $\n    | $\n    ")?;
+            for entry in list {
+                write!(f, "{} $\n    ", entry.to_str().unwrap())?;
+            }
+            write!(f, "\n")?;
         } else {
             write!(f, "\n")?;
         }
@@ -164,11 +168,11 @@ impl NinjaWriter {
 
     pub fn write_rule_dedup(&mut self, rule: &NinjaRule) -> std::io::Result<String> {
         let rule_hash = rule.get_hash();
-        let name = String::from(rule.get_hashed_name(rule_hash));
+        let name = rule.get_hashed_name(rule_hash);
 
         if self.rules.insert(rule_hash) {
             let mut named = rule.clone();
-            named.name = &name[..];
+            named.name = Cow::from(&name);
             self.write_rule(&named)?;
         }
 
