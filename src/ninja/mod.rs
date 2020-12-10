@@ -74,6 +74,12 @@ impl<'a> NinjaRule<'a> {
         self.hash(&mut s);
         s.finish()
     }
+
+    pub fn get_hashed_name(&self, hash: u64) -> String {
+        let mut name = String::from(self.name);
+        name.push_str(&format!("_{}", hash));
+        name
+    }
 }
 
 impl<'a> Hash for NinjaRule<'a> {
@@ -83,6 +89,10 @@ impl<'a> Hash for NinjaRule<'a> {
         self.description.hash(state);
         self.rspfile.hash(state);
         self.rspfile_content.hash(state);
+        match &self.deps {
+            NinjaRuleDeps::None => (),
+            NinjaRuleDeps::GCC(s) => s.hash(state),
+        };
     }
 }
 
@@ -154,8 +164,7 @@ impl NinjaWriter {
 
     pub fn write_rule_dedup(&mut self, rule: &NinjaRule) -> std::io::Result<String> {
         let rule_hash = rule.get_hash();
-        let mut name = String::from(rule.name);
-        name.push_str(&format!("_{}", rule_hash));
+        let name = String::from(rule.get_hashed_name(rule_hash));
 
         if self.rules.insert(rule_hash) {
             let mut named = rule.clone();
