@@ -266,6 +266,10 @@ pub fn generate(
         let mut out_elf = bindir.clone();
         out_elf.push(&binary.name);
         let out_elf = out_elf.with_extension("elf");
+        global_env.insert(
+            "out".into(),
+            nested_env::EnvKey::Single(String::from(out_elf.to_str().unwrap())),
+        );
 
         // write linking rule & build
         let link_rule_name = ninja_writer.write_rule_dedup(&ninja_link_rule).unwrap();
@@ -285,13 +289,7 @@ pub fn generate(
         ninja_writer.write_build(&ninja_link_build).unwrap();
 
         // collect tasks
-        let mut task_env = Env::new();
-        nested_env::merge(&mut task_env, &global_env);
-        task_env.insert(
-            "out".into(),
-            nested_env::EnvKey::Single(String::from(out_elf.to_str().unwrap())),
-        );
-        let flattened_task_env = nested_env::flatten(&task_env);
+        let flattened_task_env = nested_env::flatten(&global_env);
         let tasks = build
             .build_context
             .collect_tasks(&contexts, &flattened_task_env);
