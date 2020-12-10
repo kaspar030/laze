@@ -219,30 +219,29 @@ pub fn generate(
             nested_env::EnvKey::Single(String::from(relpath.to_str().unwrap())),
         );
 
-        let (ninja_link_rule, bindir) = {
+        let global_env_flattened = nested_env::flatten(&global_env);
+        let bindir =
+            nested_env::expand("${bindir}", &global_env_flattened, IfMissing::Empty).unwrap();
+
+        let ninja_link_rule = {
             let link_rule = match rules.values().find(|rule| rule.name == "LINK") {
                 Some(x) => x,
                 // returning an error here won't show, just not configure the build
                 // None => return Err(anyhow!("missing LINK rule for builder {}", builder.name)),
                 None => panic!("missing LINK rule for builder {}", builder.name),
             };
-            let mut link_env = Env::new();
-            nested_env::merge(&mut link_env, &global_env);
-            let flattened_env = nested_env::flatten(&link_env);
             let expanded =
-                nested_env::expand(&link_rule.cmd, &flattened_env, IfMissing::Empty).unwrap();
+                nested_env::expand(&link_rule.cmd, &global_env_flattened, IfMissing::Empty)
+                    .unwrap();
 
-            (
-                NinjaRuleBuilder::default()
-                    .name(Cow::from(&link_rule.name))
-                    .description(Some(Cow::from(&link_rule.name)))
-                    .command(expanded.into())
-                    .rspfile(link_rule.rspfile.as_deref().map(Cow::from))
-                    .rspfile_content(link_rule.rspfile_content.as_deref().map(Cow::from))
-                    .build()
-                    .unwrap(),
-                nested_env::expand("${bindir}", &flattened_env, IfMissing::Empty).unwrap(),
-            )
+            NinjaRuleBuilder::default()
+                .name(Cow::from(&link_rule.name))
+                .description(Some(Cow::from(&link_rule.name)))
+                .command(expanded.into())
+                .rspfile(link_rule.rspfile.as_deref().map(Cow::from))
+                .rspfile_content(link_rule.rspfile_content.as_deref().map(Cow::from))
+                .build()
+                .unwrap()
         };
 
         let bindir = PathBuf::from(bindir);
