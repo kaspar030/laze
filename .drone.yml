@@ -9,8 +9,11 @@ steps:
   commands:
   - cargo build --verbose --all
   - cargo test --verbose --all
+  - cargo install --path .
+  - apt-get update && apt-get install -y ninja-build
+  - make -C src/tests
 ---
 kind: signature
-hmac: 34d1623c43386a442e11c8ef019888b0ddac9e6fef62b19fc463b9f70e468249
+hmac: 088ac7ba81932caf9a37bf05fee11a0f04efb5ccaaf93aea2bfe9fdc81983392
 
 ...
