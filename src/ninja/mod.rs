@@ -26,7 +26,7 @@ impl Default for NinjaRuleDeps {
 }
 
 #[derive(Default, Builder, Debug, PartialEq, Eq, Clone)]
-//#[builder(setter(into))]
+#[builder(setter(into))]
 pub struct NinjaRule<'a> {
     pub name: Cow<'a, str>,
     command: Cow<'a, str>,
@@ -135,9 +135,9 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
         }
 
         if let Some(list) = &self.deps {
-            write!(f, " $\n    | $\n    ")?;
+            write!(f, " $\n    |")?;
             for entry in list {
-                write!(f, "{} $\n    ", entry.to_str().unwrap())?;
+                write!(f, " $\n    {}", entry.to_str().unwrap())?;
             }
             write!(f, "\n")?;
         } else {
