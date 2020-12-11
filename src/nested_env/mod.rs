@@ -1,5 +1,6 @@
-use std::collections::HashMap;
-use std::vec::Vec;
+use im::HashMap;
+use im::Vector;
+use itertools::join;
 
 mod expand;
 
@@ -9,7 +10,7 @@ pub use expand::{expand, IfMissing};
 #[serde(untagged)]
 pub enum EnvKey {
     Single(String),
-    List(Vec<String>),
+    List(Vector<String>),
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
@@ -27,13 +28,11 @@ impl EnvKey {
             EnvKey::Single(_) => other.clone(),
             EnvKey::List(self_values) => match other {
                 EnvKey::Single(_) => other.clone(),
-                EnvKey::List(other_values) => EnvKey::List(
-                    self_values
-                        .iter()
-                        .chain(other_values)
-                        .map(|x| x.clone())
-                        .collect(),
-                ),
+                EnvKey::List(other_values) => {
+                    let mut combined = self_values.clone();
+                    combined.append(other_values.clone());
+                    EnvKey::List(combined)
+                }
             },
         }
     }
@@ -41,7 +40,7 @@ impl EnvKey {
     fn flatten(&self) -> String {
         match self {
             EnvKey::Single(s) => s.clone(),
-            EnvKey::List(list) => list.join(" "),
+            EnvKey::List(list) => join(list, " "),
         }
     }
 
@@ -97,13 +96,10 @@ impl EnvKey {
 
 pub type Env = HashMap<String, EnvKey>;
 
-pub fn merge(lower: &mut Env, upper: &Env) {
-    for (upper_key, upper_value) in upper {
-        lower
-            .entry(upper_key.clone())
-            .and_modify(|e| *e = e.merge(upper_value))
-            .or_insert(upper_value.clone());
-    }
+pub fn merge(lower: Env, upper: Env) -> Env {
+    lower.union_with(upper, |lower_value, upper_value| {
+        lower_value.merge(&upper_value)
+    })
 }
 
 pub fn flatten(env: &Env) -> HashMap<&String, String> {
@@ -162,11 +158,9 @@ pub fn expand_env(env: &Env, values: &Env) -> Env {
         }
     }
 
-    let mut result = Env::with_capacity(env.len());
-    for (key, value) in env {
-        result.insert(key.clone(), expand_envkey(value, &values));
-    }
-    result
+    env.iter()
+        .map(|(key, val)| (key.clone(), expand_envkey(val, &values)))
+        .collect()
 }
 
 #[cfg(test)]
