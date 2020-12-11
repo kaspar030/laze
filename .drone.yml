@@ -1,3 +1,4 @@
+---
 kind: pipeline
 type: docker
 name: default
@@ -8,3 +9,8 @@ steps:
   commands:
   - cargo build --verbose --all
   - cargo test --verbose --all
+---
+kind: signature
+hmac: 34d1623c43386a442e11c8ef019888b0ddac9e6fef62b19fc463b9f70e468249
+
+...
