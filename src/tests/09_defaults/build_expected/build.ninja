@@ -1,40 +1,41 @@
-rule CC_4069961360104412687
+builddir = build
+rule CC_13803785004193099529
   command = echo DEFAULT_VAR_laze-project.yml DEFAULT_VAR_from_another_simple_module DEFAULT_VAR_laze-project.yml DEFAULT_VAR_from_simple_module ${in} > ${out}
   description = CC
 
 build build//first_app/first_app.o: $
-    CC_4069961360104412687 $
+    CC_13803785004193099529 $
     first_app.c
 
-rule LINK_6088215775825143466
+rule LINK_5506617845631750009
   command = cat ${in} > ${out}
   description = LINK
 
 build build//first_app/first_app.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build//first_app/first_app.o
 
-rule CC_3958003824545703047
+rule CC_15922652437181515470
   command = echo DEFAULT_VAR_laze-project.yml DEFAULT_VAR_subdir_a_module DEFAULT_VAR_laze-project.yml DEFAULT_VAR_from_another_simple_module DEFAULT_VAR_laze-project.yml DEFAULT_VAR_from_simple_module ${in} > ${out}
   description = CC
 
 build build//second_app/subdir_a/second_app.o: $
-    CC_3958003824545703047 $
+    CC_15922652437181515470 $
     subdir_a/second_app.c
 
 build build//second_app/second_app.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build//second_app/subdir_a/second_app.o
 
-rule CC_16806789176967967687
+rule CC_6563581809458271174
   command = echo DEFAULT_VAR_laze-project.yml DEFAULT_VAR_subdir_b_module ${in} > ${out}
   description = CC
 
 build build//third_app/subdir_a/subdir_b/third_app.o: $
-    CC_16806789176967967687 $
+    CC_6563581809458271174 $
     subdir_a/subdir_b/third_app.c
 
 build build//third_app/third_app.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build//third_app/subdir_a/subdir_b/third_app.o
 

@@ -1,6 +1,8 @@
 TESTS = $(dir $(wildcard */test.sh))
 
-all:
+.PHONY: test
+
+test:
 	for testdir in $(TESTS); do \
 		(cd $${testdir}; ./test.sh; ) || exit 1 ; \
 		done

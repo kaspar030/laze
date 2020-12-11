@@ -1,84 +1,85 @@
-rule CC_13867561542713708021
+builddir = build
+rule CC_6858609285403819907
   command = echo  ${in} > ${out}
   description = CC
 
 build build//app/app.o: $
-    CC_13867561542713708021 $
+    CC_6858609285403819907 $
     app.c
 
-rule CC_6384807287905632647
+rule CC_8945665865320373174
   command = echo export_from_second_module export_from_third_module export_from_first_module ${in} > ${out}
   description = CC
 
 build build//app/module.o: $
-    CC_6384807287905632647 $
+    CC_8945665865320373174 $
     module.c
 
-rule LINK_6088215775825143466
+rule LINK_5506617845631750009
   command = cat ${in} > ${out}
   description = LINK
 
 build build//app/app.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build//app/app.o $
     build//app/module.o
 
 build build//app_depend_disabled_subdepend_second/app.o: $
-    CC_13867561542713708021 $
+    CC_6858609285403819907 $
     app.c
 
 build build//app_depend_disabled_subdepend_second/app_depend_disabled_subdepend_second.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build//app_depend_disabled_subdepend_second/app.o
 
-rule CC_15174215611261538130
+rule CC_5767099186035483882
   command = echo export_from_second_module export_from_first_module ${in} > ${out}
   description = CC
 
 build build//app_depend_disabled_subdepend_third/app.o: $
-    CC_15174215611261538130 $
+    CC_5767099186035483882 $
     app.c
 
 build build//app_depend_disabled_subdepend_third/module.o: $
-    CC_15174215611261538130 $
+    CC_5767099186035483882 $
     module.c
 
 build build//app_depend_disabled_subdepend_third/app_depend_disabled_subdepend_third.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build//app_depend_disabled_subdepend_third/app.o $
     build//app_depend_disabled_subdepend_third/module.o
 
 build build/builder_disabling_third_module/app/app.o: $
-    CC_13867561542713708021 $
+    CC_6858609285403819907 $
     app.c
 
 build build/builder_disabling_third_module/app/module.o: $
-    CC_15174215611261538130 $
+    CC_5767099186035483882 $
     module.c
 
 build build/builder_disabling_third_module/app/app.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build/builder_disabling_third_module/app/app.o $
     build/builder_disabling_third_module/app/module.o
 
 build build/builder_disabling_third_module/app_depend_disabled_subdepend_second/app.o: $
-    CC_13867561542713708021 $
+    CC_6858609285403819907 $
     app.c
 
 build build/builder_disabling_third_module/app_depend_disabled_subdepend_second/app_depend_disabled_subdepend_second.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build/builder_disabling_third_module/app_depend_disabled_subdepend_second/app.o
 
 build build/builder_disabling_third_module/app_depend_disabled_subdepend_third/app.o: $
-    CC_15174215611261538130 $
+    CC_5767099186035483882 $
     app.c
 
 build build/builder_disabling_third_module/app_depend_disabled_subdepend_third/module.o: $
-    CC_15174215611261538130 $
+    CC_5767099186035483882 $
     module.c
 
 build build/builder_disabling_third_module/app_depend_disabled_subdepend_third/app_depend_disabled_subdepend_third.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build/builder_disabling_third_module/app_depend_disabled_subdepend_third/app.o $
     build/builder_disabling_third_module/app_depend_disabled_subdepend_third/module.o
 

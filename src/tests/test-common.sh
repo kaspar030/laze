@@ -4,9 +4,16 @@ cleanup() {
 }
 
 build() {
-    ${LAZERS} build -g
+    ${LAZE} build -g
 }
 
-: "${LAZERS:=lazers}"
+clean_temp_files() {
+    rm -rf \
+        build/.ninja_log \
+        build/laze-cache-local.bincode \
+        build/laze-cache-global.bincode
+}
+
+: "${LAZE:=laze}"
 
 set -e

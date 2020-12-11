@@ -1,25 +1,26 @@
-rule CC_5558565949364056973
+builddir = build
+rule CC_7979507258972711706
   command = echo export_from_second_module export_from_first_module export_from_third_module ${in} > ${out}
   description = CC
 
 build build//app/app.o: $
-    CC_5558565949364056973 $
+    CC_7979507258972711706 $
     app.c
 
-rule CC_15174215611261538130
+rule CC_5767099186035483882
   command = echo export_from_second_module export_from_first_module ${in} > ${out}
   description = CC
 
 build build//app/module.o: $
-    CC_15174215611261538130 $
+    CC_5767099186035483882 $
     module.c
 
-rule LINK_6088215775825143466
+rule LINK_5506617845631750009
   command = cat ${in} > ${out}
   description = LINK
 
 build build//app/app.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build//app/app.o $
     build//app/module.o
 

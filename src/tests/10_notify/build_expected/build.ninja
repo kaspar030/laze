@@ -1,52 +1,53 @@
-rule CC_17608718551525903618
+builddir = build
+rule CC_12168199710697785758
   command = echo -DMODULE_SINGLE_APP_USING ${in} > ${out}
   description = CC
 
 build build//single_app_using/single_app.o: $
-    CC_17608718551525903618 $
+    CC_12168199710697785758 $
     single_app.c
 
-rule LINK_6088215775825143466
+rule LINK_5506617845631750009
   command = cat ${in} > ${out}
   description = LINK
 
 build build//single_app_using/single_app_using.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build//single_app_using/single_app.o
 
-rule CC_6088567578202723394
+rule CC_9696073186726792895
   command = echo -DMODULE_SINGLE_APP_SELECTING ${in} > ${out}
   description = CC
 
 build build//single_app_selecting/single_app.o: $
-    CC_6088567578202723394 $
+    CC_9696073186726792895 $
     single_app.c
 
 build build//single_app_selecting/single_app_selecting.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build//single_app_selecting/single_app.o
 
-rule CC_3080697431336746828
+rule CC_13829935330814772385
   command = echo -DMODULE_ANOTHER_SIMPLE_MODULE -DMODULE_DASHED_MODULE -DMODULE_SLASHED_MODULE -DMODULE_SIMPLE_MODULE -DMODULE_SINGLE_APP_DEPENDING ${in} > ${out}
   description = CC
 
 build build//single_app_depending/single_app.o: $
-    CC_3080697431336746828 $
+    CC_13829935330814772385 $
     single_app.c
 
 build build//single_app_depending/single_app_depending.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build//single_app_depending/single_app.o
 
-rule CC_281746921895251522
+rule CC_3086654722251522306
   command = echo -DMODULE_ANOTHER_SIMPLE_MODULE -DMODULE_SINGLE_APP_USING_ANOTHER ${in} > ${out}
   description = CC
 
 build build//single_app_using_another/single_app.o: $
-    CC_281746921895251522 $
+    CC_3086654722251522306 $
     single_app.c
 
 build build//single_app_using_another/single_app_using_another.elf: $
-    LINK_6088215775825143466 $
+    LINK_5506617845631750009 $
     build//single_app_using_another/single_app.o
 
