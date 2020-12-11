@@ -225,7 +225,7 @@ mod tests {
     #[test]
     fn basic() {
         let mut file = NinjaWriter::new(Path::new("ninja.build")).unwrap();
-        file.file.write(b"foo\n");
+        file.file.write(b"foo\n").unwrap();
     }
 
     #[test]
@@ -233,7 +233,7 @@ mod tests {
         let rule = NinjaRuleBuilder::default()
             .name("CC")
             .command("gcc ${CFLAGS} -c ${in} ${out}")
-            .description("Compile")
+            .description(Cow::from("Compile"))
             .build()
             .unwrap();
         assert_eq!(
@@ -265,7 +265,7 @@ mod tests {
     fn build_with_input() {
         let testc = PathBuf::from("test.c");
         let test2c = PathBuf::from("test2.c");
-        let in_vec = vec![testc.as_path(), test2c.as_path()];
+        let in_vec = vec![testc.as_path().into(), test2c.as_path().into()];
         let out = PathBuf::from("test.o");
         let rule = NinjaBuildBuilder::default()
             .rule("CC")
@@ -290,13 +290,14 @@ mod tests {
     fn build_with_deps() {
         let testc = PathBuf::from("test.c");
         let test2c = PathBuf::from("test2.c");
-        let in_vec = vec![testc.as_path(), test2c.as_path()];
+        let in_vec = vec![testc.as_path().into(), test2c.as_path().into()];
+        let deps = vec![Path::new("other.o").into(), Path::new("other2.o").into()];
         let out = PathBuf::from("test.o");
         let rule = NinjaBuildBuilder::default()
             .rule("CC")
             .in_vec(in_vec)
             .out(out.as_path())
-            .deps(vec!["other.o", "other2.o"])
+            .deps(deps)
             .build()
             .unwrap();
 
