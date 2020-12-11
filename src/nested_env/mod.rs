@@ -166,6 +166,7 @@ pub fn expand_env(env: &Env, values: &Env) -> Env {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use im::vector;
 
     #[test]
     fn test_merge_nonexisting_single() {
@@ -176,9 +177,8 @@ mod tests {
             EnvKey::Single("upper_value".to_string()),
         );
 
-        let mut merged = Env::new();
-        merge(&mut merged, &lower);
-        merge(&mut merged, &upper);
+        let merged = merge(lower, upper);
+
         assert_eq!(
             merged.get("mykey").unwrap(),
             &EnvKey::Single("upper_value".to_string())
@@ -199,9 +199,8 @@ mod tests {
             EnvKey::Single("lower_value".to_string()),
         );
 
-        let mut merged = Env::new();
-        merge(&mut merged, &lower);
-        merge(&mut merged, &upper);
+        let merged = merge(lower, upper);
+
         assert_eq!(
             merged.get("mykey").unwrap(),
             &EnvKey::Single("upper_value".to_string())
@@ -214,7 +213,7 @@ mod tests {
         let mut lower = Env::new();
         lower.insert(
             "mykey".to_string(),
-            EnvKey::List(vec![
+            EnvKey::List(vector![
                 "lower_value_1".to_string(),
                 "lower_value_2".to_string(),
             ]),
@@ -224,9 +223,8 @@ mod tests {
             EnvKey::Single("upper_value".to_string()),
         );
 
-        let mut merged = Env::new();
-        merge(&mut merged, &lower);
-        merge(&mut merged, &upper);
+        let merged = merge(lower, upper);
+
         assert_eq!(
             merged.get("mykey").unwrap(),
             &EnvKey::Single("upper_value".to_string())
@@ -244,18 +242,17 @@ mod tests {
 
         upper.insert(
             "mykey".to_string(),
-            EnvKey::List(vec![
+            EnvKey::List(vector![
                 "upper_value_1".to_string(),
                 "upper_value_2".to_string(),
             ]),
         );
 
-        let mut merged = Env::new();
-        merge(&mut merged, &lower);
-        merge(&mut merged, &upper);
+        let merged = merge(lower, upper);
+
         assert_eq!(
             merged.get("mykey").unwrap(),
-            &EnvKey::List(vec![
+            &EnvKey::List(vector![
                 "upper_value_1".to_string(),
                 "upper_value_2".to_string(),
             ]),
@@ -268,7 +265,7 @@ mod tests {
         let mut lower = Env::new();
         lower.insert(
             "mykey".to_string(),
-            EnvKey::List(vec![
+            EnvKey::List(vector![
                 "lower_value_1".to_string(),
                 "lower_value_2".to_string(),
             ]),
@@ -276,18 +273,17 @@ mod tests {
 
         upper.insert(
             "mykey".to_string(),
-            EnvKey::List(vec![
+            EnvKey::List(vector![
                 "upper_value_1".to_string(),
                 "upper_value_2".to_string(),
             ]),
         );
 
-        let mut merged = Env::new();
-        merge(&mut merged, &lower);
-        merge(&mut merged, &upper);
+        let merged = merge(lower, upper);
+
         assert_eq!(
             merged.get("mykey").unwrap(),
-            &EnvKey::List(vec![
+            &EnvKey::List(vector![
                 "lower_value_1".to_string(),
                 "lower_value_2".to_string(),
                 "upper_value_1".to_string(),
@@ -309,7 +305,8 @@ mod tests {
             EnvKey::Single("lower_value".to_string()),
         );
 
-        let merged = Env::new();
+        let merged = merge(lower, upper);
+
         for (key, value) in merged {
             dbg!(key, value);
         }
@@ -320,7 +317,7 @@ mod tests {
         let mut env = Env::new();
         env.insert(
             "mykey".to_string(),
-            EnvKey::List(vec![
+            EnvKey::List(vector![
                 "value_1".to_string(),
                 "value_2".to_string(),
                 "value_3".to_string(),
