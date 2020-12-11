@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -95,9 +94,8 @@ pub fn generate(
         /* create initial build context global env.
          * Unfortunately we need to create a copy as we cannot get a mutable
          * reference to build_context.env. */
-        let mut global_env = Env::new();
-        nested_env::merge(&mut global_env, &laze_env);
-        nested_env::merge(&mut global_env, &build.build_context.env.as_ref().unwrap());
+        let mut global_env =
+            nested_env::merge(laze_env.clone(), build.build_context.env.clone().unwrap());
 
         // collect disabled modules from app and build context
         let mut disabled_modules = build.build_context.collect_disabled_modules(&contexts);
@@ -124,7 +122,7 @@ pub fn generate(
 
         /* import global module environments into global build context env */
         for (_, module) in modules.iter().rev() {
-            nested_env::merge(&mut global_env, &module.env_global);
+            global_env = nested_env::merge(global_env, module.env_global.clone());
         }
 
         let mut app_builds = Vec::new();
@@ -134,11 +132,8 @@ pub fn generate(
             /* build final module env */
             let module_env = module.build_env(&global_env, &modules);
 
-            /* add escaped ${in} and ${out}, create env for the build rules */
-            let mut rule_env = Env::new();
-            nested_env::merge(&mut rule_env, &module_env);
             let flattened_env =
-                nested_env::flatten_with_opts_option(&rule_env, merge_opts.as_ref());
+                nested_env::flatten_with_opts_option(&module_env, merge_opts.as_ref());
             //println!("{:#?}", builder.var_options);
 
             let mut module_rules: IndexMap<String, NinjaRule> = IndexMap::new();
@@ -219,7 +214,8 @@ pub fn generate(
             nested_env::EnvKey::Single(String::from(relpath.to_str().unwrap())),
         );
 
-        let global_env_flattened = nested_env::flatten(&global_env);
+        let tmp = global_env.clone();
+        let global_env_flattened = nested_env::flatten(&tmp);
         let bindir =
             nested_env::expand("${bindir}", &global_env_flattened, IfMissing::Empty).unwrap();
 
@@ -297,7 +293,7 @@ pub fn generate(
         Ok(Some(BuildInfo { tasks }))
     }
 
-    let mut laze_env = HashMap::new();
+    let mut laze_env = im::HashMap::new();
     laze_env.insert(
         "in".to_string(),
         nested_env::EnvKey::Single("\\${in}".to_string()),

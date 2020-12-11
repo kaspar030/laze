@@ -47,7 +47,7 @@ pub struct Context {
     pub env: Option<Env>,
     pub disable: Option<Vec<String>>,
 
-    pub var_options: Option<HashMap<String, MergeOption>>,
+    pub var_options: Option<im::HashMap<String, MergeOption>>,
 
     pub tasks: Option<HashMap<String, Task>>,
     pub env_early: Env,
@@ -79,7 +79,7 @@ impl Task {
         Ok(())
     }
 
-    pub fn with_env(&self, env: &HashMap<&String, String>) -> Task {
+    pub fn with_env(&self, env: &im::HashMap<&String, String>) -> Task {
         Task {
             cmd: self
                 .cmd
@@ -264,7 +264,7 @@ impl Context {
     pub fn collect_tasks(
         &self,
         contexts: &ContextBag,
-        env: &HashMap<&String, String>,
+        env: &im::HashMap<&String, String>,
     ) -> IndexMap<String, Task> {
         let mut result = IndexMap::new();
         let mut parents = Vec::new();
@@ -405,14 +405,15 @@ impl ContextBag {
             }
 
             let context = &self.contexts[n];
-            let context_env = context.env.as_ref();
-            let parent_env = &self.contexts[context.parent_index.unwrap()].env.as_ref();
+            let context_env = &context.env;
+            let parent_env = &self.contexts[context.parent_index.unwrap()].env;
 
             if let Some(parent_env) = parent_env {
-                let mut env = Env::new();
-                nested_env::merge(&mut env, &parent_env);
+                let mut env;
                 if let Some(context_env) = context_env {
-                    nested_env::merge(&mut env, &context_env);
+                    env = nested_env::merge(parent_env.clone(), context_env.clone());
+                } else {
+                    env = parent_env.clone();
                 }
                 if context.is_builder {
                     env.insert(
@@ -731,30 +732,28 @@ impl Module {
     }
 
     fn build_env(&self, global_env: &Env, modules: &IndexMap<&String, &Module>) -> Env {
-        /* start with a fresh env */
-        let mut module_env = Env::new();
-        /* merge in the global build context env */
-        nested_env::merge(&mut module_env, global_env);
+        /* start with the global env env */
+        let mut module_env = global_env.clone();
 
         /* from each (recursive) import ... */
         let deps = self.get_imports_recursive(&modules, None);
         for dep in &deps {
             /* merge that dependency's exported env */
-            nested_env::merge(&mut module_env, &dep.env_export);
+            module_env = nested_env::merge(module_env, dep.env_export.clone());
 
             //
             let notify_list = module_env
                 .entry("notify".into())
-                .or_insert_with(|| nested_env::EnvKey::List(vec![]));
+                .or_insert_with(|| nested_env::EnvKey::List(im::vector![]));
 
             match notify_list {
                 nested_env::EnvKey::Single(_) => panic!("unexpected notify value"),
-                nested_env::EnvKey::List(list) => list.push(dep.create_module_define()),
+                nested_env::EnvKey::List(list) => list.push_back(dep.create_module_define()),
             }
         }
 
         /* finally, merge the module's local env */
-        nested_env::merge(&mut module_env, &self.env_local);
+        module_env = nested_env::merge(module_env, self.env_local.clone());
 
         module_env
     }
@@ -825,11 +824,11 @@ impl<'a: 'b, 'b> Build<'b> {
         build.build_context.name.push_str(&binary.name);
 
         /* collect environment from builder */
-        build.build_context.env = Some(Env::new());
-        let mut build_env = build.build_context.env.as_mut().unwrap();
-
-        if let Some(builder_env) = &builder.env.as_ref() {
-            nested_env::merge(&mut build_env, builder_env);
+        let mut build_env;
+        if let Some(builder_env) = &builder.env {
+            build_env = builder_env.clone();
+        } else {
+            build_env = Env::new();
         }
 
         /* add "app" variable */
@@ -838,6 +837,8 @@ impl<'a: 'b, 'b> Build<'b> {
             "app".to_string(),
             nested_env::EnvKey::Single(binary.name.clone()),
         );
+
+        build.build_context.env = Some(build_env);
 
         build
     }

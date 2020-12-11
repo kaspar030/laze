@@ -42,7 +42,7 @@ struct YamlContext {
     env: Option<Env>,
     disable: Option<Vec<String>>,
     rule: Option<Vec<Rule>>,
-    var_options: Option<HashMap<String, MergeOption>>,
+    var_options: Option<im::HashMap<String, MergeOption>>,
     tasks: Option<HashMap<String, Task>>,
     #[serde(skip)]
     is_builder: bool,
@@ -377,13 +377,13 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
         // copy over environment
         if let Some(env) = &module.env {
             if let Some(local) = &env.local {
-                super::nested_env::merge(&mut m.env_local, local);
+                m.env_local = super::nested_env::merge(m.env_local, local.clone());
             }
             if let Some(export) = &env.export {
-                super::nested_env::merge(&mut m.env_export, export);
+                m.env_export = super::nested_env::merge(m.env_export, export.clone());
             }
             if let Some(global) = &env.global {
-                super::nested_env::merge(&mut m.env_global, global);
+                m.env_global = super::nested_env::merge(m.env_global, global.clone());
             }
         }
 

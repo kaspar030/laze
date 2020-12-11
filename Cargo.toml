@@ -24,6 +24,7 @@ serde_yaml = "0.8"
 shell-words = "1.0.0"
 simple-error = "0.2.2"
 treestate = "0.1.0"
+im = { version = "15.0.0", features = [ "rayon", "serde" ] }
 
 [profile.release]
 lto = true
