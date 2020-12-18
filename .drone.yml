@@ -12,9 +12,3 @@ steps:
   - cargo test --verbose --all
   - cargo install --path .
   - make -C src/tests
-
----
-kind: signature
-hmac: 2d8b30c684b8e9649629e7cb80c2fbed51acf2b17e392528450b4b357eaf5430
-
-...
