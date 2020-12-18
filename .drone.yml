@@ -7,14 +7,29 @@ steps:
 - name: test
   image: rust:latest
   commands:
+  - "#"
+  - "# installing ninja"
+  - "#"
   - apt-get update
-  - apt-get install -y ninja-build"
+  - apt-get install -y ninja-build
+  - "#"
+  - "# compiling"
+  - "#"
   - cargo build --verbose --all
+  - "#"
+  - "# unittests"
+  - "#"
   - cargo test --verbose --all
+  - "#"
+  - "# release compilation"
+  - "#"
   - cargo install --path .
+  - "#"
+  - "# end-to-end tests"
+  - "#"
   - make -C src/tests
 ---
 kind: signature
-hmac: 2d8b30c684b8e9649629e7cb80c2fbed51acf2b17e392528450b4b357eaf5430
+hmac: c5d91d864f3fe661bbc288ecfc762342670d959007a07e21432ee292d9617e7a
 
 ...
