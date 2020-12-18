@@ -8,7 +8,7 @@ steps:
   image: rust:latest
   commands:
   - apt-get update
-  - apt-get install -y ninja-build"
+  - apt-get install -y ninja-build
   - cargo build --verbose --all
   - cargo test --verbose --all
   - cargo install --path .
