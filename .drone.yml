@@ -27,6 +27,7 @@ steps:
   - cargo build --verbose --all
   - cargo test --verbose --all
   - cargo install --path .
+
   - make -C src/tests
 
 ---
