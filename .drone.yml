@@ -29,9 +29,8 @@ steps:
   - cargo install --path .
 
   - make -C src/tests
-
 ---
 kind: signature
-hmac: aedf800f6fa895fd5971218886b582072690a8a9c633f2b9e87fbfac8cb991ac
+hmac: 5db3fb25c5410ca69832fcba0be94c337c5012cbf06c3f0560bcfbd690aa8456
 
 ...
