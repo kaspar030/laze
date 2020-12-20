@@ -1,6 +1,8 @@
 use std::borrow::Cow;
 use std::ffi::OsStr;
 use std::fmt;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -12,7 +14,7 @@ use super::{
     data::{load, FileTreeState},
     nested_env,
     nested_env::{Env, IfMissing},
-    ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder, NinjaRuleDeps, NinjaWriter},
+    ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder, NinjaRuleDeps},
     BlockAllow, Build, Context, ContextBag, Module, Task,
 };
 
@@ -48,16 +50,19 @@ pub fn generate(
     let (contexts, treestate) = load(project_root)?;
 
     std::fs::create_dir_all(&build_dir)?;
-    let mut ninja_writer = NinjaWriter::new(build_dir.join("build.ninja").as_path()).unwrap();
-    ninja_writer.write_var("builddir", build_dir.to_str().unwrap())?;
+    let mut ninja_build_file = std::io::BufWriter::new(std::fs::File::create(
+        build_dir.join("build.ninja").as_path(),
+    )?);
+
+    ninja_build_file
+        .write_all(format!("builddir = {}\n", build_dir.to_str().unwrap()).as_bytes())?;
 
     fn configure_build(
         binary: &Module,
         contexts: &ContextBag,
         builder: &Context,
-        ninja_writer: &mut NinjaWriter,
         laze_env: &Env,
-    ) -> Result<Option<BuildInfo>> {
+    ) -> Result<Option<(BuildInfo, IndexSet<String>)>> {
         if !match contexts.is_allowed(builder, &binary.blocklist, &binary.allowlist) {
             BlockAllow::Allowed => true,
             BlockAllow::Blocked => {
@@ -125,8 +130,10 @@ pub fn generate(
             global_env = nested_env::merge(global_env, module.env_global.clone());
         }
 
-        let mut app_builds = Vec::new();
+        /* set containing ninja build or rule blocks */
+        let mut ninja_entries = IndexSet::new();
 
+        let mut app_builds = Vec::new();
         /* now handle each module */
         for (_, module) in modules.iter() {
             /* build final module env */
@@ -135,9 +142,6 @@ pub fn generate(
             let flattened_env =
                 nested_env::flatten_with_opts_option(&module_env, merge_opts.as_ref());
             //println!("{:#?}", builder.var_options);
-
-            let mut module_rules: IndexMap<String, NinjaRule> = IndexMap::new();
-            let mut module_builds = Vec::new();
 
             // add optional sources, if needed
             let mut optional_sources = Vec::new();
@@ -150,6 +154,8 @@ pub fn generate(
                     }
                 }
             }
+
+            let mut module_rules: IndexMap<String, NinjaRule> = IndexMap::new();
 
             /* apply rules to sources */
             for source in module.sources.iter().chain(optional_sources.iter()) {
@@ -173,7 +179,7 @@ pub fn generate(
                     let expanded =
                         nested_env::expand(&rule.cmd, &flattened_env, IfMissing::Empty).unwrap();
 
-                    NinjaRuleBuilder::default()
+                    let rule = NinjaRuleBuilder::default()
                         .name(Cow::from(&rule.name))
                         .description(Some(Cow::from(&rule.name)))
                         .rspfile(rule.rspfile.as_deref().map(Cow::from))
@@ -185,25 +191,32 @@ pub fn generate(
                         })
                         .build()
                         .unwrap()
+                        .named();
+                    ninja_entries.insert(format!("{}", &rule));
+                    rule
                 });
             }
 
             let srcdir = module.defined_in.as_ref().unwrap().parent().unwrap();
-            for source in module.sources.iter().chain(optional_sources.iter()) {
-                let ext = Path::new(&source)
-                    .extension()
-                    .and_then(OsStr::to_str)
-                    .unwrap();
+            app_builds.extend(
+                module
+                    .sources
+                    .iter()
+                    .chain(optional_sources.iter())
+                    .map(|source| {
+                        let ext = Path::new(&source)
+                            .extension()
+                            .and_then(OsStr::to_str)
+                            .unwrap();
 
-                let mut srcpath = srcdir.to_path_buf();
-                srcpath.push(source);
-                let rule = rules.get(ext.into()).unwrap();
-                let ninja_rule = module_rules.get(ext.into()).unwrap();
-                let out = srcpath.with_extension(&rule.out.as_ref().unwrap());
-                module_builds.push((ninja_rule.clone(), srcpath, out));
-            }
-
-            app_builds.append(&mut module_builds);
+                        let mut srcpath = srcdir.to_path_buf();
+                        srcpath.push(source);
+                        let rule = rules.get(ext.into()).unwrap();
+                        let ninja_rule = module_rules.get(ext.into()).unwrap();
+                        let out = srcpath.with_extension(&rule.out.as_ref().unwrap());
+                        (ninja_rule.clone(), srcpath, out)
+                    }),
+            );
         }
 
         let mut objects = Vec::new();
@@ -219,41 +232,20 @@ pub fn generate(
         let bindir =
             nested_env::expand("${bindir}", &global_env_flattened, IfMissing::Empty).unwrap();
 
-        let ninja_link_rule = {
-            let link_rule = match rules.values().find(|rule| rule.name == "LINK") {
-                Some(x) => x,
-                // returning an error here won't show, just not configure the build
-                // None => return Err(anyhow!("missing LINK rule for builder {}", builder.name)),
-                None => panic!("missing LINK rule for builder {}", builder.name),
-            };
-            let expanded =
-                nested_env::expand(&link_rule.cmd, &global_env_flattened, IfMissing::Empty)
-                    .unwrap();
-
-            NinjaRuleBuilder::default()
-                .name(&link_rule.name)
-                .description(Some(Cow::from(&link_rule.name)))
-                .command(expanded)
-                .rspfile(link_rule.rspfile.as_deref().map(Cow::from))
-                .rspfile_content(link_rule.rspfile_content.as_deref().map(Cow::from))
-                .build()
-                .unwrap()
-        };
-
         let bindir = PathBuf::from(bindir);
         // write compile rules & builds
         for (rule, source, out) in &app_builds {
-            let rule_name = ninja_writer.write_rule_dedup(rule).unwrap();
             let mut object = bindir.clone();
             object.push(out);
 
             let build = NinjaBuildBuilder::default()
-                .rule(&*rule_name)
+                .rule(&*rule.name)
                 .in_single(source.as_path())
                 .out(object.as_path())
                 .build()
                 .unwrap();
-            ninja_writer.write_build(&build).unwrap();
+
+            ninja_entries.insert(format!("{}", build));
 
             objects.push(object);
         }
@@ -267,22 +259,43 @@ pub fn generate(
             nested_env::EnvKey::Single(String::from(out_elf.to_str().unwrap())),
         );
 
-        // write linking rule & build
-        let link_rule_name = ninja_writer.write_rule_dedup(&ninja_link_rule).unwrap();
-
         // NinjaBuildBuilder expects a Vec<&Path>, but the loop above creates a Vec<PathBuf>.
         // thus, convert.
         let objects: Vec<_> = objects.iter().map(|pathbuf| Cow::from(pathbuf)).collect();
 
-        // build ninja link target
-        let ninja_link_build = NinjaBuildBuilder::default()
-            .rule(link_rule_name)
-            .in_vec(objects)
-            .out(out_elf.as_path())
-            .build()
-            .unwrap();
+        // linking
+        {
+            let link_rule = match rules.values().find(|rule| rule.name == "LINK") {
+                Some(x) => x,
+                // returning an error here won't show, just not configure the build
+                // None => return Err(anyhow!("missing LINK rule for builder {}", builder.name)),
+                None => panic!("missing LINK rule for builder {}", builder.name),
+            };
+            let expanded =
+                nested_env::expand(&link_rule.cmd, &global_env_flattened, IfMissing::Empty)
+                    .unwrap();
 
-        ninja_writer.write_build(&ninja_link_build).unwrap();
+            let ninja_link_rule = NinjaRuleBuilder::default()
+                .name(&link_rule.name)
+                .description(Some(Cow::from(&link_rule.name)))
+                .command(expanded)
+                .rspfile(link_rule.rspfile.as_deref().map(Cow::from))
+                .rspfile_content(link_rule.rspfile_content.as_deref().map(Cow::from))
+                .build()
+                .unwrap()
+                .named();
+
+            // build ninja link target
+            let ninja_link_build = NinjaBuildBuilder::default()
+                .rule(&*ninja_link_rule.name)
+                .in_vec(objects)
+                .out(out_elf.as_path())
+                .build()
+                .unwrap();
+
+            ninja_entries.insert(format!("{}", ninja_link_rule));
+            ninja_entries.insert(format!("{}", ninja_link_build));
+        }
 
         // collect tasks
         let flattened_task_env = nested_env::flatten(&global_env);
@@ -290,7 +303,7 @@ pub fn generate(
             .build_context
             .collect_tasks(&contexts, &flattened_task_env);
 
-        Ok(Some(BuildInfo { tasks }))
+        Ok(Some((BuildInfo { tasks }, ninja_entries)))
     }
 
     let mut laze_env = im::HashMap::new();
@@ -341,14 +354,32 @@ pub fn generate(
     let builder_bin_tuples = selected_builders.iter().cartesian_product(bins);
 
     // actually configure builds
-    let builds = builder_bin_tuples
+    let mut builds = builder_bin_tuples
         .filter_map(|(builder, (_, bin))| {
-            match configure_build(bin, &contexts, builder, &mut ninja_writer, &laze_env).ok()? {
-                Some(build_info) => Some((builder.name.clone(), bin.name.clone(), build_info)),
+            match configure_build(bin, &contexts, builder, &laze_env).ok()? {
+                Some((build_info, ninja_entries)) => Some((
+                    builder.name.clone(),
+                    bin.name.clone(),
+                    build_info,
+                    ninja_entries,
+                )),
                 _ => None,
             }
         })
-        .collect::<Vec<(String, String, BuildInfo)>>();
+        .collect::<Vec<(String, String, BuildInfo, IndexSet<String>)>>();
+
+    let mut combined_ninja_entries = IndexSet::new();
+    let builds = builds
+        .drain(..)
+        .map(|(builder, bin, build_info, ninja_entries)| {
+            combined_ninja_entries.extend(ninja_entries);
+            (builder, bin, build_info)
+        })
+        .collect::<Vec<_>>();
+
+    for entry in combined_ninja_entries {
+        ninja_build_file.write_all(entry.as_bytes())?;
+    }
 
     let num_built = builds.len();
     println!(
@@ -440,8 +471,6 @@ impl GenerateResult {
         builders: &Selector,
         apps: &Selector,
     ) -> Result<GenerateResult> {
-        use std::fs::File;
-
         let file = Self::cache_file(build_dir, mode);
         let file = File::open(file)?;
         let res: GenerateResult = bincode::deserialize_from(file)?;
@@ -465,7 +494,6 @@ impl GenerateResult {
     }
 
     pub fn to_cache(&self, build_dir: &Path) -> std::result::Result<(), Box<bincode::ErrorKind>> {
-        use std::fs::File;
         let file = Self::cache_file(build_dir, &self.mode);
         let file = File::create(file)?;
         bincode::serialize_into(file, self)
