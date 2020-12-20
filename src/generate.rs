@@ -308,6 +308,8 @@ pub fn generate(
         Ok(Some((BuildInfo { tasks }, ninja_entries)))
     }
 
+    let start = Instant::now();
+
     let mut laze_env = im::HashMap::new();
     laze_env.insert(
         "in".to_string(),
