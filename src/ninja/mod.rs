@@ -80,6 +80,12 @@ impl<'a> NinjaRule<'a> {
         name.push_str(&format!("_{}", hash));
         name
     }
+
+    pub fn named(mut self) -> NinjaRule<'a> {
+        let name = self.get_hashed_name(self.get_hash());
+        self.name = Cow::from(name);
+        self
+    }
 }
 
 impl<'a> Hash for NinjaRule<'a> {
