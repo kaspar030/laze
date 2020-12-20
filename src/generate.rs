@@ -9,6 +9,8 @@ use std::time::Instant;
 use anyhow::Result;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use rayon::iter::ParallelBridge;
+use rayon::prelude::*;
 
 use super::{
     data::{load, FileTreeState},
@@ -355,6 +357,7 @@ pub fn generate(
 
     // actually configure builds
     let mut builds = builder_bin_tuples
+        .par_bridge()
         .filter_map(|(builder, (_, bin))| {
             match configure_build(bin, &contexts, builder, &laze_env).ok()? {
                 Some((build_info, ninja_entries)) => Some((

@@ -294,6 +294,7 @@ dependencies = [
  "indexmap",
  "itertools",
  "pathdiff",
+ "rayon",
  "serde",
  "serde_derive",
  "serde_yaml",
