@@ -98,12 +98,6 @@ pub fn generate(
         /* create build instance (binary A for builder X) */
         let build = Build::new(binary, builder, contexts);
 
-        /* create initial build context global env.
-         * Unfortunately we need to create a copy as we cannot get a mutable
-         * reference to build_context.env. */
-        let mut global_env =
-            nested_env::merge(laze_env.clone(), build.build_context.env.clone().unwrap());
-
         // collect disabled modules from app and build context
         let mut disabled_modules = build.build_context.collect_disabled_modules(&contexts);
         if let Some(disable) = &binary.disable {
@@ -127,16 +121,14 @@ pub fn generate(
         let rules = build.build_context.collect_rules(&contexts, &mut rules);
         let merge_opts = &builder.var_options;
 
+        // create initial build context global env.
+        let mut global_env =
+            nested_env::merge(laze_env.clone(), build.build_context.env.clone().unwrap());
+
         /* import global module environments into global build context env */
         for (_, module) in modules.iter().rev() {
             global_env = nested_env::merge(global_env, module.env_global.clone());
         }
-
-        let relpath = binary.relpath.as_ref().unwrap();
-        global_env.insert(
-            "relpath".to_string(),
-            nested_env::EnvKey::Single(relpath.to_str().unwrap().into()),
-        );
 
         let tmp = global_env.clone();
         let global_env_flattened = nested_env::flatten(&tmp);
@@ -150,7 +142,7 @@ pub fn generate(
 
         objdir.push("objects");
 
-        // vector collecting object, later used as linking inputs
+        // vector collecting objects, later used as linking inputs
         let mut objects = Vec::new();
 
         /* set containing ninja build or rule blocks */
@@ -177,6 +169,7 @@ pub fn generate(
                 }
             }
 
+            // map extension -> rule for this module
             let mut module_rules: IndexMap<String, NinjaRule> = IndexMap::new();
 
             /* apply rules to sources */
@@ -186,6 +179,10 @@ pub fn generate(
                     .and_then(OsStr::to_str)
                     .unwrap();
 
+                // This block finds a rule for this source file's extension
+                // (e.g., .c -> CC).
+                // If there is one, use it, otherwise create a new one from the
+                // context rules, applying this module's env.
                 module_rules.entry(ext.into()).or_insert({
                     let rule = match rules.get(ext.into()) {
                         Some(rule) => rule,
@@ -241,8 +238,8 @@ pub fn generate(
                 object.push(out);
 
                 let build = NinjaBuildBuilder::default()
-                    .rule(&*rule.name)
-                    .in_single(Cow::from(Path::new(&source)))
+                    .rule(&*ninja_rule.name)
+                    .in_single(Cow::from(&srcpath))
                     .out(object.as_path())
                     .build()
                     .unwrap();
