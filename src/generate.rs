@@ -9,7 +9,7 @@ use std::time::Instant;
 use anyhow::Result;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use rayon::iter::ParallelBridge;
+//use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 
 use super::{
@@ -132,10 +132,30 @@ pub fn generate(
             global_env = nested_env::merge(global_env, module.env_global.clone());
         }
 
+        let relpath = binary.relpath.as_ref().unwrap();
+        global_env.insert(
+            "relpath".to_string(),
+            nested_env::EnvKey::Single(relpath.to_str().unwrap().into()),
+        );
+
+        let tmp = global_env.clone();
+        let global_env_flattened = nested_env::flatten(&tmp);
+        let bindir =
+            nested_env::expand("${bindir}", &global_env_flattened, IfMissing::Empty).unwrap();
+        let objdir =
+            nested_env::expand("${build-dir}", &global_env_flattened, IfMissing::Empty).unwrap();
+
+        let bindir = PathBuf::from(bindir);
+        let mut objdir = PathBuf::from(objdir);
+
+        objdir.push("objects");
+
+        // vector collecting object, later used as linking inputs
+        let mut objects = Vec::new();
+
         /* set containing ninja build or rule blocks */
         let mut ninja_entries = IndexSet::new();
 
-        let mut app_builds = Vec::new();
         /* now handle each module */
         for (_, module) in modules.iter() {
             /* build final module env */
@@ -200,56 +220,37 @@ pub fn generate(
             }
 
             let srcdir = module.defined_in.as_ref().unwrap().parent().unwrap();
-            app_builds.extend(
-                module
-                    .sources
-                    .iter()
-                    .chain(optional_sources.iter())
-                    .map(|source| {
-                        let ext = Path::new(&source)
-                            .extension()
-                            .and_then(OsStr::to_str)
-                            .unwrap();
+            for source in module.sources.iter().chain(optional_sources.iter()) {
+                let ext = Path::new(&source)
+                    .extension()
+                    .and_then(OsStr::to_str)
+                    .unwrap();
 
-                        let mut srcpath = srcdir.to_path_buf();
-                        srcpath.push(source);
-                        let rule = rules.get(ext.into()).unwrap();
-                        let ninja_rule = module_rules.get(ext.into()).unwrap();
-                        let out = srcpath.with_extension(&rule.out.as_ref().unwrap());
-                        (ninja_rule.clone(), srcpath, out)
-                    }),
-            );
-        }
+                let mut srcpath = srcdir.to_path_buf();
+                srcpath.push(source);
+                let rule = rules.get(ext.into()).unwrap();
+                let ninja_rule = module_rules.get(ext.into()).unwrap();
+                let rule_hash = ninja_rule.get_hash();
+                let out = srcpath.with_extension(format!(
+                    "{}.{}",
+                    rule_hash,
+                    &rule.out.as_ref().unwrap()
+                ));
 
-        let mut objects = Vec::new();
+                let mut object = objdir.clone();
+                object.push(out);
 
-        let relpath = binary.relpath.as_ref().unwrap();
-        global_env.insert(
-            "relpath".to_string(),
-            nested_env::EnvKey::Single(String::from(relpath.to_str().unwrap())),
-        );
+                let build = NinjaBuildBuilder::default()
+                    .rule(&*rule.name)
+                    .in_single(Cow::from(Path::new(&source)))
+                    .out(object.as_path())
+                    .build()
+                    .unwrap();
 
-        let tmp = global_env.clone();
-        let global_env_flattened = nested_env::flatten(&tmp);
-        let bindir =
-            nested_env::expand("${bindir}", &global_env_flattened, IfMissing::Empty).unwrap();
+                ninja_entries.insert(format!("{}", build));
 
-        let bindir = PathBuf::from(bindir);
-        // write compile rules & builds
-        for (rule, source, out) in &app_builds {
-            let mut object = bindir.clone();
-            object.push(out);
-
-            let build = NinjaBuildBuilder::default()
-                .rule(&*rule.name)
-                .in_single(source.as_path())
-                .out(object.as_path())
-                .build()
-                .unwrap();
-
-            ninja_entries.insert(format!("{}", build));
-
-            objects.push(object);
+                objects.push(object);
+            }
         }
 
         /* build application file name */
