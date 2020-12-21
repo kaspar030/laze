@@ -3,7 +3,7 @@ rule CC_13381053000091777226
   command = echo local_var relpath:subdir OTHER:other_value  global_var  ${in} > ${out} && cat ${in} >> ${out}
   description = CC
 
-build build/single_builder/single_app/subdir/single_app.o: $
+build build/objects/subdir/single_app.10446704609256962329.o: $
     CC_13381053000091777226 $
     subdir/single_app.c
 
@@ -13,17 +13,17 @@ rule LINK_5506617845631750009
 
 build build/single_builder/single_app/single_app.elf: $
     LINK_5506617845631750009 $
-    build/single_builder/single_app/subdir/single_app.o
+    build/objects/subdir/single_app.10446704609256962329.o
 
 rule CC_12359170378504700312
   command = echo local_var relpath:subdir/deeper_subdir OTHER:other_value  global_var  ${in} > ${out} && cat ${in} >> ${out}
   description = CC
 
-build build/single_builder/second_app/subdir/deeper_subdir/second_app.o: $
+build build/objects/subdir/deeper_subdir/second_app.2199715274595216891.o: $
     CC_12359170378504700312 $
     subdir/deeper_subdir/second_app.c
 
 build build/single_builder/second_app/second_app.elf: $
     LINK_5506617845631750009 $
-    build/single_builder/second_app/subdir/deeper_subdir/second_app.o
+    build/objects/subdir/deeper_subdir/second_app.2199715274595216891.o
 

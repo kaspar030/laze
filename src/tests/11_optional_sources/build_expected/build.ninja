@@ -3,11 +3,11 @@ rule CC_15604294611132370531
   command = echo export_from_another_simple_module export_from_simple_module ${in} > ${out}
   description = CC
 
-build build//single_app/single_app.o: $
+build build/objects/single_app.15302484454750027878.o: $
     CC_15604294611132370531 $
     single_app.c
 
-build build//single_app/optional.o: $
+build build/objects/optional.15302484454750027878.o: $
     CC_15604294611132370531 $
     optional.c
 
@@ -17,6 +17,6 @@ rule LINK_5506617845631750009
 
 build build//single_app/single_app.elf: $
     LINK_5506617845631750009 $
-    build//single_app/single_app.o $
-    build//single_app/optional.o
+    build/objects/single_app.15302484454750027878.o $
+    build/objects/optional.15302484454750027878.o
 

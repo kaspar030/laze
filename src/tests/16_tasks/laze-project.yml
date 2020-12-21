@@ -1,10 +1,6 @@
 builder:
-  - name: single_builder
+  - name: default
     rule:
-        - name: CC
-          in: 'c'
-          out: 'o'
-          cmd: 'cat ${in} > ${out}'
         - name: LINK
           in: 'o'
           options:
@@ -14,7 +10,14 @@ builder:
     env:
       bindir: build/${builder}/${app}
 
+    tasks:
+      echo:
+        cmd:
+          - echo
+      foobar:
+        cmd:
+          - echo -n foo
+          - echo bar
+
 app:
-  - name: single_app
-    sources:
-      - single_app.c
+  - name: app

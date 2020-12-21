@@ -3,11 +3,10 @@
 . ../test-common.sh
 
 cleanup
-
 build
+clean_temp_files
 
-test "$(cat single_app.o)" = "$(cat single_app.c)"
-test "$(cat single_app.elf)" = "$(cat single_app.c)"
+diff -r build build_expected
 
 echo TEST_OK
 

@@ -1,0 +1,48 @@
+builder:
+  - name: default
+    rule:
+        - name: CC
+          in: 'c'
+          out: 'o'
+          cmd: 'echo ${EXPORT_VAR} ${in} > ${out}'
+        - name: LINK
+          in: 'o'
+          options:
+              combine: true
+          cmd: 'cat ${in} > ${out}'
+    env:
+      bindir: build/${builder}/${app}
+
+  - name: level4a
+    parent: level3a
+
+  - name: level4b
+    parent: level3b
+
+context:
+  - name: level2a
+    parent: default
+  - name: level2b
+    parent: default
+  - name: level3a
+    parent: level2a
+  - name: level3b
+    parent: level2b
+
+app:
+  - name: app1
+    sources:
+      - app.c
+    blocklist:
+      - level3a
+      - level2b
+    allowlist:
+      - level3b
+
+
+  - name: app
+    sources:
+      - app.c
+    allowlist:
+      - level3a
+      - level4b

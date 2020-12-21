@@ -1,1 +1,0 @@
-export_from_second_module export_from_first_module app.c

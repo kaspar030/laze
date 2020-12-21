@@ -1,0 +1,17 @@
+builddir = build
+rule CC_16745706749555658888
+  command = echo local_var global_var ${in} > ${out}
+  description = CC
+
+build build/objects/single_app.6645755127933265281.o: $
+    CC_16745706749555658888 $
+    single_app.c
+
+rule LINK_5506617845631750009
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build//single_app/single_app.elf: $
+    LINK_5506617845631750009 $
+    build/objects/single_app.6645755127933265281.o
+

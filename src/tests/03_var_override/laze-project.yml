@@ -11,9 +11,10 @@ builder:
               combine: true
           cmd: 'cat ${in} > ${out}'
 
-    vars:
+    env:
       LOCAL_VAR: will-be-overridden
       GLOBAL_VAR: will-be-overridden
+      bindir: build/${builder}/${app}
 app:
   - name: single_app
     sources:

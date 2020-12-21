@@ -1,0 +1,41 @@
+builddir = build
+rule CC_6858609285403819907
+  command = echo  ${in} > ${out}
+  description = CC
+
+build build//app1/app.o: $
+    CC_6858609285403819907 $
+    app.c
+
+rule LINK_5506617845631750009
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build//app1/app1.elf: $
+    LINK_5506617845631750009 $
+    build//app1/app.o
+
+build build/level4a/app/app.o: $
+    CC_6858609285403819907 $
+    app.c
+
+build build/level4a/app/app.elf: $
+    LINK_5506617845631750009 $
+    build/level4a/app/app.o
+
+build build/level4b/app1/app.o: $
+    CC_6858609285403819907 $
+    app.c
+
+build build/level4b/app1/app1.elf: $
+    LINK_5506617845631750009 $
+    build/level4b/app1/app.o
+
+build build/level4b/app/app.o: $
+    CC_6858609285403819907 $
+    app.c
+
+build build/level4b/app/app.elf: $
+    LINK_5506617845631750009 $
+    build/level4b/app/app.o
+

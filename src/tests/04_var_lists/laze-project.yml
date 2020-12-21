@@ -11,6 +11,8 @@ builder:
               combine: true
           cmd: 'cat ${in} > ${out}'
     env:
+      bindir: build/${builder}/${app}
+
       LOCAL_VAR:
         - local0
       GLOBAL_VAR:

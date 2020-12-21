@@ -3,7 +3,7 @@ rule CC_7979507258972711706
   command = echo export_from_second_module export_from_first_module export_from_third_module ${in} > ${out}
   description = CC
 
-build build//app/app.o: $
+build build/objects/app.7257931360424124225.o: $
     CC_7979507258972711706 $
     app.c
 
@@ -11,7 +11,7 @@ rule CC_5767099186035483882
   command = echo export_from_second_module export_from_first_module ${in} > ${out}
   description = CC
 
-build build//app/module.o: $
+build build/objects/module.5571264317339904527.o: $
     CC_5767099186035483882 $
     module.c
 
@@ -21,6 +21,6 @@ rule LINK_5506617845631750009
 
 build build//app/app.elf: $
     LINK_5506617845631750009 $
-    build//app/app.o $
-    build//app/module.o
+    build/objects/app.7257931360424124225.o $
+    build/objects/module.5571264317339904527.o
 

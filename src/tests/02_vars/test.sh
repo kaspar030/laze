@@ -4,9 +4,9 @@
 
 cleanup
 build
+clean_temp_files
 
-test "$(cat single_app.o)" = "local_var global_var single_app.c"
-test "$(cat single_app.elf)" = "$(cat single_app.o)"
+diff -r build build_expected
 
 echo TEST_OK
 

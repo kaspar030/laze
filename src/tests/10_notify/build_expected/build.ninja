@@ -3,7 +3,7 @@ rule CC_12168199710697785758
   command = echo -DMODULE_SINGLE_APP_USING ${in} > ${out}
   description = CC
 
-build build//single_app_using/single_app.o: $
+build build/objects/single_app.10830225970425771543.o: $
     CC_12168199710697785758 $
     single_app.c
 
@@ -13,41 +13,41 @@ rule LINK_5506617845631750009
 
 build build//single_app_using/single_app_using.elf: $
     LINK_5506617845631750009 $
-    build//single_app_using/single_app.o
+    build/objects/single_app.10830225970425771543.o
 
 rule CC_9696073186726792895
   command = echo -DMODULE_SINGLE_APP_SELECTING ${in} > ${out}
   description = CC
 
-build build//single_app_selecting/single_app.o: $
+build build/objects/single_app.10027761496740081156.o: $
     CC_9696073186726792895 $
     single_app.c
 
 build build//single_app_selecting/single_app_selecting.elf: $
     LINK_5506617845631750009 $
-    build//single_app_selecting/single_app.o
+    build/objects/single_app.10027761496740081156.o
 
 rule CC_13829935330814772385
   command = echo -DMODULE_ANOTHER_SIMPLE_MODULE -DMODULE_DASHED_MODULE -DMODULE_SLASHED_MODULE -DMODULE_SIMPLE_MODULE -DMODULE_SINGLE_APP_DEPENDING ${in} > ${out}
   description = CC
 
-build build//single_app_depending/single_app.o: $
+build build/objects/single_app.8055285592268745283.o: $
     CC_13829935330814772385 $
     single_app.c
 
 build build//single_app_depending/single_app_depending.elf: $
     LINK_5506617845631750009 $
-    build//single_app_depending/single_app.o
+    build/objects/single_app.8055285592268745283.o
 
 rule CC_3086654722251522306
   command = echo -DMODULE_ANOTHER_SIMPLE_MODULE -DMODULE_SINGLE_APP_USING_ANOTHER ${in} > ${out}
   description = CC
 
-build build//single_app_using_another/single_app.o: $
+build build/objects/single_app.8292815447509676760.o: $
     CC_3086654722251522306 $
     single_app.c
 
 build build//single_app_using_another/single_app_using_another.elf: $
     LINK_5506617845631750009 $
-    build//single_app_using_another/single_app.o
+    build/objects/single_app.8292815447509676760.o
 

@@ -1,0 +1,17 @@
+builddir = build
+rule CC_7950216292150676175
+  command = cat ${in} > ${out}
+  description = CC
+
+build build/objects/single_app.8352856137977294963.o: $
+    CC_7950216292150676175 $
+    single_app.c
+
+rule LINK_5506617845631750009
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build//single_app/single_app.elf: $
+    LINK_5506617845631750009 $
+    build/objects/single_app.8352856137977294963.o
+

@@ -3,7 +3,7 @@ rule CC_6858609285403819907
   command = echo  ${in} > ${out}
   description = CC
 
-build build//single_app_using/single_app.o: $
+build build/objects/single_app.12070292612711521013.o: $
     CC_6858609285403819907 $
     single_app.c
 
@@ -13,37 +13,33 @@ rule LINK_5506617845631750009
 
 build build//single_app_using/single_app_using.elf: $
     LINK_5506617845631750009 $
-    build//single_app_using/single_app.o
-
-build build//single_app_selecting/single_app.o: $
-    CC_6858609285403819907 $
-    single_app.c
+    build/objects/single_app.12070292612711521013.o
 
 build build//single_app_selecting/single_app_selecting.elf: $
     LINK_5506617845631750009 $
-    build//single_app_selecting/single_app.o
+    build/objects/single_app.12070292612711521013.o
 
 rule CC_15604294611132370531
   command = echo export_from_another_simple_module export_from_simple_module ${in} > ${out}
   description = CC
 
-build build//single_app_depending/single_app.o: $
+build build/objects/single_app.15302484454750027878.o: $
     CC_15604294611132370531 $
     single_app.c
 
 build build//single_app_depending/single_app_depending.elf: $
     LINK_5506617845631750009 $
-    build//single_app_depending/single_app.o
+    build/objects/single_app.15302484454750027878.o
 
 rule CC_7505982454303567576
   command = echo export_from_another_simple_module ${in} > ${out}
   description = CC
 
-build build//single_app_using_another/single_app.o: $
+build build/objects/single_app.16912248304458149655.o: $
     CC_7505982454303567576 $
     single_app.c
 
 build build//single_app_using_another/single_app_using_another.elf: $
     LINK_5506617845631750009 $
-    build//single_app_using_another/single_app.o
+    build/objects/single_app.16912248304458149655.o
 

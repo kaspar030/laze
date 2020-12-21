@@ -11,6 +11,9 @@ builder:
               combine: true
           cmd: 'cat ${in} > ${out}'
 
+    env:
+      bindir: build/${builder}/${app}
+
 app:
   - name: single_app
     sources:
