@@ -359,7 +359,11 @@ pub fn generate(
 
     // actually configure builds
     let mut builds = builder_bin_tuples
-        .par_bridge()
+        .collect::<Vec<_>>()
+        .par_iter()
+        // `.par_bridge()` instead of `collect()+par_iter()` yields slight (1%) configure time
+        // speedup, at the price of changing the order of build rules. not worth losing
+        // reproducible output.
         .filter_map(|(builder, (_, bin))| {
             match configure_build(bin, &contexts, builder, &laze_env).ok()? {
                 Some((build_info, ninja_entries)) => Some((
