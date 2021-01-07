@@ -964,11 +964,12 @@ fn determine_project_root(start: &PathBuf) -> Result<(PathBuf, PathBuf)> {
     }
 }
 
-fn ninja_run(build_dir: &Path, verbose: bool) -> Result<i32, Error> {
+fn ninja_run(build_dir: &Path, verbose: bool, targets: Option<Vec<PathBuf>>) -> Result<i32, Error> {
     let ninja_buildfile = build_dir.join("build.ninja");
     let ninja_exit = NinjaCmdBuilder::default()
         .verbose(verbose)
         .build_file(ninja_buildfile.to_str().unwrap())
+        .targets(targets)
         .build()
         .unwrap()
         .run()?;
@@ -1147,13 +1148,42 @@ fn try_main() -> Result<i32> {
             };
 
             // arguments parsed, launch generation of ninja file(s)
-            generate::generate(&project_file, &build_dir, mode, builders, apps)?;
+            let builds = generate::generate(
+                &project_file,
+                &build_dir,
+                mode,
+                builders.clone(),
+                apps.clone(),
+            )?;
 
             if build_matches.is_present("generate-only") {
                 return Ok(0);
             }
 
-            ninja_run(build_dir, verbose > 0)?;
+            // build ninja target arguments, if necessary
+            let targets: Option<Vec<PathBuf>> = if let Selector::All = builders {
+                if let Selector::All = apps {
+                    None
+                } else {
+                    None
+                }
+            } else {
+                Some(
+                    builds
+                        .build_infos
+                        .iter()
+                        .filter_map(|(builder, app, build_info)| {
+                            if builders.selects(builder) && apps.selects(app) {
+                                Some(build_info.out.clone())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect(),
+                )
+            };
+
+            ninja_run(build_dir, verbose > 0, targets)?;
         }
         ("task", Some(task_matches)) => {
             let verbose = task_matches.occurrences_of("verbose");
@@ -1215,6 +1245,7 @@ fn try_main() -> Result<i32> {
                     eprintln!("{} {}", builder, bin);
                 }
 
+                // TODO: allow running tasks for multiple targets
                 return Err(anyhow!("laze: please specify one of these."));
             }
 
@@ -1226,8 +1257,9 @@ fn try_main() -> Result<i32> {
             }
 
             let build = builds[0];
+            let targets = Some(vec![build.2.out.clone()]);
 
-            if ninja_run(build_dir, verbose > 0)? != 0 {
+            if ninja_run(build_dir, verbose > 0, targets)? != 0 {
                 return Err(anyhow!("laze: build error"));
             };
 
