@@ -5,7 +5,7 @@ use std::fmt;
 use std::fs::File;
 use std::hash::{Hash, Hasher};
 use std::io::{BufWriter, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 
 pub struct NinjaWriter {
@@ -206,6 +206,9 @@ pub struct NinjaCmd<'a> {
 
     #[builder(default = "false")]
     verbose: bool,
+
+    #[builder(default = "None")]
+    targets: Option<Vec<PathBuf>>,
 }
 
 impl<'a> NinjaCmd<'a> {
@@ -217,12 +220,15 @@ impl<'a> NinjaCmd<'a> {
             cmd.arg("-v");
         }
 
+        if let Some(targets) = &self.targets {
+            for target in targets {
+                cmd.arg(target);
+            }
+        }
+
         cmd.status()
     }
 }
-
-#[cfg(test)]
-use std::path::PathBuf;
 
 #[cfg(test)]
 mod tests {
