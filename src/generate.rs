@@ -402,20 +402,28 @@ pub fn generate(
     Ok(result)
 }
 
-#[derive(Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Deserialize, Serialize, PartialEq)]
 pub enum Selector {
     All,
     Some(IndexSet<String>),
 }
 
 impl Selector {
-    fn is_superset(&self, other: &Selector) -> bool {
+    pub fn is_superset(&self, other: &Selector) -> bool {
         match self {
             Selector::All => true,
             Selector::Some(set) => match other {
                 Selector::All => false,
                 Selector::Some(other_set) => set.is_superset(other_set),
             },
+        }
+    }
+
+    pub fn selects(&self, value: &String) -> bool {
+        if let Selector::Some(set) = self {
+            set.contains(value)
+        } else {
+            true
         }
     }
 }

@@ -1191,12 +1191,22 @@ fn try_main() -> Result<i32> {
 
             println!("building {} for {}", &apps, &builders);
             // arguments parsed, launch generation of ninja file(s)
-            let builds = generate::generate(&project_file, &build_dir, mode, builders, apps)?;
+            let builds = generate::generate(
+                &project_file,
+                &build_dir,
+                mode,
+                builders.clone(),
+                apps.clone(),
+            )?;
 
             let builds: Vec<&(String, String, BuildInfo)> = builds
                 .build_infos
                 .iter()
-                .filter(|(_, _, build_info)| build_info.tasks.contains_key(task.into()))
+                .filter(|(builder, app, build_info)| {
+                    builders.selects(builder)
+                        && apps.selects(app)
+                        && build_info.tasks.contains_key(task.into())
+                })
                 .collect();
 
             if builds.len() > 1 {
