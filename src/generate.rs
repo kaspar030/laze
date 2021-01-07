@@ -28,10 +28,17 @@ pub struct BuildInfo {
 
 pub type BuildInfoList = Vec<(String, String, BuildInfo)>;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum GenerateMode {
     Global,
     Local(PathBuf),
+}
+
+pub fn get_ninja_build_file(build_dir: &Path, mode: &GenerateMode) -> PathBuf {
+    match mode {
+        GenerateMode::Global => build_dir.join("build-local.ninja"),
+        GenerateMode::Local(_) => build_dir.join("build-global.ninja"),
+    }
 }
 
 pub fn generate(
@@ -56,7 +63,7 @@ pub fn generate(
 
     std::fs::create_dir_all(&build_dir)?;
     let mut ninja_build_file = std::io::BufWriter::new(std::fs::File::create(
-        build_dir.join("build.ninja").as_path(),
+        get_ninja_build_file(build_dir, &mode).as_path(),
     )?);
 
     ninja_build_file

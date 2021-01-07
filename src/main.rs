@@ -31,7 +31,7 @@ mod generate;
 mod nested_env;
 mod ninja;
 
-use generate::{BuildInfo, GenerateMode, Selector};
+use generate::{get_ninja_build_file, BuildInfo, GenerateMode, Selector};
 use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
 
@@ -964,8 +964,11 @@ fn determine_project_root(start: &PathBuf) -> Result<(PathBuf, PathBuf)> {
     }
 }
 
-fn ninja_run(build_dir: &Path, verbose: bool, targets: Option<Vec<PathBuf>>) -> Result<i32, Error> {
-    let ninja_buildfile = build_dir.join("build.ninja");
+fn ninja_run(
+    ninja_buildfile: &Path,
+    verbose: bool,
+    targets: Option<Vec<PathBuf>>,
+) -> Result<i32, Error> {
     let ninja_exit = NinjaCmdBuilder::default()
         .verbose(verbose)
         .build_file(ninja_buildfile.to_str().unwrap())
@@ -1151,7 +1154,7 @@ fn try_main() -> Result<i32> {
             let builds = generate::generate(
                 &project_file,
                 &build_dir,
-                mode,
+                mode.clone(),
                 builders.clone(),
                 apps.clone(),
             )?;
@@ -1183,7 +1186,8 @@ fn try_main() -> Result<i32> {
                 )
             };
 
-            ninja_run(build_dir, verbose > 0, targets)?;
+            let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
+            ninja_run(ninja_build_file.as_path(), verbose > 0, targets)?;
         }
         ("task", Some(task_matches)) => {
             let verbose = task_matches.occurrences_of("verbose");
@@ -1224,7 +1228,7 @@ fn try_main() -> Result<i32> {
             let builds = generate::generate(
                 &project_file,
                 &build_dir,
-                mode,
+                mode.clone(),
                 builders.clone(),
                 apps.clone(),
             )?;
@@ -1259,7 +1263,8 @@ fn try_main() -> Result<i32> {
             let build = builds[0];
             let targets = Some(vec![build.2.out.clone()]);
 
-            if ninja_run(build_dir, verbose > 0, targets)? != 0 {
+            let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
+            if ninja_run(ninja_build_file.as_path(), verbose > 0, targets)? != 0 {
                 return Err(anyhow!("laze: build error"));
             };
 
