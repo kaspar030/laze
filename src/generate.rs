@@ -46,7 +46,9 @@ pub fn generate(
             println!("laze: reading cache took {:?}.", start.elapsed());
             return Ok(cached);
         }
-        Err(x) => println!("{}", x),
+        Err(x) => match x {
+            _ => println!("laze: reading cache: {}", x),
+        },
     }
 
     let (contexts, treestate) = load(project_root)?;
