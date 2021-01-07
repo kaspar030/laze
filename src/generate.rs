@@ -23,6 +23,7 @@ use super::{
 #[derive(Deserialize, Serialize)]
 pub struct BuildInfo {
     pub tasks: IndexMap<String, Task>,
+    pub out: PathBuf,
 }
 
 pub type BuildInfoList = Vec<(String, String, BuildInfo)>;
@@ -305,7 +306,13 @@ pub fn generate(
             .build_context
             .collect_tasks(&contexts, &flattened_task_env);
 
-        Ok(Some((BuildInfo { tasks }, ninja_entries)))
+        Ok(Some((
+            BuildInfo {
+                tasks,
+                out: out_elf,
+            },
+            ninja_entries,
+        )))
     }
 
     let start = Instant::now();
