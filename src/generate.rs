@@ -1,3 +1,6 @@
+//! This module is responsible for generating the .ninja files.
+//! It expects data structures as created by the data module.
+
 use std::borrow::Cow;
 use std::ffi::OsStr;
 use std::fmt;

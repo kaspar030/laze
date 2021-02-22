@@ -1,3 +1,9 @@
+//! This module deals with converting laze .yml files into the format that
+//! the generate module needs.
+//!
+//! This is intentionally seperate from the main generate types in order to be a
+//! bit more flexible on changes to the format.
+
 extern crate pathdiff;
 extern crate serde_yaml;
 
