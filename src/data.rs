@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use anyhow::{Context as _, Result};
+use serde::{Deserialize, Deserializer};
 
 use treestate::{FileState, TreeState};
 
@@ -23,12 +24,23 @@ use super::{Context, ContextBag, Dependency, Module, Rule, Task};
 
 pub type FileTreeState = TreeState<FileState, PathBuf>;
 
+// Any value that is present is considered Some value, including null.
+fn deserialize_some<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    T: Deserialize<'de>,
+    D: Deserializer<'de>,
+{
+    Deserialize::deserialize(deserializer).map(Some)
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlFile {
     context: Option<Vec<YamlContext>>,
     builder: Option<Vec<YamlContext>>,
-    module: Option<Vec<YamlModule>>,
-    app: Option<Vec<YamlModule>>,
+    #[serde(default, deserialize_with = "deserialize_some")]
+    module: Option<Option<Vec<YamlModule>>>,
+    #[serde(default, deserialize_with = "deserialize_some")]
+    app: Option<Option<Vec<YamlModule>>>,
     import: Option<Vec<String>>,
     subdirs: Option<Vec<String>>,
     defaults: Option<HashMap<String, YamlModule>>,
@@ -269,6 +281,31 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
         context_.disable = context.disable.clone();
     }
 
+    fn init_module(
+        name: &Option<String>,
+        context: Option<&String>,
+        is_binary: bool,
+        filename: &PathBuf,
+        defaults: Option<&Module>,
+    ) -> Module {
+        let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
+        let name = match name {
+            Some(name) => name.clone(),
+            None => relpath.clone(),
+        };
+
+        let mut module = match defaults {
+            Some(defaults) => Module::from(defaults, name.clone(), context.cloned()),
+            None => Module::new(name, context.cloned()),
+        };
+
+        module.is_binary = is_binary;
+        module.defined_in = Some(filename.clone());
+        module.relpath = Some(PathBuf::from(&relpath));
+
+        module
+    }
+
     fn convert_module(
         module: &YamlModule,
         is_binary: bool,
@@ -276,27 +313,13 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
         defaults: Option<&Module>,
     ) -> Module {
         let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
-        let module_name = match &module.name {
-            Some(name) => name.clone(),
-            None => relpath.clone(),
-        };
-        let mut m = match defaults {
-            Some(defaults) => Module::from(defaults, module_name.clone(), module.context.clone()),
-            None => Module::new(module_name.clone(), module.context.clone()),
-        };
-        // println!(
-        //     "{} {}:{}",
-        //     match is_binary {
-        //         true => "binary".to_string(),
-        //         false => "module".to_string(),
-        //     },
-        //     module.context.as_ref().unwrap_or(&"none".to_string()),
-        //     module_name
-        // );
-
-        m.is_binary = is_binary;
-        m.defined_in = Some(filename.clone());
-        m.relpath = Some(PathBuf::from(relpath.clone()));
+        let mut m = init_module(
+            &module.name,
+            module.context.as_ref(),
+            is_binary,
+            filename,
+            defaults,
+        );
 
         // convert module dependencies
         // "selects" means "module will be part of the build"
@@ -534,19 +557,34 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
 
         for (list, is_binary) in [(&data.module, false), (&data.app, true)].iter() {
             if let Some(module_list) = list {
-                for module in module_list {
-                    contexts
-                        .add_module(convert_module(
-                            &module,
+                if let Some(module_list) = module_list {
+                    for module in module_list {
+                        contexts
+                            .add_module(convert_module(
+                                &module,
+                                *is_binary,
+                                &data.filename.as_ref().unwrap(),
+                                if *is_binary {
+                                    app_defaults.as_ref()
+                                } else {
+                                    module_defaults.as_ref()
+                                },
+                            ))
+                            .unwrap();
+                    }
+                } else {
+                    if *is_binary {
+                        // if an app list is empty, add a default entry.
+                        // this allows a convenient file only containing "app:"
+                        let default = init_module(
+                            &None,
+                            None,
                             *is_binary,
                             &data.filename.as_ref().unwrap(),
-                            if *is_binary {
-                                app_defaults.as_ref()
-                            } else {
-                                module_defaults.as_ref()
-                            },
-                        ))
-                        .unwrap();
+                            app_defaults.as_ref(),
+                        );
+                        contexts.add_module(default).unwrap();
+                    }
                 }
             }
         }
