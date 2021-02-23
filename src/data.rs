@@ -13,12 +13,13 @@ use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use super::nested_env::{Env, EnvKey, MergeOption};
-use super::{Context, ContextBag, Dependency, Module, Rule, Task};
-
 use anyhow::{Context as _, Result};
 
 use treestate::{FileState, TreeState};
+
+use super::download::Download;
+use super::nested_env::{Env, EnvKey, MergeOption};
+use super::{Context, ContextBag, Dependency, Module, Rule, Task};
 
 pub type FileTreeState = TreeState<FileState, PathBuf>;
 
@@ -80,6 +81,7 @@ struct YamlModule {
     env: Option<YamlModuleEnv>,
     blocklist: Option<Vec<String>>,
     allowlist: Option<Vec<String>>,
+    download: Option<Download>,
     #[serde(skip)]
     is_binary: bool,
 }
@@ -441,6 +443,8 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
         } else {
             m.allowlist = module.allowlist.clone();
         }
+
+        m.download = module.download.clone();
 
         m.apply_early_env();
         m

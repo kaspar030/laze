@@ -27,6 +27,7 @@ use anyhow::{Context as _, Error, Result};
 use clap::{crate_version, App, AppSettings, Arg, SubCommand};
 
 mod data;
+mod download;
 mod generate;
 mod nested_env;
 mod ninja;
@@ -131,6 +132,7 @@ pub struct Module {
     env_global: Env,
     env_early: Env,
 
+    download: Option<download::Download>,
     context_id: Option<usize>,
     defined_in: Option<PathBuf>,
     relpath: Option<PathBuf>,
@@ -647,6 +649,7 @@ impl Module {
             srcdir: None,
             blocklist: None,
             allowlist: None,
+            download: None,
         }
     }
 
@@ -670,10 +673,8 @@ impl Module {
             relpath: None,
             blocklist: defaults.blocklist.clone(),
             allowlist: defaults.blocklist.clone(),
-            srcdir: match &defaults.srcdir {
-                Some(dir) => Some(dir.clone()),
-                None => None,
-            },
+            download: defaults.download.clone(),
+            srcdir: defaults.srcdir.clone(),
         }
     }
 
