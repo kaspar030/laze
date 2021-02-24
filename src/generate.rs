@@ -230,17 +230,25 @@ pub fn generate(
             }
 
             let srcdir = module.defined_in.as_ref().unwrap().parent().unwrap();
+
+            // now for each source file,
             for source in module.sources.iter().chain(optional_sources.iter()) {
+                // 1. determine full file path (relative to project root)
+                let mut srcpath = srcdir.clone();
+                srcpath.push(source);
+
+                // 2. find ninja rule by lookup of the source file's extension
                 let ext = Path::new(&source)
                     .extension()
                     .and_then(OsStr::to_str)
                     .unwrap();
 
-                let mut srcpath = srcdir.to_path_buf();
-                srcpath.push(source);
                 let rule = rules.get(ext.into()).unwrap();
+
                 let ninja_rule = module_rules.get(ext.into()).unwrap();
                 let rule_hash = ninja_rule.get_hash();
+
+                // 3. determine output path (e.g., name of C object file)
                 let out = srcpath.with_extension(format!(
                     "{}.{}",
                     rule_hash,
@@ -250,6 +258,8 @@ pub fn generate(
                 let mut object = objdir.clone();
                 object.push(out);
 
+                // 4. render ninja build: snippet and add to this build's
+                // ninja statement set
                 let build = NinjaBuildBuilder::default()
                     .rule(&*ninja_rule.name)
                     .in_single(Cow::from(&srcpath))
@@ -259,6 +269,7 @@ pub fn generate(
 
                 ninja_entries.insert(format!("{}", build));
 
+                // 5. store the output in this build's output list
                 objects.push(object);
             }
         }
