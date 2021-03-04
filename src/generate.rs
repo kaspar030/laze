@@ -264,9 +264,14 @@ fn configure_build(
     /* now handle each module */
     for (_, module) in modules.iter() {
         // handle possible remote sources
-        let (dlsrcdir, download_rule) = download::handle_module(module, &build_dir)?;
-        if let Some(download_rule) = download_rule {
-            ninja_entries.insert(download_rule);
+        let (dlsrcdir, dldep, download_rules) =
+            download::handle_module(module, &build_dir, &rules)?.map_or_else(
+                || (None, None, None),
+                |(a, b, c)| (Some(a), Some(b), Some(c)),
+            );
+
+        if let Some(mut download_rules) = download_rules {
+            ninja_entries.extend(download_rules.drain(..));
         }
 
         /* build final module env */
@@ -378,6 +383,18 @@ fn configure_build(
 
             // 5. store the output in this build's output list
             objects.push(object);
+
+            // 6. optionally create dependency to the download / patch step
+            if let Some(dldep) = dldep.as_ref() {
+                let build = NinjaBuildBuilder::default()
+                    .rule("phony")
+                    .in_single(Cow::from(dldep))
+                    .out(Cow::from(&srcpath))
+                    .build()
+                    .unwrap();
+
+                ninja_entries.insert(format!("{}", build));
+            }
         }
     }
 
