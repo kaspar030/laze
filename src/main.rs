@@ -241,6 +241,9 @@ impl Context {
         }
     }
 
+    // This function collects all rules of a given context and all its parents.
+    // The resulting indexmap is indexed by the "in_" field (which should be an extension),
+    // or if absent, by name
     pub fn collect_rules<'a>(
         &'a self,
         contexts: &'a ContextBag,
@@ -256,6 +259,8 @@ impl Context {
                     //println!("rule {}", rule.name);
                     if let Some(rule_in) = rule.in_.as_ref() {
                         result.insert(rule_in.clone(), rule);
+                    } else {
+                        result.insert(rule.name.clone(), rule);
                     }
                 }
             }
