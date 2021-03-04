@@ -1,17 +1,10 @@
 use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt;
-use std::fs::File;
 use std::hash::{Hash, Hasher};
-use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
-
-pub struct NinjaWriter {
-    pub file: BufWriter<File>,
-    pub rules: HashSet<u64>,
-}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum NinjaRuleDeps {
@@ -160,40 +153,45 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
     }
 }
 
-impl NinjaWriter {
-    pub fn new(path: &Path) -> std::io::Result<NinjaWriter> {
-        Ok(NinjaWriter {
-            file: BufWriter::new(File::create(path)?),
-            rules: HashSet::new(),
-        })
-    }
+// pub struct NinjaWriter {
+//     pub file: BufWriter<File>,
+//     pub rules: HashSet<u64>,
+// }
 
-    pub fn write_rule(&mut self, rule: &NinjaRule) -> std::io::Result<()> {
-        self.file.write_all(format!("{}", rule).as_bytes())
-    }
+// impl NinjaWriter {
+//     pub fn new(path: &Path) -> std::io::Result<NinjaWriter> {
+//         Ok(NinjaWriter {
+//             file: BufWriter::new(File::create(path)?),
+//             rules: HashSet::new(),
+//         })
+//     }
 
-    pub fn write_rule_dedup(&mut self, rule: &NinjaRule) -> std::io::Result<String> {
-        let rule_hash = rule.get_hash();
-        let name = rule.get_hashed_name(rule_hash);
+//     pub fn write_rule(&mut self, rule: &NinjaRule) -> std::io::Result<()> {
+//         self.file.write_all(format!("{}", rule).as_bytes())
+//     }
 
-        if self.rules.insert(rule_hash) {
-            let mut named = rule.clone();
-            named.name = Cow::from(&name);
-            self.write_rule(&named)?;
-        }
+//     pub fn write_rule_dedup(&mut self, rule: &NinjaRule) -> std::io::Result<String> {
+//         let rule_hash = rule.get_hash();
+//         let name = rule.get_hashed_name(rule_hash);
 
-        Ok(name)
-    }
+//         if self.rules.insert(rule_hash) {
+//             let mut named = rule.clone();
+//             named.name = Cow::from(&name);
+//             self.write_rule(&named)?;
+//         }
 
-    pub fn write_var(&mut self, var: &str, val: &str) -> std::io::Result<()> {
-        self.file
-            .write_all(format!("{} = {}\n", var, val).as_bytes())
-    }
+//         Ok(name)
+//     }
 
-    pub fn write_build(&mut self, build: &NinjaBuild) -> std::io::Result<()> {
-        self.file.write_all(format!("{}", build).as_bytes())
-    }
-}
+//     pub fn write_var(&mut self, var: &str, val: &str) -> std::io::Result<()> {
+//         self.file
+//             .write_all(format!("{} = {}\n", var, val).as_bytes())
+//     }
+
+//     pub fn write_build(&mut self, build: &NinjaBuild) -> std::io::Result<()> {
+//         self.file.write_all(format!("{}", build).as_bytes())
+//     }
+// }
 
 #[derive(Default, Builder, Debug, Clone)]
 #[builder(setter(into))]
@@ -234,11 +232,11 @@ impl<'a> NinjaCmd<'a> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn basic() {
-        let mut file = NinjaWriter::new(Path::new("ninja.build")).unwrap();
-        file.file.write(b"foo\n").unwrap();
-    }
+    // #[test]
+    // fn basic() {
+    //     let mut file = NinjaWriter::new(Path::new("ninja.build")).unwrap();
+    //     file.file.write(b"foo\n").unwrap();
+    // }
 
     #[test]
     fn rule() {
