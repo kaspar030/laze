@@ -106,7 +106,7 @@ pub struct NinjaBuild<'a> {
     #[builder(setter(strip_option), default = "None")]
     in_single: Option<Cow<'a, Path>>,
 
-    #[builder(setter(into, strip_option), default = "None")]
+    #[builder(setter(into), default = "None")]
     deps: Option<Vec<Cow<'a, Path>>>,
 
     #[builder(setter(into, strip_option), default = "None")]
