@@ -31,6 +31,7 @@ mod download;
 mod generate;
 mod nested_env;
 mod ninja;
+mod util;
 
 use generate::{get_ninja_build_file, BuildInfo, GenerateMode, Selector};
 use nested_env::{Env, MergeOption};
@@ -137,6 +138,7 @@ pub struct Module {
     defined_in: Option<PathBuf>,
     relpath: Option<PathBuf>,
     srcdir: Option<PathBuf>,
+    build_deps: Option<Vec<PathBuf>>,
     is_binary: bool,
 }
 
@@ -652,6 +654,7 @@ impl Module {
             defined_in: None,
             relpath: None,
             srcdir: None,
+            build_deps: None,
             blocklist: None,
             allowlist: None,
             download: None,
@@ -680,6 +683,7 @@ impl Module {
             allowlist: defaults.blocklist.clone(),
             download: defaults.download.clone(),
             srcdir: defaults.srcdir.clone(),
+            build_deps: None,
         }
     }
 
@@ -758,7 +762,7 @@ impl Module {
             }
         }
 
-        /* finally, merge the module's local env */
+        /* merge the module's local env */
         module_env = nested_env::merge(module_env, self.env_local.clone());
 
         module_env
@@ -781,6 +785,29 @@ impl Module {
         self.env_local = nested_env::expand_env(&self.env_local, &self.env_early);
         self.env_export = nested_env::expand_env(&self.env_export, &self.env_early);
         self.env_global = nested_env::expand_env(&self.env_global, &self.env_early);
+    }
+
+    // returns all fixed and optional sources with srcdir prepended
+    pub fn get_all_sources(&self, srcdir: PathBuf) -> Vec<PathBuf> {
+        let mut res = self
+            .sources
+            .iter()
+            .map(|source| {
+                let mut path = srcdir.clone();
+                path.push(source);
+                path
+            })
+            .collect::<Vec<_>>();
+
+        if let Some(sources_optional) = &self.sources_optional {
+            res.extend(sources_optional.values().flatten().map(|x| {
+                let mut path = srcdir.clone();
+                path.push(x);
+                path
+            }));
+        }
+
+        res
     }
 }
 
@@ -1165,6 +1192,8 @@ fn try_main() -> Result<i32> {
                 apps.clone(),
             )?;
 
+            // generation of ninja build file complete.
+            // exit here if requested.
             if build_matches.is_present("generate-only") {
                 return Ok(0);
             }

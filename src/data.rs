@@ -159,7 +159,7 @@ fn load_all<'a>(
     Ok(result)
 }
 
-pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
+pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeState)> {
     let mut contexts = ContextBag::new();
     let start = Instant::now();
 
@@ -311,6 +311,7 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
         is_binary: bool,
         filename: &PathBuf,
         defaults: Option<&Module>,
+        build_dir: &Path,
     ) -> Module {
         let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
         let mut m = init_module(
@@ -400,11 +401,6 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
         process_removes(&mut m.selects);
         process_removes(&mut m.imports);
 
-        // populate "early env"
-        m.env_early
-            .insert("relpath".into(), EnvKey::Single(relpath));
-        m.env_early
-            .insert("root".into(), EnvKey::Single(".".into()));
         // copy over environment
         if let Some(env) = &module.env {
             if let Some(local) = &env.local {
@@ -468,8 +464,41 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
         }
 
         m.download = module.download.clone();
+        let (srcdir, build_deps) = if let Some(download) = &m.download {
+            let srcdir = download.srcdir(build_dir, &m);
+            let tagfile = download.tagfile(&srcdir);
 
+            // Create "build_deps" list in export env of this module.
+            // This will later be picked up and added as dependency for
+            // every dependent module's source file.
+            m.env_export.insert(
+                "build_deps".into(),
+                // TODO: why is this so ugly and still unsafe (e.g., in Windows)
+                EnvKey::List(im::vector![tagfile
+                    .clone()
+                    .into_os_string()
+                    .into_string()
+                    .unwrap()]),
+            );
+            (srcdir, Some(vec![tagfile]))
+        } else {
+            (PathBuf::from(relpath.clone()), None)
+        };
+
+        m.srcdir = Some(srcdir);
+        m.build_deps = build_deps;
+
+        // populate "early env"
+        m.env_early
+            .insert("relpath".into(), EnvKey::Single(relpath));
+        m.env_early
+            .insert("root".into(), EnvKey::Single(".".into()));
+        m.env_early.insert(
+            "srcdir".into(),
+            EnvKey::Single(m.srcdir.as_ref().unwrap().to_str().unwrap().into()),
+        );
         m.apply_early_env();
+
         m
     }
 
@@ -509,6 +538,7 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
         defaults_map: &HashMap<usize, Module>,
         key: &str,
         is_binary: bool,
+        build_dir: &Path,
     ) -> Option<Module> {
         // this function determines the module or app defaults for a given YamlFile
 
@@ -527,6 +557,7 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
                     is_binary,
                     &data.filename.as_ref().unwrap(),
                     subdir_defaults,
+                    build_dir,
                 ))
             } else {
                 None
@@ -543,8 +574,14 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
     }
 
     for data in &yaml_datas {
-        let module_defaults = get_defaults(data, &subdir_module_defaults_map, "module", false);
-        let app_defaults = get_defaults(data, &subdir_app_defaults_map, "app", true);
+        let module_defaults = get_defaults(
+            data,
+            &subdir_module_defaults_map,
+            "module",
+            false,
+            build_dir,
+        );
+        let app_defaults = get_defaults(data, &subdir_app_defaults_map, "app", true, build_dir);
 
         if let Some(_) = data.subdirs {
             if let Some(module_defaults) = &module_defaults {
@@ -569,6 +606,7 @@ pub fn load(filename: &Path) -> Result<(ContextBag, FileTreeState)> {
                                 } else {
                                     module_defaults.as_ref()
                                 },
+                                build_dir,
                             ))
                             .unwrap();
                     }

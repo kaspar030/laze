@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use anyhow::Result;
+use im::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 //use rayon::iter::ParallelBridge;
@@ -62,7 +63,7 @@ pub fn generate(
         },
     }
 
-    let (contexts, treestate) = load(project_root)?;
+    let (contexts, treestate) = load(project_root, build_dir)?;
 
     std::fs::create_dir_all(&build_dir)?;
     let mut ninja_build_file = std::io::BufWriter::new(std::fs::File::create(
@@ -129,7 +130,7 @@ pub fn generate(
         // speedup, at the price of changing the order of build rules. not worth losing
         // reproducible output.
         .filter_map(|(builder, (_, bin))| {
-            match configure_build(bin, &contexts, builder, &laze_env).ok()? {
+            match configure_build(bin, &contexts, builder, &laze_env).unwrap() {
                 Some((build_info, ninja_entries)) => Some((
                     builder.name.clone(),
                     bin.name.clone(),
@@ -211,6 +212,12 @@ fn configure_build(
     /* create build instance (binary A for builder X) */
     let build = Build::new(binary, builder, contexts);
 
+    // get build dir from late_env
+    let build_dir = match laze_env.get("build-dir").unwrap() {
+        nested_env::EnvKey::Single(path) => PathBuf::from(path),
+        _ => unreachable!(),
+    };
+
     // collect disabled modules from app and build context
     let mut disabled_modules = build.build_context.collect_disabled_modules(&contexts);
     if let Some(disable) = &binary.disable {
@@ -246,11 +253,8 @@ fn configure_build(
     let tmp = global_env.clone();
     let global_env_flattened = nested_env::flatten(&tmp);
     let bindir = nested_env::expand("${bindir}", &global_env_flattened, IfMissing::Empty).unwrap();
-    let build_dir =
-        nested_env::expand("${build-dir}", &global_env_flattened, IfMissing::Empty).unwrap();
 
     let bindir = PathBuf::from(bindir);
-    let build_dir = PathBuf::from(build_dir);
 
     let mut objdir = build_dir.clone();
     objdir.push("objects");
@@ -264,15 +268,23 @@ fn configure_build(
     /* now handle each module */
     for (_, module) in modules.iter() {
         // handle possible remote sources
-        let (dlsrcdir, dldep, download_rules) =
-            download::handle_module(module, &build_dir, &rules)?.map_or_else(
-                || (None, None, None),
-                |(a, b, c)| (Some(a), Some(b), Some(c)),
-            );
+        let download_rules = download::handle_module(module, &build_dir, &rules)?;
 
         if let Some(mut download_rules) = download_rules {
             ninja_entries.extend(download_rules.drain(..));
         }
+
+        // "srcdir" is either the folder of laze.yml that defined this module,
+        // *or* if it was downloaded, the download folder.
+        // This is populated in data.rs, do unwrap() always succeeds.
+        let srcdir = module.srcdir.as_ref().unwrap();
+
+        // create env specific to this module and build configuration
+        let mut module_build_env = HashMap::new();
+        module_build_env.insert(
+            "srcdir".to_string(),
+            nested_env::EnvKey::Single(srcdir.to_string_lossy().into_owned()),
+        );
 
         /* build final module env */
         let module_env = module.build_env(&global_env, &modules);
@@ -339,12 +351,22 @@ fn configure_build(
             });
         }
 
-        // if the sources were downloaded, use that as base folder for
-        // "sources:", else, the folder of the laze.yml this module was
-        // defined in.
-        let srcdir = dlsrcdir.unwrap_or_else(|| {
-            PathBuf::from(module.defined_in.as_ref().unwrap().parent().unwrap())
-        });
+        // this ugly block collects all "build_deps" entries (which are Strings
+        // converted from Paths) into Vec<Cow<Path>> as needed by NinjaBuildBuilder's "deps()"
+        // method.
+        let build_deps = if let Some(build_deps) = module_env.get("build_deps".into()) {
+            if let nested_env::EnvKey::List(list) = build_deps {
+                Some(
+                    list.iter()
+                        .map(|x| Cow::from(PathBuf::from(x)))
+                        .collect_vec(),
+                )
+            } else {
+                unreachable!();
+            }
+        } else {
+            None
+        };
 
         // now for each source file,
         for source in module.sources.iter().chain(optional_sources.iter()) {
@@ -370,12 +392,13 @@ fn configure_build(
             let mut object = objdir.clone();
             object.push(out);
 
-            // 4. render ninja build: snippet and add to this build's
+            // 4. render ninja "build:" snippet and add to this build's
             // ninja statement set
             let build = NinjaBuildBuilder::default()
                 .rule(&*ninja_rule.name)
                 .in_single(Cow::from(&srcpath))
                 .out(object.as_path())
+                //.deps(build_deps.clone())
                 .build()
                 .unwrap();
 
@@ -385,10 +408,10 @@ fn configure_build(
             objects.push(object);
 
             // 6. optionally create dependency to the download / patch step
-            if let Some(dldep) = dldep.as_ref() {
+            if let Some(build_deps) = &build_deps {
                 let build = NinjaBuildBuilder::default()
                     .rule("phony")
-                    .in_single(Cow::from(dldep))
+                    .in_vec(build_deps.clone())
                     .out(Cow::from(&srcpath))
                     .build()
                     .unwrap();
