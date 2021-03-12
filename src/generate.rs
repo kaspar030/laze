@@ -40,8 +40,8 @@ pub enum GenerateMode {
 
 pub fn get_ninja_build_file(build_dir: &Path, mode: &GenerateMode) -> PathBuf {
     match mode {
-        GenerateMode::Global => build_dir.join("build-local.ninja"),
-        GenerateMode::Local(_) => build_dir.join("build-global.ninja"),
+        GenerateMode::Global => build_dir.join("build-global.ninja"),
+        GenerateMode::Local(_) => build_dir.join("build-local.ninja"),
     }
 }
 
