@@ -98,6 +98,25 @@ struct YamlModule {
     is_binary: bool,
 }
 
+impl YamlModule {
+    fn default(is_binary: bool) -> YamlModule {
+        YamlModule {
+            name: None,
+            context: None,
+            depends: None,
+            selects: None,
+            uses: None,
+            disable: None,
+            sources: None,
+            env: None,
+            blocklist: None,
+            allowlist: None,
+            download: None,
+            is_binary,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlModuleEnv {
     local: Option<Env>,
@@ -614,14 +633,16 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                     if *is_binary {
                         // if an app list is empty, add a default entry.
                         // this allows a convenient file only containing "app:"
-                        let default = init_module(
-                            &None,
-                            None,
-                            *is_binary,
-                            &data.filename.as_ref().unwrap(),
-                            app_defaults.as_ref(),
-                        );
-                        contexts.add_module(default).unwrap();
+                        let module = YamlModule::default(*is_binary);
+                        contexts
+                            .add_module(convert_module(
+                                &module,
+                                *is_binary,
+                                &data.filename.as_ref().unwrap(),
+                                app_defaults.as_ref(),
+                                build_dir,
+                            ))
+                            .unwrap();
                     }
                 }
             }
