@@ -1,10 +1,11 @@
 use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
+
+use indexmap::IndexMap;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum NinjaRuleDeps {
@@ -25,7 +26,7 @@ pub struct NinjaRule<'a> {
     command: Cow<'a, str>,
     description: Option<Cow<'a, str>>,
     #[builder(setter(into, strip_option), default = "None")]
-    env: Option<&'a HashMap<String, String>>,
+    env: Option<&'a IndexMap<String, String>>,
     #[builder(default = "NinjaRuleDeps::None")]
     deps: NinjaRuleDeps,
     #[builder(default = "None")]
@@ -110,7 +111,7 @@ pub struct NinjaBuild<'a> {
     deps: Option<Vec<Cow<'a, Path>>>,
 
     #[builder(setter(into, strip_option), default = "None")]
-    env: Option<&'a HashMap<String, String>>,
+    env: Option<&'a IndexMap<String, String>>,
     //   deps: NinjaRuleDeps,
 }
 
