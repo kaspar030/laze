@@ -10,7 +10,6 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use anyhow::Result;
-use im::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 //use rayon::iter::ParallelBridge;
@@ -278,13 +277,6 @@ fn configure_build(
         // *or* if it was downloaded, the download folder.
         // This is populated in data.rs, do unwrap() always succeeds.
         let srcdir = module.srcdir.as_ref().unwrap();
-
-        // create env specific to this module and build configuration
-        let mut module_build_env = HashMap::new();
-        module_build_env.insert(
-            "srcdir".to_string(),
-            nested_env::EnvKey::Single(srcdir.to_string_lossy().into_owned()),
-        );
 
         /* build final module env */
         let module_env = module.build_env(&global_env, &modules);
