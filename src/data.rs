@@ -142,15 +142,7 @@ fn process_removes(strings: &mut Vec<Dependency>) {
         .map(|x| x.get_name()[1..].to_string())
         .collect::<HashSet<_>>();
 
-    strings.retain(|x| {
-        if x.get_name().starts_with("-") {
-            false
-        } else if removals.contains(&x.get_name()[..]) {
-            false
-        } else {
-            true
-        }
-    });
+    strings.retain(|x| !(x.get_name().starts_with("-") || removals.contains(&x.get_name()[..])));
 }
 
 fn load_all<'a>(
