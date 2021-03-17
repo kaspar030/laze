@@ -136,12 +136,11 @@ struct YamlModuleEnv {
 // }
 
 fn process_removes(strings: &mut Vec<Dependency>) {
-    let mut removals = HashSet::new();
-    for x in strings.iter() {
-        if x.get_name().starts_with("-") {
-            removals.insert(x.get_name()[1..].to_string());
-        }
-    }
+    let removals = strings
+        .iter()
+        .filter(|x| x.get_name().starts_with("-"))
+        .map(|x| x.get_name()[1..].to_string())
+        .collect::<HashSet<_>>();
 
     strings.retain(|x| {
         if x.get_name().starts_with("-") {
