@@ -3,9 +3,15 @@ TESTS = $(dir $(wildcard */test.sh))
 .PHONY: test
 .PHONY: rebuild
 
-export LAZE=kcov --include-pattern=laze/src cov ../../../target/debug/laze
+export LAZE
 
-test: rebuild
+test:
+	for testdir in $(TESTS); do \
+		(cd $${testdir}; ./test.sh; ) || exit 1 ; \
+		done
+
+kcov: LAZE=kcov --include-pattern=laze/src cov ../../../target/debug/laze
+kcov: rebuild
 	for testdir in $(TESTS); do \
 		(cd $${testdir}; ./test.sh; ) || exit 1 ; \
 		done
