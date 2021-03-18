@@ -5,7 +5,7 @@ name: default
 
 steps:
 - name: test
-  image: rust:latest
+  image: lambdastack/rust-ubuntu
   environment:
     COVERALL_TOKEN:
       from_secret: COVERALL_TOKEN
