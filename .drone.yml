@@ -5,7 +5,7 @@ name: default
 
 steps:
 - name: test
-  image: ubuntu:latest
+  image: rust:latest
   environment:
     COVERALL_TOKEN:
       from_secret: COVERALL_TOKEN
@@ -14,7 +14,7 @@ steps:
   - "# installing prerequisites"
   - "#"
   - apt-get update
-  - apt-get install -y cargo ninja-build make kcov
+  - apt-get install -y ninja-build
   - "#"
   - "# compiling"
   - "#"
