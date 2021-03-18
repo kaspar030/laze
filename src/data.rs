@@ -208,10 +208,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
 
                 // collect subdirs, add do filenames list
                 for subdir in subdirs {
-                    let mut sub_relpath = relpath.clone();
-                    sub_relpath.push(subdir);
-                    let mut sub_file = sub_relpath.clone();
-                    sub_file.push("laze.yml");
+                    let sub_file = Path::new(&relpath).join(subdir).join("laze.yml");
                     filenames.insert((sub_file, new.doc_idx));
                 }
             }
