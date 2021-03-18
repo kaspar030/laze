@@ -8,9 +8,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-use super::{
-    ninja::NinjaBuildBuilder, ninja::NinjaRuleBuilder, util::path_clone_push, Module, Rule,
-};
+use super::{ninja::NinjaBuildBuilder, ninja::NinjaRuleBuilder, Module, Rule};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum DownloadSource {
@@ -35,11 +33,11 @@ impl Download {
     }
 
     fn tagfile_download(&self, srcdir: &PathBuf) -> PathBuf {
-        path_clone_push(&srcdir, ".laze-downloaded")
+        Path::new(srcdir).join(".laze-downloaded")
     }
 
     fn tagfile_patched(&self, srcdir: &PathBuf) -> PathBuf {
-        path_clone_push(&srcdir, ".laze-patched")
+        Path::new(srcdir).join(".laze-patched")
     }
 
     pub fn tagfile(&self, srcdir: &PathBuf) -> PathBuf {
@@ -135,11 +133,7 @@ impl Download {
 
         let patches = patches
             .iter()
-            .map(|x| {
-                let mut path = PathBuf::from(module.relpath.as_ref().unwrap());
-                path.push(x);
-                Cow::from(path)
-            })
+            .map(|x| Cow::from(Path::new(module.relpath.as_ref().unwrap()).join(x)))
             .collect_vec();
 
         let download_dep = std::iter::once(&tagfile_download)

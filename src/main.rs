@@ -31,7 +31,6 @@ mod download;
 mod generate;
 mod nested_env;
 mod ninja;
-mod util;
 
 use generate::{get_ninja_build_file, BuildInfo, GenerateMode, Selector};
 use nested_env::{Env, MergeOption};
