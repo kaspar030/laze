@@ -14,7 +14,7 @@ steps:
   - "# installing prerequisites"
   - "#"
   - apt-get update
-  - apt-get install -y cargo rust ninja-build make kcov
+  - apt-get install -y cargo ninja-build make kcov
   - "#"
   - "# compiling"
   - "#"
