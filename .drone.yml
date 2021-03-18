@@ -5,16 +5,16 @@ name: default
 
 steps:
 - name: test
-  image: lambdastack/rust-ubuntu
+  image: ubuntu:latest
   environment:
     COVERALL_TOKEN:
       from_secret: COVERALL_TOKEN
   commands:
   - "#"
-  - "# installing ninja & kcov"
+  - "# installing prerequisites"
   - "#"
   - apt-get update
-  - apt-get install -y ninja-build kcov
+  - apt-get install -y cargo rust ninja-build make kcov
   - "#"
   - "# compiling"
   - "#"
