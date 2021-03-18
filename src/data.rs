@@ -157,11 +157,10 @@ fn load_all<'a>(
 
     let mut result = Vec::new();
     for (n, doc) in docs.iter().enumerate() {
-        let n = n + index_start;
         let mut parsed: YamlFile = serde_yaml::from_str(doc)
             .with_context(|| format!("while parsing {}", filename.display()))?;
         parsed.filename = Some(filename.clone());
-        parsed.doc_idx = Some(n);
+        parsed.doc_idx = Some(index_start + n);
         parsed.included_by = included_by;
         result.push(parsed);
     }
