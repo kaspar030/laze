@@ -6,12 +6,15 @@ name: default
 steps:
 - name: test
   image: rust:latest
+  environment:
+    COVERALL_TOKEN:
+      from_secret: COVERALL_TOKEN
   commands:
   - "#"
-  - "# installing ninja"
+  - "# installing ninja & kcov"
   - "#"
   - apt-get update
-  - apt-get install -y ninja-build
+  - apt-get install -y ninja-build kcov
   - "#"
   - "# compiling"
   - "#"
