@@ -33,6 +33,6 @@ steps:
   - make -C src/tests
 ---
 kind: signature
-hmac: c5d91d864f3fe661bbc288ecfc762342670d959007a07e21432ee292d9617e7a
+hmac: a2f0426c10d7abe3be88e02c177ffc05bb8445f0ea4b9b8892a9bb0e2510537e
 
 ...
