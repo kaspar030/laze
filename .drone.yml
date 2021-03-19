@@ -4,35 +4,74 @@ type: docker
 name: default
 
 steps:
-- name: test
-  image: rust:latest
-  environment:
-    COVERALL_TOKEN:
-      from_secret: COVERALL_TOKEN
-  commands:
-  - "#"
-  - "# installing prerequisites"
-  - "#"
-  - apt-get update
-  - apt-get install -y ninja-build
-  - "#"
-  - "# compiling"
-  - "#"
-  - cargo build --verbose --all
-  - "#"
-  - "# unittests"
-  - "#"
-  - cargo test --verbose --all
-  - "#"
-  - "# release compilation"
-  - "#"
-  - cargo install --path .
-  - "#"
-  - "# end-to-end tests"
-  - "#"
-  - make -C src/tests
+  - name: test
+    image: rust:latest
+    environment:
+      COVERALLS_TOKEN:
+        from_secret: COVERALL_TOKEN
+    commands:
+      - "#"
+      - "# installing prerequisites"
+      - "#"
+      - apt-get update
+      - apt-get install -y ninja-build python3-requests
+      - curl -L https://github.com/mozilla/grcov/releases/download/v0.7.1/grcov-linux-x86_64.tar.bz2 | tar jxf -
+        #- cargo install grcov --version 0.6.1
+      - rustup toolchain install nightly
+      - rustup component add llvm-tools-preview
+
+      - "#"
+      - "# compiling with stable rust"
+      - "#"
+      - cargo build
+
+      - "#"
+      - "# stable unittests"
+      - "#"
+      - cargo test --verbose --all
+
+      - "#"
+      - "# stable end-to-end tests"
+      - "#"
+      - LAZE=$(pwd)/target/debug/laze make -C src/tests
+
+      - "#"
+      - "# compiling with nightly rust"
+      - "#"
+      - 'RUSTFLAGS="-Zinstrument-coverage" cargo +nightly build'
+
+      - "#"
+      - "# unittests"
+      - "#"
+        #- 'RUSTFLAGS="-Zinstrument-coverage" cargo +nightly test --verbose --all'
+
+      - "#"
+      - "# end-to-end tests"
+      - "#"
+      - LAZE=$(pwd)/target/debug/laze make -C src/tests
+
+      - "#"
+      - "# uploading coverage results"
+      - "#"
+      - >
+        ./grcov
+        $(find . -name default.profraw -print)
+        --token $${COVERALLS_TOKEN}
+        --commit-sha $${DRONE_COMMIT}
+        --service-name drone.schleiser.de
+        --service-number $${DRONE_BUILD_NUMBER}
+        --vcs-branch $${DRONE_COMMIT_BRANCH}
+        --binary-path ./target/debug/laze
+        --branch
+        --ignore-not-existing
+        --output-path coveralls.json
+        --output-type coveralls+
+        --source-dir .
+        --ignore "/*"
+
+      - python3 dist/coveralls.py coveralls.json
 ---
 kind: signature
-hmac: a2f0426c10d7abe3be88e02c177ffc05bb8445f0ea4b9b8892a9bb0e2510537e
+hmac: 990a13ab57e34dda183288108de0777463695321f00495f9cf6a6d8babe0049c
 
 ...
