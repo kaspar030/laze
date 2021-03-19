@@ -10,8 +10,7 @@ git -C testrepo commit -m ...
 
 cleanup
 
-laze b
-echo TEST_OK
+${LAZE} build && echo TEST_OK
 
 cleanup
 rm -Rf testrepo
