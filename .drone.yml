@@ -63,7 +63,6 @@ steps:
         --vcs-branch $${DRONE_COMMIT_BRANCH}
         --binary-path ./target/debug/laze
         --branch
-        --ignore-not-existing
         --output-path coveralls.json
         --output-type coveralls+
         --source-dir .
@@ -72,6 +71,6 @@ steps:
       - python3 dist/coveralls.py coveralls.json
 ---
 kind: signature
-hmac: bb027f73b5fcb32bff3163d8120e0ead78a72ffd784b1aae69c205a1b60405ab
+hmac: a0b6c160c17ea7e8a73716f7635ca34493c28705419fe0cb0740a955410e5bdc
 
 ...
