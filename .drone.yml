@@ -41,9 +41,9 @@ steps:
       - 'RUSTFLAGS="-Zinstrument-coverage" cargo +nightly build'
 
       - "#"
-      - "# unittests"
+      - "# nightly unittests"
       - "#"
-        #- 'RUSTFLAGS="-Zinstrument-coverage" cargo +nightly test --verbose --all'
+      - 'RUSTFLAGS="-Zinstrument-coverage" cargo +nightly test'
 
       - "#"
       - "# end-to-end tests"
@@ -72,6 +72,6 @@ steps:
       - python3 dist/coveralls.py coveralls.json
 ---
 kind: signature
-hmac: 990a13ab57e34dda183288108de0777463695321f00495f9cf6a6d8babe0049c
+hmac: bb027f73b5fcb32bff3163d8120e0ead78a72ffd784b1aae69c205a1b60405ab
 
 ...
