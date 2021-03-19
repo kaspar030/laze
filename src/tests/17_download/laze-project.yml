@@ -1,0 +1,29 @@
+builder:
+  - name: default
+    rule:
+        - name: CC
+          in: 'c'
+          out: 'o'
+          cmd: 'echo ${EXPORT_VAR} ${in} > ${out}'
+
+        - name: LINK
+          in: 'o'
+          options:
+              combine: true
+          cmd: 'cat ${in} > ${out}'
+
+        - name: GIT_DOWNLOAD
+          cmd: 'D=$$(dirname ${out}); rm -rf $$D && git clone ${url} -b ${commit} $$D && touch ${out}'
+
+    env:
+      bindir: build/${builder}/${app}
+
+
+app:
+  - name: app
+    download:
+      git:
+        url: testrepo
+        commit: main
+
+    sources: [ foo.c ]
