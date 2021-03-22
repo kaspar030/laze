@@ -460,7 +460,7 @@ fn configure_build(
     }
 
     // collect tasks
-    let flattened_task_env = nested_env::flatten(&global_env);
+    let flattened_task_env = nested_env::flatten_with_opts_option(&global_env, merge_opts.as_ref());
     let tasks = build
         .build_context
         .collect_tasks(&contexts, &flattened_task_env);
