@@ -414,9 +414,7 @@ fn configure_build(
     }
 
     /* build application file name */
-    let mut out_elf = bindir.clone();
-    out_elf.push(&binary.name);
-    let out_elf = out_elf.with_extension("elf");
+    let out_elf = Path::new(&bindir).join(&binary.name).with_extension("elf");
     global_env.insert(
         "out".into(),
         nested_env::EnvKey::Single(String::from(out_elf.to_str().unwrap())),
