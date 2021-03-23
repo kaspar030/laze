@@ -424,17 +424,11 @@ impl ContextBag {
             let parent_env = &self.contexts[context.parent_index.unwrap()].env;
 
             if let Some(parent_env) = parent_env {
-                let mut env;
+                let env;
                 if let Some(context_env) = context_env {
                     env = nested_env::merge(parent_env.clone(), context_env.clone());
                 } else {
                     env = parent_env.clone();
-                }
-                if context.is_builder {
-                    env.insert(
-                        "builder".to_string(),
-                        nested_env::EnvKey::Single(context.name.clone()),
-                    );
                 }
                 let context = &mut self.contexts[n];
                 context.env = Some(env);
@@ -870,8 +864,12 @@ impl<'a: 'b, 'b> Build<'b> {
             build_env = Env::new();
         }
 
-        /* add "app" variable */
-        // TODO: maybe move to module creation
+        // insert "builder" variable
+        build_env.insert(
+            "builder".to_string(),
+            nested_env::EnvKey::Single(builder.name.clone()),
+        );
+        // add "app" variable
         build_env.insert(
             "app".to_string(),
             nested_env::EnvKey::Single(binary.name.clone()),
