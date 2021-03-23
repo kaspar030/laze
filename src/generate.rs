@@ -12,6 +12,7 @@ use std::time::Instant;
 use anyhow::Result;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use nested_env::EnvKey;
 //use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 
@@ -41,6 +42,19 @@ pub fn get_ninja_build_file(build_dir: &Path, mode: &GenerateMode) -> PathBuf {
     match mode {
         GenerateMode::Global => build_dir.join("build-global.ninja"),
         GenerateMode::Local(_) => build_dir.join("build-local.ninja"),
+    }
+}
+
+fn relroot(relpath: &Path) -> PathBuf {
+    let components = relpath.components().count();
+    if components == 0 {
+        "./".into()
+    } else {
+        let mut res = PathBuf::new();
+        for _ in 0..components {
+            res.push("..");
+        }
+        res
     }
 }
 
@@ -248,6 +262,25 @@ fn configure_build(
     for (_, module) in modules.iter().rev() {
         global_env = nested_env::merge(global_env, module.env_global.clone());
     }
+
+    // insert global "relpath"
+    // this will be overridden by each module's environment.
+    // inserting it here (to the relpath of the app)
+    // makes it available to the linking step and tasks.
+    global_env.insert(
+        "relpath".into(),
+        EnvKey::Single(binary.relpath.as_ref().unwrap().to_str().unwrap().into()),
+    );
+
+    global_env.insert(
+        "relroot".into(),
+        EnvKey::Single(
+            relroot(binary.relpath.as_ref().unwrap())
+                .to_str()
+                .unwrap()
+                .into(),
+        ),
+    );
 
     let tmp = global_env.clone();
     let global_env_flattened = nested_env::flatten(&tmp);
