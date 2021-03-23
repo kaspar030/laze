@@ -283,10 +283,14 @@ fn configure_build(
     );
 
     let tmp = global_env.clone();
-    let global_env_flattened = nested_env::flatten(&tmp);
-    let bindir = nested_env::expand("${bindir}", &global_env_flattened, IfMissing::Empty).unwrap();
+    let out_string = String::from("out");
+    let mut global_env_flattened = nested_env::flatten_with_opts_option(&tmp, merge_opts.as_ref());
 
+    let bindir = nested_env::expand("${bindir}", &global_env_flattened, IfMissing::Empty).unwrap();
     let bindir = PathBuf::from(bindir);
+
+    /* build application file name */
+    let out_elf = Path::new(&bindir).join(&binary.name).with_extension("elf");
 
     let mut objdir = build_dir.clone();
     objdir.push("objects");
@@ -446,13 +450,6 @@ fn configure_build(
         }
     }
 
-    /* build application file name */
-    let out_elf = Path::new(&bindir).join(&binary.name).with_extension("elf");
-    global_env.insert(
-        "out".into(),
-        nested_env::EnvKey::Single(String::from(out_elf.to_str().unwrap())),
-    );
-
     // NinjaBuildBuilder expects a Vec<&Path>, but the loop above creates a Vec<PathBuf>.
     // thus, convert.
     let objects: Vec<_> = objects.iter().map(|pathbuf| Cow::from(pathbuf)).collect();
@@ -491,10 +488,10 @@ fn configure_build(
     }
 
     // collect tasks
-    let flattened_task_env = nested_env::flatten_with_opts_option(&global_env, merge_opts.as_ref());
+    global_env_flattened.insert(&out_string, String::from(out_elf.to_str().unwrap()));
     let tasks = build
         .build_context
-        .collect_tasks(&contexts, &flattened_task_env);
+        .collect_tasks(&contexts, &global_env_flattened);
 
     Ok(Some((
         BuildInfo {
