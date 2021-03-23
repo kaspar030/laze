@@ -225,7 +225,7 @@ fn configure_build(
     /* create build instance (binary A for builder X) */
     let build = Build::new(binary, builder, contexts);
 
-    // get build dir from late_env
+    // get build dir from laze_env
     let build_dir = match laze_env.get("build-dir").unwrap() {
         nested_env::EnvKey::Single(path) => PathBuf::from(path),
         _ => unreachable!(),
