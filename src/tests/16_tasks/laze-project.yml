@@ -18,6 +18,17 @@ builder:
         cmd:
           - echo -n foo
           - echo bar
+      vars:
+        cmd:
+          - >-
+            echo
+            relpath=${relpath}
+            relroot=${relroot}
+            out=${out}
+            builder=${builder}
 
 app:
   - name: app
+
+subdirs:
+  - subdir
