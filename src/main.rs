@@ -56,9 +56,15 @@ pub struct Context {
     pub defined_in: Option<PathBuf>,
 }
 
+fn default_as_true() -> bool {
+    true
+}
+
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct Task {
     cmd: Vec<String>,
+    #[serde(default = "default_as_true")]
+    build: bool,
 }
 
 impl Task {
@@ -82,6 +88,7 @@ impl Task {
 
     pub fn with_env(&self, env: &im::HashMap<&String, String>) -> Task {
         Task {
+            build: self.build,
             cmd: self
                 .cmd
                 .iter()
