@@ -1302,22 +1302,22 @@ fn try_main() -> Result<i32> {
             let build = builds[0];
             let targets = Some(vec![build.2.out.clone()]);
 
-            let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
-            if ninja_run(ninja_build_file.as_path(), verbose > 0, targets)? != 0 {
-                return Err(anyhow!("laze: build error"));
-            };
+            let task_name = task;
+            let task = build.2.tasks.get(task.into()).unwrap();
+
+            if task.build {
+                let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
+                if ninja_run(ninja_build_file.as_path(), verbose > 0, targets)? != 0 {
+                    return Err(anyhow!("laze: build error"));
+                };
+            }
 
             println!(
                 "laze: executing task {} for builder {} bin {}",
-                task, build.0, build.1,
+                task_name, build.0, build.1,
             );
 
-            build
-                .2
-                .tasks
-                .get(task.into())
-                .unwrap()
-                .execute(project_root.as_ref(), args)?;
+            task.execute(project_root.as_ref(), args)?;
         }
         _ => {}
     };
