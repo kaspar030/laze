@@ -11,7 +11,7 @@ rule LINK_5506617845631750009
   command = cat ${in} > ${out}
   description = LINK
 
-build build//single_app/single_app.elf: $
+build build/single_builder/single_app/single_app.elf: $
     LINK_5506617845631750009 $
     build/objects/single_app.13603496116976395535.o
 

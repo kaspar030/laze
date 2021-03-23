@@ -19,12 +19,12 @@ rule LINK_5506617845631750009
   command = cat ${in} > ${out}
   description = LINK
 
-build build//app/app.elf: $
+build build/default/app/app.elf: $
     LINK_5506617845631750009 $
     build/objects/app.12070292612711521013.o $
     build/objects/module.8741937773202546695.o
 
-build build//app_depend_disabled_subdepend_second/app_depend_disabled_subdepend_second.elf: $
+build build/default/app_depend_disabled_subdepend_second/app_depend_disabled_subdepend_second.elf: $
     LINK_5506617845631750009 $
     build/objects/app.12070292612711521013.o
 
@@ -40,7 +40,7 @@ build build/objects/module.5571264317339904527.o: $
     CC_5767099186035483882 $
     module.c
 
-build build//app_depend_disabled_subdepend_third/app_depend_disabled_subdepend_third.elf: $
+build build/default/app_depend_disabled_subdepend_third/app_depend_disabled_subdepend_third.elf: $
     LINK_5506617845631750009 $
     build/objects/app.5571264317339904527.o $
     build/objects/module.5571264317339904527.o

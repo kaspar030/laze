@@ -11,7 +11,7 @@ rule LINK_5506617845631750009
   command = cat ${in} > ${out}
   description = LINK
 
-build build//first_app/first_app.elf: $
+build build/single_builder/first_app/first_app.elf: $
     LINK_5506617845631750009 $
     build/objects/first_app.6079358946659998116.o
 
@@ -23,7 +23,7 @@ build build/objects/subdir_a/second_app.3029899742540204911.o: $
     CC_15922652437181515470 $
     subdir_a/second_app.c
 
-build build//second_app/second_app.elf: $
+build build/single_builder/second_app/second_app.elf: $
     LINK_5506617845631750009 $
     build/objects/subdir_a/second_app.3029899742540204911.o
 
@@ -35,7 +35,7 @@ build build/objects/subdir_a/subdir_b/third_app.37388965034055619.o: $
     CC_6563581809458271174 $
     subdir_a/subdir_b/third_app.c
 
-build build//third_app/third_app.elf: $
+build build/single_builder/third_app/third_app.elf: $
     LINK_5506617845631750009 $
     build/objects/subdir_a/subdir_b/third_app.37388965034055619.o
 

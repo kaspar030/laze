@@ -19,7 +19,7 @@ rule LINK_5506617845631750009
   command = cat ${in} > ${out}
   description = LINK
 
-build build//app/app.elf: $
+build build/default/app/app.elf: $
     LINK_5506617845631750009 $
     build/objects/app.7257931360424124225.o $
     build/objects/module.5571264317339904527.o

@@ -11,11 +11,11 @@ rule LINK_5506617845631750009
   command = cat ${in} > ${out}
   description = LINK
 
-build build//single_app_using/single_app_using.elf: $
+build build/single_builder/single_app_using/single_app_using.elf: $
     LINK_5506617845631750009 $
     build/objects/single_app.12070292612711521013.o
 
-build build//single_app_selecting/single_app_selecting.elf: $
+build build/single_builder/single_app_selecting/single_app_selecting.elf: $
     LINK_5506617845631750009 $
     build/objects/single_app.12070292612711521013.o
 
@@ -27,7 +27,7 @@ build build/objects/single_app.15302484454750027878.o: $
     CC_15604294611132370531 $
     single_app.c
 
-build build//single_app_depending/single_app_depending.elf: $
+build build/single_builder/single_app_depending/single_app_depending.elf: $
     LINK_5506617845631750009 $
     build/objects/single_app.15302484454750027878.o
 
@@ -39,7 +39,7 @@ build build/objects/single_app.16912248304458149655.o: $
     CC_7505982454303567576 $
     single_app.c
 
-build build//single_app_using_another/single_app_using_another.elf: $
+build build/single_builder/single_app_using_another/single_app_using_another.elf: $
     LINK_5506617845631750009 $
     build/objects/single_app.16912248304458149655.o
 

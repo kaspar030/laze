@@ -11,7 +11,7 @@ rule LINK_5506617845631750009
   command = cat ${in} > ${out}
   description = LINK
 
-build build//single_app_removing_depends/single_app_removing_depends.elf: $
+build build/single_builder/single_app_removing_depends/single_app_removing_depends.elf: $
     LINK_5506617845631750009 $
     build/objects/single_app.12070292612711521013.o
 
@@ -19,7 +19,7 @@ build build/objects/optional.12070292612711521013.o: $
     CC_6858609285403819907 $
     optional.c
 
-build build//single_app_removing_import/single_app_removing_import.elf: $
+build build/single_builder/single_app_removing_import/single_app_removing_import.elf: $
     LINK_5506617845631750009 $
     build/objects/single_app.12070292612711521013.o $
     build/objects/optional.12070292612711521013.o
