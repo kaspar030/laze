@@ -75,6 +75,7 @@ where
                 continue;
             }
             let start = start + cursor;
+            cursor = start;
             if let Some(end) = (&f[cursor..]).find('}') {
                 let end = end + cursor;
                 replaces.push((
