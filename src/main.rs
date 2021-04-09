@@ -68,11 +68,19 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn execute(&self, start_dir: &Path, args: Option<Vec<&str>>) -> Result<(), Error> {
+    pub fn execute(
+        &self,
+        start_dir: &Path,
+        args: Option<Vec<&str>>,
+        verbose: u64,
+    ) -> Result<(), Error> {
         for cmd in &self.cmd {
             use shell_words::join;
             use std::process::Command;
             let mut command = Command::new("sh");
+            if verbose > 0 {
+                command.arg("-x");
+            }
             command.current_dir(start_dir).arg("-c");
 
             if let Some(args) = &args {
@@ -1321,7 +1329,7 @@ fn try_main() -> Result<i32> {
                 task_name, build.0, build.1,
             );
 
-            task.execute(project_root.as_ref(), args)?;
+            task.execute(project_root.as_ref(), args, verbose)?;
         }
         _ => {}
     };
