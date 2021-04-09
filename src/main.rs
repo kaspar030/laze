@@ -1082,7 +1082,8 @@ fn try_main() -> Result<i32> {
                         .required(false)
                         .takes_value(true)
                         .multiple(true)
-                        .require_delimiter(true),
+                        .require_delimiter(true)
+                        .env("LAZE_BUILDERS"),
                 )
                 .arg(
                     Arg::with_name("apps")
@@ -1092,7 +1093,8 @@ fn try_main() -> Result<i32> {
                         .required(false)
                         .takes_value(true)
                         .multiple(true)
-                        .require_delimiter(true),
+                        .require_delimiter(true)
+                        .env("LAZE_APPS"),
                 )
                 .arg(
                     Arg::with_name("verbose")
@@ -1130,7 +1132,8 @@ fn try_main() -> Result<i32> {
                         .long("builder")
                         .help("builder to run task for")
                         .required(false)
-                        .takes_value(true),
+                        .takes_value(true)
+                        .env("LAZE_BUILDERS"),
                 )
                 .arg(
                     Arg::with_name("app")
@@ -1138,7 +1141,8 @@ fn try_main() -> Result<i32> {
                         .long("app")
                         .help("application target to run task for")
                         .required(false)
-                        .takes_value(true),
+                        .takes_value(true)
+                        .env("LAZE_APPS"),
                 ),
         )
         .get_matches();
