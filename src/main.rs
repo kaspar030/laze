@@ -169,6 +169,7 @@ pub struct Rule {
     gcc_deps: Option<String>,
     rspfile: Option<String>,
     rspfile_content: Option<String>,
+    pool: Option<String>,
 }
 
 impl Context {

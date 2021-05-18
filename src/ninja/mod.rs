@@ -33,13 +33,15 @@ pub struct NinjaRule<'a> {
     rspfile: Option<Cow<'a, str>>,
     #[builder(default = "None")]
     rspfile_content: Option<Cow<'a, str>>,
+    #[builder(default = "None")]
+    pool: Option<Cow<'a, str>>,
 }
 
 impl<'a> fmt::Display for NinjaRule<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "rule {}\n  command = {}\n{}{}{}{}\n",
+            "rule {}\n  command = {}\n{}{}{}{}{}\n",
             self.name,
             self.command,
             match &self.description {
@@ -56,6 +58,10 @@ impl<'a> fmt::Display for NinjaRule<'a> {
             },
             match &self.rspfile_content {
                 Some(rspfile_content) => format!("  rspfile_content = {}\n", rspfile_content),
+                None => format!(""),
+            },
+            match &self.pool {
+                Some(pool) => format!("  pool = {}\n", pool),
                 None => format!(""),
             },
         )

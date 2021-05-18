@@ -77,6 +77,7 @@ impl Download {
             .command(expanded)
             .rspfile(download_rule.rspfile.as_deref().map(Cow::from))
             .rspfile_content(download_rule.rspfile_content.as_deref().map(Cow::from))
+            .pool(download_rule.pool.as_deref().map(Cow::from))
             .build()
             .unwrap();
 
@@ -123,6 +124,7 @@ impl Download {
             .command(expanded)
             .rspfile(patch_rule.rspfile.as_deref().map(Cow::from))
             .rspfile_content(patch_rule.rspfile_content.as_deref().map(Cow::from))
+            .pool(patch_rule.pool.as_deref().map(Cow::from))
             .build()
             .unwrap();
 

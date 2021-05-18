@@ -367,6 +367,7 @@ fn configure_build(
                     .description(Some(Cow::from(&rule.name)))
                     .rspfile(rule.rspfile.as_deref().map(Cow::from))
                     .rspfile_content(rule.rspfile_content.as_deref().map(Cow::from))
+                    .pool(rule.pool.as_deref().map(Cow::from))
                     .command(expanded)
                     .deps(match &rule.gcc_deps {
                         None => NinjaRuleDeps::None,
@@ -471,6 +472,7 @@ fn configure_build(
             .command(expanded)
             .rspfile(link_rule.rspfile.as_deref().map(Cow::from))
             .rspfile_content(link_rule.rspfile_content.as_deref().map(Cow::from))
+            .pool(link_rule.pool.as_deref().map(Cow::from))
             .build()
             .unwrap()
             .named();
