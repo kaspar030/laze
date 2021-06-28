@@ -86,6 +86,9 @@ pub fn generate(
     ninja_build_file
         .write_all(format!("builddir = {}\n", build_dir.to_str().unwrap()).as_bytes())?;
 
+    // add phony helper
+    ninja_build_file.write_all(b"build ALWAYS: phony\n")?;
+
     let start = Instant::now();
 
     let mut laze_env = im::HashMap::new();
@@ -482,6 +485,7 @@ fn configure_build(
             .rule(&*ninja_link_rule.name)
             .in_vec(objects)
             .out(out_elf.as_path())
+            .always(link_rule.always)
             .build()
             .unwrap();
 

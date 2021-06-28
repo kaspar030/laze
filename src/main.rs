@@ -60,6 +60,10 @@ fn default_as_true() -> bool {
     true
 }
 
+fn default_as_false() -> bool {
+    false
+}
+
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct Task {
     cmd: Vec<String>,
@@ -170,6 +174,8 @@ pub struct Rule {
     rspfile: Option<String>,
     rspfile_content: Option<String>,
     pool: Option<String>,
+    #[serde(default = "default_as_false")]
+    always: bool,
 }
 
 impl Context {

@@ -35,6 +35,8 @@ pub struct NinjaRule<'a> {
     rspfile_content: Option<Cow<'a, str>>,
     #[builder(default = "None")]
     pool: Option<Cow<'a, str>>,
+    #[builder(default = "false")]
+    pub always: bool,
 }
 
 impl<'a> fmt::Display for NinjaRule<'a> {
@@ -118,6 +120,9 @@ pub struct NinjaBuild<'a> {
 
     #[builder(setter(into, strip_option), default = "None")]
     env: Option<&'a IndexMap<String, String>>,
+
+    #[builder(default = "false")]
+    always: bool,
     //   deps: NinjaRuleDeps,
 }
 
@@ -140,15 +145,18 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
             write!(f, " $\n    {}", path.to_str().unwrap())?;
         }
 
-        if let Some(list) = &self.deps {
+        if self.deps.is_some() || self.always {
             write!(f, " $\n    |")?;
-            for entry in list {
-                write!(f, " $\n    {}", entry.to_str().unwrap())?;
+            if let Some(list) = &self.deps {
+                for entry in list {
+                    write!(f, " $\n    {}", entry.to_str().unwrap())?;
+                }
             }
-            write!(f, "\n")?;
-        } else {
-            write!(f, "\n")?;
+            if self.always {
+                write!(f, " $\n    ALWAYS")?;
+            }
         }
+        write!(f, "\n")?;
 
         if let Some(env) = self.env {
             for (k, v) in env {
