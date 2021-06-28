@@ -1,4 +1,5 @@
 builddir = build
+build ALWAYS: phony
 rule CC_16745706749555658888
   command = echo local_var global_var ${in} > ${out}
   description = CC

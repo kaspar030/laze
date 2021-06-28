@@ -1,4 +1,5 @@
 builddir = build
+build ALWAYS: phony
 rule CC_15604294611132370531
   command = echo export_from_another_simple_module export_from_simple_module ${in} > ${out}
   description = CC

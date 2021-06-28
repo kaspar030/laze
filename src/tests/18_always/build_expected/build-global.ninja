@@ -1,0 +1,20 @@
+builddir = build
+build ALWAYS: phony
+rule CC_6858609285403819907
+  command = echo  ${in} > ${out}
+  description = CC
+
+build build/objects/single_app.12070292612711521013.o: $
+    CC_6858609285403819907 $
+    single_app.c
+
+rule LINK_13997171911351080964
+  command = test -f ${out} && echo "overwrite" >> ${out}; cat ${in} >> ${out}
+  description = LINK
+
+build build/single_builder/single_app/single_app.elf: $
+    LINK_13997171911351080964 $
+    build/objects/single_app.12070292612711521013.o $
+    | $
+    ALWAYS
+

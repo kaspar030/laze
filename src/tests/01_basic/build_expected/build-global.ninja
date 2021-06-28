@@ -1,4 +1,5 @@
 builddir = build
+build ALWAYS: phony
 rule CC_7950216292150676175
   command = cat ${in} > ${out}
   description = CC

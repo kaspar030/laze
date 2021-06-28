@@ -1,4 +1,5 @@
 builddir = build
+build ALWAYS: phony
 rule CC_6858609285403819907
   command = echo  ${in} > ${out}
   description = CC

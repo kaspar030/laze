@@ -1,0 +1,20 @@
+builder:
+  - name: single_builder
+    rule:
+        - name: CC
+          in: 'c'
+          out: 'o'
+          cmd: 'echo ${EXPORT_VAR} ${in} > ${out}'
+        - name: LINK
+          in: 'o'
+          options:
+              combine: true
+          cmd: 'test -f ${out} && echo "overwrite" >> ${out}; cat ${in} >> ${out}'
+          always: true
+    env:
+      bindir: build/${builder}/${app}
+
+app:
+  - name: single_app
+    sources:
+      - single_app.c

@@ -1,4 +1,5 @@
 builddir = build
+build ALWAYS: phony
 rule CC_7199050768932272173
   command = echo   global_var global_var_from_module_default ${in} > ${out} && cat ${in} >> ${out}
   description = CC
