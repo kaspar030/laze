@@ -1,3 +1,4 @@
+use im::vector;
 use im::HashMap;
 use im::Vector;
 use itertools::join;
@@ -161,6 +162,26 @@ pub fn expand_env(env: &Env, values: &Env) -> Env {
     env.iter()
         .map(|(key, val)| (key.clone(), expand_envkey(val, &values)))
         .collect()
+}
+
+pub fn assign_from_string(env: Env, assignment: &str) -> Result<Env, anyhow::Error> {
+    let res;
+    if let Some((var, value)) = assignment.split_once("+=") {
+        let mut new = Env::new();
+        new.insert(var.to_string(), EnvKey::List(vector![value.to_owned()]));
+        res = merge(env, new);
+    } else if let Some((var, value)) = assignment.split_once("=") {
+        let mut new = Env::new();
+        new.insert(var.to_string(), EnvKey::Single(value.to_string()));
+        res = merge(env, new);
+    } else {
+        return Err(anyhow!(format!(
+            "cannot parse assignment from \"{}\"",
+            assignment
+        )));
+    }
+
+    Ok(res)
 }
 
 #[cfg(test)]
@@ -342,6 +363,55 @@ mod tests {
         assert_eq!(
             flattened.get(&"mykey".to_string()).unwrap(),
             &"(Pvalue_1S,Pvalue_2S,Pvalue_3S,Pvalue_4S)".to_string()
+        );
+    }
+
+    #[test]
+    fn test_assign_from_string_override() {
+        let mut env = Env::new();
+        env.insert("FOO".to_string(), EnvKey::Single("whiskeyBAR".to_string()));
+
+        let env = assign_from_string(env, "FOO=milkBAR").unwrap();
+
+        assert_eq!(
+            env.get(&"FOO".to_string()).unwrap(),
+            &EnvKey::Single("milkBAR".to_string()),
+        );
+    }
+
+    #[test]
+    fn test_assign_from_string_override_list() {
+        let mut env = Env::new();
+        env.insert(
+            "FOO".to_string(),
+            EnvKey::List(vector!["whiskeyBAR".to_string(), "beerBAR".to_string()]),
+        );
+
+        let env = assign_from_string(env, "FOO=milkBAR").unwrap();
+
+        assert_eq!(
+            env.get(&"FOO".to_string()).unwrap(),
+            &EnvKey::Single("milkBAR".to_string()),
+        );
+    }
+
+    #[test]
+    fn test_assign_from_string_append() {
+        let mut env = Env::new();
+        env.insert(
+            "FOO".to_string(),
+            EnvKey::List(vector!["whiskeyBAR".to_string(), "beerBAR".to_string()]),
+        );
+
+        let env = assign_from_string(env, "FOO+=milkBAR").unwrap();
+
+        assert_eq!(
+            env.get(&"FOO".to_string()).unwrap(),
+            &EnvKey::List(vector![
+                "whiskeyBAR".to_string(),
+                "beerBAR".to_string(),
+                "milkBAR".to_string()
+            ]),
         );
     }
 }
