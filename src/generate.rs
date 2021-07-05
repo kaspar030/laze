@@ -21,7 +21,7 @@ use super::{
     download, nested_env,
     nested_env::{Env, IfMissing},
     ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder, NinjaRuleDeps},
-    BlockAllow, Build, Context, ContextBag, Module, Task,
+    BlockAllow, Build, Context, ContextBag, Dependency, Module, Task,
 };
 
 #[derive(Deserialize, Serialize)]
@@ -64,9 +64,29 @@ pub fn generate(
     mode: GenerateMode,
     builders: Selector,
     apps: Selector,
+    select: Option<Vec<String>>,
+    disable: Option<Vec<String>>,
 ) -> Result<GenerateResult> {
     let start = Instant::now();
-    match GenerateResult::from_cache(project_root, build_dir, &mode, &builders, &apps) {
+
+    // convert CLI --select strings to Vec<Dependency>
+    let select = select.map_or(None, |mut vec| {
+        Some(
+            vec.drain(..)
+                .map(|dep_name| crate::data::dependency_from_string(&dep_name))
+                .collect_vec(),
+        )
+    });
+
+    match GenerateResult::from_cache(
+        project_root,
+        build_dir,
+        &mode,
+        &builders,
+        &apps,
+        select.as_ref(),
+        disable.as_ref(),
+    ) {
         Ok(cached) => {
             println!("laze: reading cache took {:?}.", start.elapsed());
             return Ok(cached);
@@ -146,7 +166,16 @@ pub fn generate(
         // speedup, at the price of changing the order of build rules. not worth losing
         // reproducible output.
         .filter_map(|(builder, (_, bin))| {
-            match configure_build(bin, &contexts, builder, &laze_env).unwrap() {
+            match configure_build(
+                bin,
+                &contexts,
+                builder,
+                &laze_env,
+                select.as_ref(),
+                disable.as_ref(),
+            )
+            .unwrap()
+            {
                 Some((build_info, ninja_entries)) => Some((
                     builder.name.clone(),
                     bin.name.clone(),
@@ -178,7 +207,7 @@ pub fn generate(
         start.elapsed()
     );
 
-    let result = GenerateResult::new(mode, builders, apps, builds, treestate);
+    let result = GenerateResult::new(mode, builders, apps, builds, treestate, select, disable);
     let start = Instant::now();
     result.to_cache(&build_dir)?;
     println!("laze: writing cache took {:?}.", start.elapsed());
@@ -194,6 +223,8 @@ fn configure_build(
     contexts: &ContextBag,
     builder: &Context,
     laze_env: &Env,
+    select: Option<&Vec<Dependency>>,
+    disable: Option<&Vec<String>>,
 ) -> Result<Option<(BuildInfo, IndexSet<String>)>> {
     if !match contexts.is_allowed(builder, &binary.blocklist, &binary.allowlist) {
         BlockAllow::Allowed => true,
@@ -226,7 +257,7 @@ fn configure_build(
     println!("configuring {} for {}", binary.name, builder.name);
 
     /* create build instance (binary A for builder X) */
-    let build = Build::new(binary, builder, contexts);
+    let build = Build::new(binary, builder, contexts, select);
 
     // get build dir from laze_env
     let build_dir = match laze_env.get("build-dir").unwrap() {
@@ -237,6 +268,13 @@ fn configure_build(
     // collect disabled modules from app and build context
     let mut disabled_modules = build.build_context.collect_disabled_modules(&contexts);
     if let Some(disable) = &binary.disable {
+        for entry in disable {
+            disabled_modules.insert(entry.clone());
+        }
+    }
+
+    // collect modules disabled on CLI
+    if let Some(disable) = disable {
         for entry in disable {
             disabled_modules.insert(entry.clone());
         }
@@ -558,6 +596,9 @@ pub struct GenerateResult {
     pub builders: Selector,
     pub apps: Selector,
     pub build_infos: Vec<(String, String, BuildInfo)>,
+
+    select: Option<Vec<Dependency>>,
+    disable: Option<Vec<String>>,
     treestate: FileTreeState,
 }
 
@@ -568,12 +609,16 @@ impl GenerateResult {
         apps: Selector,
         build_infos: BuildInfoList,
         treestate: FileTreeState,
+        select: Option<Vec<Dependency>>,
+        disable: Option<Vec<String>>,
     ) -> GenerateResult {
         GenerateResult {
             mode,
             builders,
             apps,
             build_infos,
+            select,
+            disable,
             treestate,
         }
     }
@@ -591,6 +636,8 @@ impl GenerateResult {
         mode: &GenerateMode,
         builders: &Selector,
         apps: &Selector,
+        select: Option<&Vec<Dependency>>,
+        disable: Option<&Vec<String>>,
     ) -> Result<GenerateResult> {
         let file = Self::cache_file(build_dir, mode);
         let file = File::open(file)?;
@@ -607,6 +654,12 @@ impl GenerateResult {
                     return Err(anyhow!("local paths don't match"));
                 }
             }
+        }
+        if !res.select.as_ref().eq(&select) {
+            return Err(anyhow!("CLI selects don't match"));
+        }
+        if !res.disable.as_ref().eq(&disable) {
+            return Err(anyhow!("CLI disables don't match"));
         }
         if res.treestate.has_changed() {
             return Err(anyhow!("laze: build files have changed"));

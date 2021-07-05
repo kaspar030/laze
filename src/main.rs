@@ -46,6 +46,7 @@ pub struct Context {
     pub modules: IndexMap<String, Module>,
     pub rules: Option<IndexMap<String, Rule>>,
     pub env: Option<Env>,
+    pub select: Option<Vec<Dependency>>,
     pub disable: Option<Vec<String>>,
 
     pub var_options: Option<im::HashMap<String, MergeOption>>,
@@ -110,7 +111,7 @@ impl Task {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Dependency {
     Hard(String),
     Soft(String),
@@ -186,6 +187,7 @@ impl Context {
             index: None,
             parent_index: None,
             modules: IndexMap::new(),
+            select: None,
             disable: None,
             env: None,
             env_early: Env::new(),
@@ -206,6 +208,7 @@ impl Context {
             index: None,
             parent_index: Some(builder_index),
             modules: IndexMap::new(),
+            select: None,
             disable: None,
             env: None,
             env_early: Env::new(),
@@ -317,6 +320,20 @@ impl Context {
             if let Some(disable) = &parent.disable {
                 for entry in disable {
                     result.insert(entry.clone());
+                }
+            }
+        }
+        result
+    }
+
+    pub fn collect_selected_modules(&self, contexts: &ContextBag) -> Vec<Dependency> {
+        let mut result = Vec::new();
+        let mut parents = Vec::new();
+        self.get_parents(contexts, &mut parents);
+        for parent in parents {
+            if let Some(select) = &parent.select {
+                for entry in select {
+                    result.push(entry.clone());
                 }
             }
         }
@@ -852,14 +869,37 @@ impl fmt::Display for Module {
 
 struct Build<'a> {
     bag: &'a ContextBag,
-    binary: &'a Module,
+    binary: Module,
     builder: &'a Context,
     build_context: Context,
     //modules: IndexMap<&'a String, &'a Module>,
 }
 
 impl<'a: 'b, 'b> Build<'b> {
-    fn new(binary: &'a Module, builder: &'a Context, contexts: &'a ContextBag) -> Build<'b> {
+    fn new(
+        binary: &'a Module,
+        builder: &'a Context,
+        contexts: &'a ContextBag,
+        cli_selects: Option<&Vec<Dependency>>,
+    ) -> Build<'b> {
+        let build_context = Context::new_build_context(builder.name.clone(), builder);
+
+        // TODO: opt: see if Cow improves performance
+        let mut binary = binary.clone();
+
+        // add all "select:" from contexts to this build's binary.
+        // the selects will be appended, making it possible to override contexts)
+        // selects from the binary.
+        let context_selects = build_context.collect_selected_modules(contexts);
+        if !context_selects.is_empty() {
+            binary.selects.extend(context_selects);
+        }
+
+        // add all selects from CLI
+        if let Some(selects) = cli_selects {
+            binary.selects.extend(selects.iter().cloned());
+        }
+
         let mut build = Build {
             bag: contexts,
             binary,
@@ -869,7 +909,7 @@ impl<'a: 'b, 'b> Build<'b> {
 
         /* fixup name to "$builder_name:$binary_name" */
         build.build_context.name.push_str(&":");
-        build.build_context.name.push_str(&binary.name);
+        build.build_context.name.push_str(&build.binary.name);
 
         /* collect environment from builder */
         let mut build_env;
@@ -887,7 +927,7 @@ impl<'a: 'b, 'b> Build<'b> {
         // add "app" variable
         build_env.insert(
             "app".to_string(),
-            nested_env::EnvKey::Single(binary.name.clone()),
+            nested_env::EnvKey::Single(build.binary.name.clone()),
         );
 
         build.build_context.env = Some(build_env);
@@ -987,6 +1027,7 @@ impl<'a: 'b, 'b> Build<'b> {
         if let Err(x) = self.resolve_module_deep(&self.binary, &mut modules, disabled_modules) {
             return Err(x);
         }
+
         Ok(modules)
     }
 
@@ -1117,6 +1158,28 @@ fn try_main() -> Result<i32> {
                         .long("verbose")
                         .help("be verbose (e.g., show command lines)")
                         .multiple(true),
+                )
+                .arg(
+                    Arg::with_name("select")
+                        .short("s")
+                        .long("select")
+                        .help("extra modules to select")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple(true)
+                        .require_delimiter(true)
+                        .env("LAZE_SELECT"),
+                )
+                .arg(
+                    Arg::with_name("disable")
+                        .short("d")
+                        .long("disable")
+                        .help("disable modules")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple(true)
+                        .require_delimiter(true)
+                        .env("LAZE_DISABLE"),
                 ),
         )
         .subcommand(
@@ -1199,6 +1262,10 @@ fn try_main() -> Result<i32> {
                 None => Selector::All,
             };
 
+            // collect CLI selected modules
+            let select = build_matches.values_of_lossy("select");
+            let disable = build_matches.values_of_lossy("disable");
+
             println!("building {} for {}", &apps, &builders);
 
             let mode = match global {
@@ -1213,6 +1280,8 @@ fn try_main() -> Result<i32> {
                 mode.clone(),
                 builders.clone(),
                 apps.clone(),
+                select,
+                disable,
             )?;
 
             // generation of ninja build file complete.
@@ -1289,6 +1358,8 @@ fn try_main() -> Result<i32> {
                 mode.clone(),
                 builders.clone(),
                 apps.clone(),
+                None,
+                None,
             )?;
 
             let builds: Vec<&(String, String, BuildInfo)> = builds

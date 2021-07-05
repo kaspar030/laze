@@ -59,6 +59,7 @@ struct YamlContext {
     name: String,
     parent: Option<String>,
     env: Option<Env>,
+    select: Option<Vec<String>>,
     disable: Option<Vec<String>>,
     rule: Option<Vec<Rule>>,
     var_options: Option<im::HashMap<String, MergeOption>>,
@@ -143,6 +144,20 @@ fn process_removes(strings: &mut Vec<Dependency>) {
         .collect::<HashSet<_>>();
 
     strings.retain(|x| !(x.get_name().starts_with("-") || removals.contains(&x.get_name()[..])));
+}
+
+pub fn dependency_from_string(dep_name: &String) -> Dependency {
+    match dep_name.as_bytes()[0] {
+        b'?' => Dependency::Soft(dep_name[1..].to_string()),
+        _ => Dependency::Hard(dep_name.clone()),
+    }
+}
+
+pub fn dependency_from_string_if(dep_name: &String, other: &String) -> Dependency {
+    match dep_name.as_bytes()[0] {
+        b'?' => Dependency::IfThenSoft(other.clone(), dep_name[1..].to_string()),
+        _ => Dependency::IfThenHard(other.clone(), dep_name.clone()),
+    }
 }
 
 fn load_all<'a>(
@@ -285,6 +300,16 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         context_.defined_in = Some(filename.clone());
 
         context_.disable = context.disable.clone();
+
+        // collect context level "select:"
+        if let Some(select) = &context.select {
+            context_.select = Some(
+                select
+                    .iter()
+                    .map(|dep_name| dependency_from_string(dep_name))
+                    .collect::<Vec<_>>(),
+            );
+        }
     }
 
     fn init_module(
@@ -337,18 +362,6 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         // "disable" is only valid for binaries ("apps"), and will make any module
         // with the specified name unavailable in the binary's build context
         //
-        fn dependency_from_string(dep_name: &String) -> Dependency {
-            match dep_name.as_bytes()[0] {
-                b'?' => Dependency::Soft(dep_name[1..].to_string()),
-                _ => Dependency::Hard(dep_name.clone()),
-            }
-        }
-        fn dependency_from_string_if(dep_name: &String, other: &String) -> Dependency {
-            match dep_name.as_bytes()[0] {
-                b'?' => Dependency::IfThenSoft(other.clone(), dep_name[1..].to_string()),
-                _ => Dependency::IfThenHard(other.clone(), dep_name.clone()),
-            }
-        }
         if let Some(selects) = &module.selects {
             // println!("selects:");
             for dep_name in selects {
