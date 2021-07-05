@@ -1,0 +1,37 @@
+builder:
+  - name: single_builder
+    select:
+      - simple_module
+      - ?nonexistent_module
+    rule:
+      - name: CC
+        in: "c"
+        out: "o"
+        cmd: "echo ${EXPORT_VAR} ${in} > ${out}"
+      - name: LINK
+        in: "o"
+        options:
+          combine: true
+        cmd: "cat ${in} > ${out}"
+    env:
+      bindir: build/${builder}/${app}
+
+module:
+  - name: simple_module
+    depends:
+      - another_simple_module
+    env:
+      global:
+        EXPORT_VAR:
+          - export_from_simple_module
+
+  - name: another_simple_module
+    env:
+      global:
+        EXPORT_VAR:
+          - export_from_another_simple_module
+
+app:
+  - name: single_app
+    sources:
+      - single_app.c

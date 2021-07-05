@@ -1,0 +1,18 @@
+builddir = build
+build ALWAYS: phony
+rule CC_15604294611132370531
+  command = echo export_from_another_simple_module export_from_simple_module ${in} > ${out}
+  description = CC
+
+build build/objects/single_app.15302484454750027878.o: $
+    CC_15604294611132370531 $
+    single_app.c
+
+rule LINK_5506617845631750009
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build/single_builder/single_app/single_app.elf: $
+    LINK_5506617845631750009 $
+    build/objects/single_app.15302484454750027878.o
+
