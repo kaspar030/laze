@@ -1221,6 +1221,28 @@ fn try_main() -> Result<i32> {
                         .required(false)
                         .takes_value(true)
                         .env("LAZE_APPS"),
+                )
+                .arg(
+                    Arg::with_name("select")
+                        .short("s")
+                        .long("select")
+                        .help("extra modules to select")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple(true)
+                        .require_delimiter(true)
+                        .env("LAZE_SELECT"),
+                )
+                .arg(
+                    Arg::with_name("disable")
+                        .short("d")
+                        .long("disable")
+                        .help("disable modules")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple(true)
+                        .require_delimiter(true)
+                        .env("LAZE_DISABLE"),
                 ),
         )
         .get_matches();
@@ -1323,6 +1345,10 @@ fn try_main() -> Result<i32> {
             let builder = task_matches.value_of("builder");
             let app = task_matches.value_of("app");
 
+            // collect CLI selected modules
+            let select = task_matches.values_of_lossy("select");
+            let disable = task_matches.values_of_lossy("disable");
+
             let (task, args) = match task_matches.subcommand() {
                 (name, Some(matches)) => {
                     let args = matches.values_of("").map(|v| v.collect());
@@ -1358,8 +1384,8 @@ fn try_main() -> Result<i32> {
                 mode.clone(),
                 builders.clone(),
                 apps.clone(),
-                None,
-                None,
+                select,
+                disable,
             )?;
 
             let builds: Vec<&(String, String, BuildInfo)> = builds
