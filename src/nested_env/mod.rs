@@ -7,7 +7,7 @@ mod expand;
 
 pub use expand::{expand, IfMissing};
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(untagged)]
 pub enum EnvKey {
     Single(String),
