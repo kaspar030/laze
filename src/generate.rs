@@ -1,10 +1,13 @@
 //! This module is responsible for generating the .ninja files.
 //! It expects data structures as created by the data module.
 
+use core::hash::Hash;
 use std::borrow::Cow;
+use std::collections::hash_map::DefaultHasher;
 use std::ffi::OsStr;
 use std::fmt;
 use std::fs::File;
+use std::hash::Hasher;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -66,6 +69,7 @@ pub fn generate(
     apps: Selector,
     select: Option<Vec<String>>,
     disable: Option<Vec<String>>,
+    cli_env: Option<&Env>,
 ) -> Result<GenerateResult> {
     let start = Instant::now();
 
@@ -86,6 +90,7 @@ pub fn generate(
         &apps,
         select.as_ref(),
         disable.as_ref(),
+        &cli_env,
     ) {
         Ok(cached) => {
             println!("laze: reading cache took {:?}.", start.elapsed());
@@ -173,6 +178,7 @@ pub fn generate(
                 &laze_env,
                 select.as_ref(),
                 disable.as_ref(),
+                &cli_env,
             )
             .unwrap()
             {
@@ -207,7 +213,9 @@ pub fn generate(
         start.elapsed()
     );
 
-    let result = GenerateResult::new(mode, builders, apps, builds, treestate, select, disable);
+    let result = GenerateResult::new(
+        mode, builders, apps, builds, treestate, select, disable, cli_env,
+    );
     let start = Instant::now();
     result.to_cache(&build_dir)?;
     println!("laze: writing cache took {:?}.", start.elapsed());
@@ -225,6 +233,7 @@ fn configure_build(
     laze_env: &Env,
     select: Option<&Vec<Dependency>>,
     disable: Option<&Vec<String>>,
+    cli_env: &Option<&Env>,
 ) -> Result<Option<(BuildInfo, IndexSet<String>)>> {
     if !match contexts.is_allowed(builder, &binary.blocklist, &binary.allowlist) {
         BlockAllow::Allowed => true,
@@ -322,6 +331,11 @@ fn configure_build(
                 .into(),
         ),
     );
+
+    // if provided, merge CLI env overrides
+    if let Some(cli_env) = *cli_env {
+        global_env = nested_env::merge(global_env, cli_env.clone());
+    }
 
     let tmp = global_env.clone();
     let out_string = String::from("out");
@@ -599,6 +613,7 @@ pub struct GenerateResult {
 
     select: Option<Vec<Dependency>>,
     disable: Option<Vec<String>>,
+    cli_env_hash: u64,
     treestate: FileTreeState,
 }
 
@@ -611,6 +626,7 @@ impl GenerateResult {
         treestate: FileTreeState,
         select: Option<Vec<Dependency>>,
         disable: Option<Vec<String>>,
+        cli_env: Option<&Env>,
     ) -> GenerateResult {
         GenerateResult {
             mode,
@@ -619,6 +635,7 @@ impl GenerateResult {
             build_infos,
             select,
             disable,
+            cli_env_hash: cli_env.map_or(0, calculate_hash),
             treestate,
         }
     }
@@ -638,6 +655,7 @@ impl GenerateResult {
         apps: &Selector,
         select: Option<&Vec<Dependency>>,
         disable: Option<&Vec<String>>,
+        cli_env: &Option<&Env>,
     ) -> Result<GenerateResult> {
         let file = Self::cache_file(build_dir, mode);
         let file = File::open(file)?;
@@ -661,6 +679,9 @@ impl GenerateResult {
         if !res.disable.as_ref().eq(&disable) {
             return Err(anyhow!("CLI disables don't match"));
         }
+        if res.cli_env_hash != cli_env.map_or(0, calculate_hash) {
+            return Err(anyhow!("laze: CLI env doesn't match"));
+        }
         if res.treestate.has_changed() {
             return Err(anyhow!("laze: build files have changed"));
         }
@@ -672,4 +693,10 @@ impl GenerateResult {
         let file = File::create(file)?;
         bincode::serialize_into(file, self)
     }
+}
+
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
 }

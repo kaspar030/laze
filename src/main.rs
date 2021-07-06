@@ -1180,6 +1180,17 @@ fn try_main() -> Result<i32> {
                         .multiple(true)
                         .require_delimiter(true)
                         .env("LAZE_DISABLE"),
+                )
+                .arg(
+                    Arg::with_name("define")
+                        .short("D")
+                        .long("define")
+                        .help("set/override variable")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple(true)
+                        .number_of_values(1)
+                        .env("LAZE_DEFINE"),
                 ),
         )
         .subcommand(
@@ -1243,6 +1254,17 @@ fn try_main() -> Result<i32> {
                         .multiple(true)
                         .require_delimiter(true)
                         .env("LAZE_DISABLE"),
+                )
+                .arg(
+                    Arg::with_name("define")
+                        .short("D")
+                        .long("define")
+                        .help("set/override variable")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple(true)
+                        .number_of_values(1)
+                        .env("LAZE_DEFINE"),
                 ),
         )
         .get_matches();
@@ -1284,11 +1306,24 @@ fn try_main() -> Result<i32> {
                 None => Selector::All,
             };
 
+            println!("building {} for {}", &apps, &builders);
+
             // collect CLI selected modules
             let select = build_matches.values_of_lossy("select");
             let disable = build_matches.values_of_lossy("disable");
 
-            println!("building {} for {}", &apps, &builders);
+            // collect CLI env overrides
+            let cli_env = if build_matches.occurrences_of("define") > 0 {
+                let mut env = Env::new();
+
+                for assignment in build_matches.values_of("define").unwrap() {
+                    env = nested_env::assign_from_string(env, assignment)?;
+                }
+
+                Some(env)
+            } else {
+                None
+            };
 
             let mode = match global {
                 true => GenerateMode::Global,
@@ -1304,6 +1339,7 @@ fn try_main() -> Result<i32> {
                 apps.clone(),
                 select,
                 disable,
+                cli_env.as_ref(),
             )?;
 
             // generation of ninja build file complete.
@@ -1376,6 +1412,19 @@ fn try_main() -> Result<i32> {
                 false => GenerateMode::Local(start_relpath),
             };
 
+            // collect CLI env overrides
+            let cli_env = if task_matches.occurrences_of("define") > 0 {
+                let mut env = Env::new();
+
+                for assignment in task_matches.values_of("define").unwrap() {
+                    env = nested_env::assign_from_string(env, assignment)?;
+                }
+
+                Some(env)
+            } else {
+                None
+            };
+
             println!("building {} for {}", &apps, &builders);
             // arguments parsed, launch generation of ninja file(s)
             let builds = generate::generate(
@@ -1386,6 +1435,7 @@ fn try_main() -> Result<i32> {
                 apps.clone(),
                 select,
                 disable,
+                cli_env.as_ref(),
             )?;
 
             let builds: Vec<&(String, String, BuildInfo)> = builds
