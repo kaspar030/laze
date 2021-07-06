@@ -10,28 +10,28 @@ extern crate derive_builder;
 
 extern crate pathdiff;
 
+use core::sync::atomic::AtomicBool;
 use std::collections::{HashMap, HashSet};
-//use std::error::Error;
 use std::env;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
+use std::thread;
 use std::{iter, iter::Filter, slice::Iter};
 
 #[macro_use]
 extern crate serde_derive;
 
-use indexmap::{IndexMap, IndexSet};
-
 use anyhow::{Context as _, Error, Result};
 use clap::{crate_version, App, AppSettings, Arg, SubCommand};
+use indexmap::{IndexMap, IndexSet};
+use signal_hook::{consts::SIGINT, iterator::Signals};
 
 mod data;
 mod download;
 mod generate;
 mod nested_env;
 mod ninja;
-
 use generate::{get_ninja_build_file, BuildInfo, GenerateMode, Selector};
 use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
@@ -70,6 +70,8 @@ pub struct Task {
     cmd: Vec<String>,
     #[serde(default = "default_as_true")]
     build: bool,
+    #[serde(default = "default_as_false")]
+    ignore_ctrl_c: bool,
 }
 
 impl Task {
@@ -94,7 +96,16 @@ impl Task {
                 command.arg(cmd);
             }
 
+            if self.ignore_ctrl_c {
+                IGNORE_SIGINT.store(true, std::sync::atomic::Ordering::SeqCst);
+            }
+
+            // run command, wait for status
             command.status().expect("command exited with error code");
+
+            if self.ignore_ctrl_c {
+                IGNORE_SIGINT.store(false, std::sync::atomic::Ordering::SeqCst);
+            }
         }
         Ok(())
     }
@@ -107,6 +118,7 @@ impl Task {
                 .iter()
                 .map(|cmd| nested_env::expand(cmd, env, nested_env::IfMissing::Ignore).unwrap())
                 .collect(),
+            ignore_ctrl_c: self.ignore_ctrl_c,
         }
     }
 }
@@ -1088,7 +1100,22 @@ fn main() {
     };
 }
 
+static IGNORE_SIGINT: AtomicBool = AtomicBool::new(false);
+
 fn try_main() -> Result<i32> {
+    let mut signals = Signals::new(&[SIGINT])?;
+
+    thread::spawn(move || {
+        for sig in signals.forever() {
+            println!("laze: received signal {:?}", sig);
+            if sig == SIGINT {
+                if !IGNORE_SIGINT.load(std::sync::atomic::Ordering::SeqCst) {
+                    std::process::exit(130);
+                }
+            }
+        }
+    });
+
     let matches = App::new("laze in rust")
         .version(crate_version!())
         .author("Kaspar Schleiser <kaspar@schleiser.de>")

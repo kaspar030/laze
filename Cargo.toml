@@ -26,6 +26,7 @@ shell-words = "1.0.0"
 simple-error = "0.2.3"
 treestate = "0.1.0"
 im = { version = "15.0.0", features = ["rayon", "serde"] }
+signal-hook = "0.3.9"
 
 [profile.release]
 lto = true
