@@ -116,7 +116,11 @@ impl Task {
             cmd: self
                 .cmd
                 .iter()
-                .map(|cmd| nested_env::expand(cmd, env, nested_env::IfMissing::Ignore).unwrap())
+                .map(|cmd| {
+                    nested_env::expand(cmd, env, nested_env::IfMissing::Ignore)
+                        .unwrap()
+                        .replace("$$", "$")
+                })
                 .collect(),
             ignore_ctrl_c: self.ignore_ctrl_c,
         }
