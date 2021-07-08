@@ -1486,14 +1486,11 @@ fn try_main() -> Result<i32> {
                 }
 
                 // TODO: allow running tasks for multiple targets
-                return Err(anyhow!("laze: please specify one of these."));
+                return Err(anyhow!("please specify one of these."));
             }
 
             if builds.len() < 1 {
-                return Err(anyhow!(
-                    "laze: no matching target for task \"{}\" found.",
-                    task
-                ));
+                return Err(anyhow!("no matching target for task \"{}\" found.", task));
             }
 
             let build = builds[0];
@@ -1505,7 +1502,7 @@ fn try_main() -> Result<i32> {
             if task.build {
                 let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
                 if ninja_run(ninja_build_file.as_path(), verbose > 0, targets)? != 0 {
-                    return Err(anyhow!("laze: build error"));
+                    return Err(anyhow!("build error"));
                 };
             }
 
