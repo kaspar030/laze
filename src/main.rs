@@ -1111,7 +1111,6 @@ fn try_main() -> Result<i32> {
 
     thread::spawn(move || {
         for sig in signals.forever() {
-            println!("laze: received signal {:?}", sig);
             if sig == SIGINT {
                 if !IGNORE_SIGINT.load(std::sync::atomic::Ordering::SeqCst) {
                     std::process::exit(130);
