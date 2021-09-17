@@ -32,9 +32,12 @@ mod download;
 mod generate;
 mod nested_env;
 mod ninja;
+mod serde_bool_helpers;
 use generate::{get_ninja_build_file, BuildInfo, GenerateMode, Selector};
 use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
+
+use serde_bool_helpers::{default_as_false, default_as_true};
 
 #[derive(PartialEq, Eq)]
 pub struct Context {
@@ -55,14 +58,6 @@ pub struct Context {
     pub env_early: Env,
     pub is_builder: bool,
     pub defined_in: Option<PathBuf>,
-}
-
-fn default_as_true() -> bool {
-    true
-}
-
-fn default_as_false() -> bool {
-    false
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
