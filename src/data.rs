@@ -21,6 +21,7 @@ use treestate::{FileState, TreeState};
 use super::download::Download;
 use super::nested_env::{Env, EnvKey, MergeOption};
 use super::{Context, ContextBag, Dependency, Module, Rule, Task};
+use crate::serde_bool_helpers::default_as_false;
 
 pub type FileTreeState = TreeState<FileState, PathBuf>;
 
@@ -90,6 +91,8 @@ struct YamlModule {
     selects: Option<Vec<String>>,
     uses: Option<Vec<String>>,
     disable: Option<Vec<String>>,
+    #[serde(default = "default_as_false")]
+    notify_all: bool,
     sources: Option<Vec<StringOrMapString>>,
     env: Option<YamlModuleEnv>,
     blocklist: Option<Vec<String>>,
@@ -108,6 +111,7 @@ impl YamlModule {
             selects: None,
             uses: None,
             disable: None,
+            notify_all: false,
             sources: None,
             env: None,
             blocklist: None,
@@ -411,6 +415,10 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             } else {
                 eprintln!("laze: warning: \"disable\" ignored on regular modules!");
             }
+        }
+
+        if module.notify_all {
+            m.notify_all = true;
         }
 
         // if a module name starts with "-", remove it from the list, also the

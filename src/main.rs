@@ -151,6 +151,7 @@ pub struct Module {
     selects: Vec<Dependency>,
     imports: Vec<Dependency>,
     disable: Option<Vec<String>>,
+    notify_all: bool,
 
     blocklist: Option<Vec<String>>,
     allowlist: Option<Vec<String>>,
@@ -685,6 +686,7 @@ impl Module {
             selects: Vec::new(),
             imports: Vec::new(),
             disable: None,
+            notify_all: false,
             // exports: Vec::new(),
             sources: Vec::new(),
             sources_optional: None,
@@ -711,6 +713,7 @@ impl Module {
             selects: defaults.selects.clone(),
             imports: defaults.imports.clone(),
             disable: defaults.disable.clone(),
+            notify_all: defaults.notify_all,
             // exports: Vec::new(),
             sources: defaults.sources.clone(),
             sources_optional: defaults.sources_optional.clone(),
@@ -794,15 +797,27 @@ impl Module {
             /* merge that dependency's exported env */
             module_env = nested_env::merge(module_env, dep.env_export.clone());
 
-            //
-            let notify_list = module_env
-                .entry("notify".into())
-                .or_insert_with(|| nested_env::EnvKey::List(im::vector![]));
+            // add all *imported (used)* dependencies to this modules "notify" env var
+            // (unless it has "notify_all" set, we'll handle that later)
+            if !self.notify_all {
+                let notify_list = module_env
+                    .entry("notify".into())
+                    .or_insert_with(|| nested_env::EnvKey::List(im::vector![]));
 
-            match notify_list {
-                nested_env::EnvKey::Single(_) => panic!("unexpected notify value"),
-                nested_env::EnvKey::List(list) => list.push_back(dep.create_module_define()),
+                match notify_list {
+                    nested_env::EnvKey::Single(_) => panic!("unexpected notify value"),
+                    nested_env::EnvKey::List(list) => list.push_back(dep.create_module_define()),
+                }
             }
+        }
+
+        // add *all* modules to this modules "notify" env var if requested
+        if self.notify_all {
+            let all_modules = modules
+                .iter()
+                .map(|(_, dep)| dep.create_module_define())
+                .collect::<im::Vector<_>>();
+            module_env.insert("notify".into(), nested_env::EnvKey::List(all_modules));
         }
 
         /* merge the module's local env */
