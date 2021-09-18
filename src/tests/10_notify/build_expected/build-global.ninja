@@ -28,27 +28,48 @@ build build/single_builder/single_app_selecting/single_app_selecting.elf: $
     LINK_5506617845631750009 $
     build/objects/single_app.10027761496740081156.o
 
-rule CC_13829935330814772385
-  command = echo -DMODULE_ANOTHER_SIMPLE_MODULE -DMODULE_DASHED_MODULE -DMODULE_SLASHED_MODULE -DMODULE_SIMPLE_MODULE -DMODULE_SINGLE_APP_DEPENDING ${in} > ${out}
+rule CC_6932302466851714896
+  command = echo -DMODULE_B -DMODULE_DASHED_MODULE -DMODULE_SLASHED_MODULE -DMODULE_A -DMODULE_SINGLE_APP_DEPENDING ${in} > ${out}
   description = CC
 
-build build/objects/single_app.8055285592268745283.o: $
-    CC_13829935330814772385 $
+build build/objects/single_app.7009837703928069831.o: $
+    CC_6932302466851714896 $
     single_app.c
 
 build build/single_builder/single_app_depending/single_app_depending.elf: $
     LINK_5506617845631750009 $
-    build/objects/single_app.8055285592268745283.o
+    build/objects/single_app.7009837703928069831.o
 
-rule CC_3086654722251522306
-  command = echo -DMODULE_ANOTHER_SIMPLE_MODULE -DMODULE_SINGLE_APP_USING_ANOTHER ${in} > ${out}
+rule CC_4128391085699617043
+  command = echo -DMODULE_B -DMODULE_SINGLE_APP_USING_ANOTHER ${in} > ${out}
   description = CC
 
-build build/objects/single_app.8292815447509676760.o: $
-    CC_3086654722251522306 $
+build build/objects/single_app.7745104696368074659.o: $
+    CC_4128391085699617043 $
     single_app.c
 
 build build/single_builder/single_app_using_another/single_app_using_another.elf: $
     LINK_5506617845631750009 $
-    build/objects/single_app.8292815447509676760.o
+    build/objects/single_app.7745104696368074659.o
+
+rule CC_11467212919373421280
+  command = echo -DMODULE_B -DMODULE_NOTIFY_ALL -DMODULE_SINGLE_APP_USING_ANOTHER_NOTIFY_ALL ${in} > ${out}
+  description = CC
+
+build build/objects/single_app.9827479472412241983.o: $
+    CC_11467212919373421280 $
+    single_app.c
+
+rule CC_7212910683036254970
+  command = echo -DMODULE_SINGLE_APP_USING_ANOTHER_NOTIFY_ALL -DMODULE_A -DMODULE_B -DMODULE_DASHED_MODULE -DMODULE_SLASHED_MODULE -DMODULE_NOTIFY_ALL ${in} > ${out}
+  description = CC
+
+build build/objects/notify_all.2377822879127681391.o: $
+    CC_7212910683036254970 $
+    notify_all.c
+
+build build/single_builder/single_app_using_another_notify_all/single_app_using_another_notify_all.elf: $
+    LINK_5506617845631750009 $
+    build/objects/single_app.9827479472412241983.o $
+    build/objects/notify_all.2377822879127681391.o
 

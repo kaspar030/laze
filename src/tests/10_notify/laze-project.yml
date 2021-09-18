@@ -1,15 +1,15 @@
 builder:
   - name: single_builder
     rule:
-        - name: CC
-          in: 'c'
-          out: 'o'
-          cmd: 'echo ${notify} ${in} > ${out}'
-        - name: LINK
-          in: 'o'
-          options:
-              combine: true
-          cmd: 'cat ${in} > ${out}'
+      - name: CC
+        in: "c"
+        out: "o"
+        cmd: "echo ${notify} ${in} > ${out}"
+      - name: LINK
+        in: "o"
+        options:
+          combine: true
+        cmd: "cat ${in} > ${out}"
     var_options:
       notify:
         prefix: -DMODULE_
@@ -17,40 +17,53 @@ builder:
       bindir: build/${builder}/${app}
 
 module:
-  - name: simple_module
+  - name: A
     depends:
-      - another_simple_module
+      - B
       - dashed-module
       - slashed/module
 
-  - name: another_simple_module
+  - name: B
   - name: dashed-module
   - name: slashed/module
+  - name: notify_all
+    sources:
+      - notify_all.c
+    notify_all: true
 
 app:
   - name: single_app_using
     sources:
       - single_app.c
     uses:
-      - simple_module
+      - A
 
   - name: single_app_selecting
     sources:
       - single_app.c
     selects:
-      - simple_module
+      - A
 
   - name: single_app_depending
     sources:
       - single_app.c
     depends:
-      - simple_module
+      - A
 
   - name: single_app_using_another
     sources:
       - single_app.c
     selects:
-      - simple_module
+      - A
     uses:
-      - another_simple_module
+      - B
 
+  - name: single_app_using_another_notify_all
+    sources:
+      - single_app.c
+    depends:
+      - notify_all
+    selects:
+      - A
+    uses:
+      - B
