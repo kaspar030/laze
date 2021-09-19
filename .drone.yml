@@ -15,7 +15,7 @@ steps:
       - "#"
       - apt-get update
       - apt-get install -y ninja-build python3-requests
-      - curl -L https://github.com/mozilla/grcov/releases/download/v0.7.1/grcov-linux-x86_64.tar.bz2 | tar jxf -
+      - curl -L https://github.com/mozilla/grcov/releases/download/v0.8.2/grcov-linux-x86_64.tar.bz2 | tar jxf -
         #- cargo install grcov --version 0.6.1
       - rustup toolchain install nightly
       - rustup component add llvm-tools-preview
@@ -71,6 +71,6 @@ steps:
       - python3 dist/coveralls.py coveralls.json
 ---
 kind: signature
-hmac: a0b6c160c17ea7e8a73716f7635ca34493c28705419fe0cb0740a955410e5bdc
+hmac: b0529683e4b506168c71db7189175fe2c0ef7ddd5aa7affbb9c8786b109e820f
 
 ...
