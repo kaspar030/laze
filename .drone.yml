@@ -33,12 +33,12 @@ steps:
       - "#"
       - "# stable end-to-end tests"
       - "#"
-      - LAZE=$(pwd)/target/debug/laze make -C src/tests
+      - 'LAZE=$(pwd)/target/debug/laze make -C src/tests'
 
       - "#"
       - "# compiling with nightly rust"
       - "#"
-      - 'RUSTFLAGS="-Zinstrument-coverage" cargo +nightly build'
+      - cargo +nightly build
 
       - "#"
       - "# nightly unittests"
@@ -48,14 +48,16 @@ steps:
       - "#"
       - "# end-to-end tests"
       - "#"
-      - LAZE=$(pwd)/target/debug/laze make -C src/tests
+      - 'RUSTFLAGS="-Zinstrument-coverage" LAZE=$(pwd)/target/debug/laze make -C src/tests'
 
       - "#"
       - "# uploading coverage results"
       - "#"
       - >
+        RUSTUP_TOOLCHAIN=nightly
         ./grcov
         $(find . -name default.profraw -print)
+        --llvm
         --token $${COVERALLS_TOKEN}
         --commit-sha $${DRONE_COMMIT}
         --service-name drone.schleiser.de
@@ -71,6 +73,6 @@ steps:
       - python3 dist/coveralls.py coveralls.json
 ---
 kind: signature
-hmac: b0529683e4b506168c71db7189175fe2c0ef7ddd5aa7affbb9c8786b109e820f
+hmac: 3f676a54a885253021ba583332f8646aaae41213d8deb4327332aaf85fb99c46
 
 ...
