@@ -18,7 +18,7 @@ steps:
       - curl -L https://github.com/mozilla/grcov/releases/download/v0.8.2/grcov-linux-x86_64.tar.bz2 | tar jxf -
         #- cargo install grcov --version 0.6.1
       - rustup toolchain install nightly
-      - rustup component add llvm-tools-preview
+      - rustup +nightly component add llvm-tools-preview
 
       - "#"
       - "# compiling with stable rust"
@@ -38,7 +38,7 @@ steps:
       - "#"
       - "# compiling with nightly rust"
       - "#"
-      - cargo +nightly build
+      - 'RUSTFLAGS="-Zinstrument-coverage" cargo +nightly build'
 
       - "#"
       - "# nightly unittests"
@@ -48,7 +48,7 @@ steps:
       - "#"
       - "# end-to-end tests"
       - "#"
-      - 'RUSTFLAGS="-Zinstrument-coverage" LAZE=$(pwd)/target/debug/laze make -C src/tests'
+      - 'LAZE=$(pwd)/target/debug/laze make -C src/tests'
 
       - "#"
       - "# uploading coverage results"
@@ -57,7 +57,6 @@ steps:
         RUSTUP_TOOLCHAIN=nightly
         ./grcov
         $(find . -name default.profraw -print)
-        --llvm
         --token $${COVERALLS_TOKEN}
         --commit-sha $${DRONE_COMMIT}
         --service-name drone.schleiser.de
@@ -74,6 +73,6 @@ steps:
         || true # temporarily allow an arror
 ---
 kind: signature
-hmac: 1bfac9bbada3941e5cca9140e6d93d733a825d95590d881c71a65e60d784580f
+hmac: 94872b00680c8ff3e123bcd5eaa79eb299a8d6ffd067fe851d1f1c946bef87e4
 
 ...
