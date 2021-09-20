@@ -68,11 +68,12 @@ steps:
         --output-path coveralls.json
         --output-type coveralls+
         --source-dir .
-        --ignore "/*"
+        --ignore "/*" &&
 
-      - python3 dist/coveralls.py coveralls.json
+        python3 dist/coveralls.py coveralls.json
+        || true # temporarily allow an arror
 ---
 kind: signature
-hmac: 3f676a54a885253021ba583332f8646aaae41213d8deb4327332aaf85fb99c46
+hmac: 1bfac9bbada3941e5cca9140e6d93d733a825d95590d881c71a65e60d784580f
 
 ...
