@@ -19,6 +19,7 @@ steps:
         #- cargo install grcov --version 0.6.1
       - rustup toolchain install nightly
       - rustup +nightly component add llvm-tools-preview
+      - cargo install --locked cargo-udeps
 
       - "#"
       - "# compiling with stable rust"
@@ -51,6 +52,11 @@ steps:
       - 'LAZE=$(pwd)/target/debug/laze make -C src/tests'
 
       - "#"
+      - "# checking for unused dependencies"
+      - "#"
+      - cargo +nightly udeps
+
+      - "#"
       - "# uploading coverage results"
       - "#"
       - >
@@ -73,6 +79,6 @@ steps:
         || true # temporarily allow an arror
 ---
 kind: signature
-hmac: 94872b00680c8ff3e123bcd5eaa79eb299a8d6ffd067fe851d1f1c946bef87e4
+hmac: 4495c4c914cc5393ea8aded007fffd9d57922bb7f60dd6bd673e4ee52e5113f4
 
 ...
