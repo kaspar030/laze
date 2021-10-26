@@ -2,7 +2,7 @@
 name = "laze"
 version = "0.1.5"
 authors = ["Kaspar Schleiser <kaspar@schleiser.de>"]
-edition = "2018"
+edition = "2021"
 
 description = "A declarative build system for C projects aiming to be simple, fast and correct"
 repository = "https://github.com/kaspar030/laze"
