@@ -21,10 +21,12 @@ use rayon::prelude::*;
 
 use super::{
     data::{load, FileTreeState},
-    download, nested_env,
+    download,
+    model::BlockAllow,
+    nested_env,
     nested_env::{Env, IfMissing},
     ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder, NinjaRuleDeps},
-    BlockAllow, Build, Context, ContextBag, Dependency, Module, Task,
+    Build, Context, ContextBag, Dependency, Module, Task,
 };
 
 #[derive(Deserialize, Serialize)]
