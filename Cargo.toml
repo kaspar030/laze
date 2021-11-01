@@ -29,4 +29,6 @@ im = { version = "15.0.0", features = ["rayon", "serde"] }
 signal-hook = "0.3.9"
 
 [profile.release]
-lto = true
+lto = "fat"
+incremental = false
+codegen-units = 1
