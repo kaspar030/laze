@@ -25,6 +25,9 @@ use clap::{crate_version, App, AppSettings, Arg, SubCommand};
 use indexmap::{IndexMap, IndexSet};
 use signal_hook::{consts::SIGINT, iterator::Signals};
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 mod data;
 mod download;
 mod generate;
