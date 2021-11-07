@@ -169,14 +169,24 @@ impl ContextBag {
         self.builders().collect()
     }
 
-    pub fn builders_by_name(&self, names: &IndexSet<String>) -> Vec<&Context> {
+    pub fn builders_by_name(&self, names: &IndexSet<String>) -> Result<Vec<&Context>, Error> {
         let mut res = Vec::new();
-        for builder in self.builders() {
-            if names.contains(&builder.name) {
-                res.push(builder);
+        for name in names {
+            match self.get_by_name(name) {
+                Some(context) => {
+                    if context.is_builder {
+                        res.push(context);
+                    } else {
+                        return Err(anyhow!(format!(
+                            "context {} is not a build context",
+                            &context.name
+                        )));
+                    }
+                }
+                None => return Err(anyhow!(format!("unknown builder {}", &name))),
             }
         }
-        res
+        Ok(res)
     }
 
     pub fn context_by_id(&self, context_id: usize) -> &Context {

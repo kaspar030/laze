@@ -136,7 +136,7 @@ pub fn generate(
 
     let selected_builders = match &builders {
         Selector::All => contexts.builders_vec(),
-        Selector::Some(builders) => contexts.builders_by_name(builders),
+        Selector::Some(builders) => contexts.builders_by_name(builders)?,
     };
 
     // get all "binary" modules
