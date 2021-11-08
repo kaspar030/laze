@@ -150,21 +150,54 @@ pub fn generate(
         .flat_map(|ctx| ctx.modules.iter())
         .filter(|(_, module)| module.is_binary);
 
+    // handle unknown binaries
+    let mut bins_unknown = Vec::new();
+    if let Selector::Some(apps) = &apps {
+        let bins = bins.clone();
+        let bins_set: IndexSet<_> = bins.map(|(name, _)| name).collect();
+        for app in apps {
+            if !bins_set.contains(app) {
+                bins_unknown.push(app);
+            }
+        }
+    }
+
+    if !bins_unknown.is_empty() {
+        return Err(anyhow!(format!(
+            "unknown binaries specified: {}",
+            bins_unknown.iter().cloned().join(", ")
+        )));
+    }
+
     // filter selected apps, if specified
     // also filter by apps in the start folder, if not in global mode
-    let bins = bins.filter(|(_, module)| {
-        if let Selector::Some(apps) = &apps {
-            if let None = apps.get(&module.name[..]) {
-                return false;
+    let mut bins_not_in_relpath = Vec::new();
+    let bins = bins
+        .filter(|(_, module)| {
+            if let Selector::Some(apps) = &apps {
+                if let None = apps.get(&module.name[..]) {
+                    return false;
+                }
             }
-        }
-        if let GenerateMode::Local(start_dir) = &mode {
-            if module.relpath.as_ref().unwrap() != start_dir {
-                return false;
+            if let GenerateMode::Local(start_dir) = &mode {
+                if module.relpath.as_ref().unwrap() != start_dir {
+                    match apps {
+                        Selector::Some(_) => bins_not_in_relpath.push(&module.name),
+                        Selector::All => (),
+                    }
+                    return false;
+                }
             }
-        }
-        true
-    });
+            true
+        })
+        .collect_vec();
+
+    if !bins_not_in_relpath.is_empty() {
+        return Err(anyhow!(format!(
+            "the following binaries are not defined in the current folder: {}",
+            bins_not_in_relpath.iter().cloned().join(", ")
+        )));
+    }
 
     // create (builder, bin) tuples
     let builder_bin_tuples = selected_builders.iter().cartesian_product(bins);
