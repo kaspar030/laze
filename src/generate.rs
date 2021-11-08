@@ -151,22 +151,17 @@ pub fn generate(
         .filter(|(_, module)| module.is_binary);
 
     // handle unknown binaries
-    let mut bins_unknown = Vec::new();
     if let Selector::Some(apps) = &apps {
         let bins = bins.clone();
         let bins_set: IndexSet<_> = bins.map(|(name, _)| name).collect();
-        for app in apps {
-            if !bins_set.contains(app) {
-                bins_unknown.push(app);
-            }
+        let apps: IndexSet<&String> = apps.iter().collect();
+        let bins_unknown = apps.difference(&bins_set).collect_vec();
+        if !bins_unknown.is_empty() {
+            return Err(anyhow!(format!(
+                "unknown binaries specified: {}",
+                bins_unknown.iter().cloned().join(", ")
+            )));
         }
-    }
-
-    if !bins_unknown.is_empty() {
-        return Err(anyhow!(format!(
-            "unknown binaries specified: {}",
-            bins_unknown.iter().cloned().join(", ")
-        )));
     }
 
     // filter selected apps, if specified
