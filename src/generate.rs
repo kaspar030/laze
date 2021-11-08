@@ -43,6 +43,7 @@ pub enum GenerateMode {
     Local(PathBuf),
 }
 
+/// returns the used ninja build file
 pub fn get_ninja_build_file(build_dir: &Path, mode: &GenerateMode) -> PathBuf {
     match mode {
         GenerateMode::Global => build_dir.join("build-global.ninja"),
@@ -50,6 +51,9 @@ pub fn get_ninja_build_file(build_dir: &Path, mode: &GenerateMode) -> PathBuf {
     }
 }
 
+/// returns the path relative to the project root
+///
+/// Example: src/module/foo.yml -> ../..
 fn relroot(relpath: &Path) -> PathBuf {
     let components = relpath.components().count();
     if components == 0 {
