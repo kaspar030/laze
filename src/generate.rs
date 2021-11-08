@@ -401,7 +401,7 @@ fn configure_build(
 
         // "srcdir" is either the folder of laze.yml that defined this module,
         // *or* if it was downloaded, the download folder.
-        // This is populated in data.rs, do unwrap() always succeeds.
+        // This is populated in data.rs, so unwrap() always succeeds.
         let srcdir = module.srcdir.as_ref().unwrap();
 
         /* build final module env */
