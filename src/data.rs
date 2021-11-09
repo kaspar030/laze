@@ -19,6 +19,7 @@ use serde::{Deserialize, Deserializer};
 use treestate::{FileState, TreeState};
 
 use super::download::Download;
+use super::model::CustomBuild;
 use super::nested_env::{Env, EnvKey, MergeOption};
 use super::{Context, ContextBag, Dependency, Module, Rule, Task};
 use crate::serde_bool_helpers::default_as_false;
@@ -94,6 +95,7 @@ struct YamlModule {
     #[serde(default = "default_as_false")]
     notify_all: bool,
     sources: Option<Vec<StringOrMapString>>,
+    build: Option<CustomBuild>,
     env: Option<YamlModuleEnv>,
     blocklist: Option<Vec<String>>,
     allowlist: Option<Vec<String>>,
@@ -113,6 +115,7 @@ impl YamlModule {
             disable: None,
             notify_all: false,
             sources: None,
+            build: None,
             env: None,
             blocklist: None,
             allowlist: None,
@@ -491,29 +494,30 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         }
 
         m.download = module.download.clone();
-        let (srcdir, build_deps) = if let Some(download) = &m.download {
+        let srcdir = if let Some(download) = &m.download {
             let srcdir = download.srcdir(build_dir, &m);
             let tagfile = download.tagfile(&srcdir);
 
-            // Create "build_deps" list in export env of this module.
-            // This will later be picked up and added as dependency for
-            // every dependent module's source file.
-            m.env_export.insert(
-                "build_deps".into(),
-                // TODO: why is this so ugly and still unsafe (e.g., in Windows)
-                EnvKey::List(im::vector![tagfile
-                    .clone()
-                    .into_os_string()
-                    .into_string()
-                    .unwrap()]),
-            );
-            (srcdir, Some(vec![tagfile]))
+            m.add_build_dep(&tagfile);
+            m.add_build_dep_export(&tagfile);
+            srcdir
         } else {
-            (PathBuf::from(relpath.clone()), None)
+            PathBuf::from(relpath.clone())
         };
 
+        m.build = module.build.clone();
+        if m.build.is_some() {
+            // the custom build knows it's outputs only in the build configuration phase.
+            // at that point, module's build dependencies cannot be changed anymore.
+            // thus, we need a build configuration unique phony target name here.
+            let build_tag = PathBuf::from(format!(
+                "__done_${{builder}}_${{app}}_{}_{}",
+                &relpath, &m.name
+            ));
+            m.add_build_dep_export(&build_tag);
+        }
+
         m.srcdir = Some(srcdir);
-        m.build_deps = build_deps;
 
         // populate "early env"
         m.env_early

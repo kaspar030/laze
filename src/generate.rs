@@ -422,127 +422,229 @@ fn configure_build(
             }
         }
 
-        // map extension -> rule for this module
-        let mut module_rules: IndexMap<String, NinjaRule> = IndexMap::new();
-
-        /* apply rules to sources */
-        for source in module.sources.iter().chain(optional_sources.iter()) {
-            let ext = Path::new(&source)
-                .extension()
-                .and_then(OsStr::to_str)
-                .ok_or_else(|| {
-                    anyhow!(format!(
-                        "\"{}\": module \"{:?}\": source file \"{}\" missing extension",
-                        module.defined_in.as_ref().unwrap().to_string_lossy(),
-                        &module.name,
-                        &source
-                    ))
-                })?;
-
-            // This block finds a rule for this source file's extension
-            // (e.g., .c -> CC).
-            // If there is one, use it, otherwise create a new one from the
-            // context rules, applying this module's env.
-            module_rules.entry(ext.into()).or_insert({
-                let rule = match rules.get(ext.into()) {
-                    Some(rule) => rule,
-                    None => {
-                        return Err(anyhow!(
-                            "no rule found for \"{}\" of module \"{}\" (from {})",
-                            source,
-                            module.name,
-                            module.defined_in.as_ref().unwrap().to_string_lossy(),
-                        ))
-                    }
-                };
-                let expanded =
-                    nested_env::expand(&rule.cmd, &flattened_env, IfMissing::Empty).unwrap();
-
-                let rule = NinjaRuleBuilder::default()
-                    .name(Cow::from(&rule.name))
-                    .description(Some(Cow::from(&rule.name)))
-                    .rspfile(rule.rspfile.as_deref().map(Cow::from))
-                    .rspfile_content(rule.rspfile_content.as_deref().map(Cow::from))
-                    .pool(rule.pool.as_deref().map(Cow::from))
-                    .command(expanded)
-                    .deps(match &rule.gcc_deps {
-                        None => NinjaRuleDeps::None,
-                        Some(s) => NinjaRuleDeps::GCC(s.into()),
-                    })
-                    .build()
-                    .unwrap()
-                    .named();
-                ninja_entries.insert(format!("{}", &rule));
-                rule
-            });
-        }
-
         // this ugly block collects all "build_deps" entries (which are Strings
         // converted from Paths) into Vec<Cow<Path>> as needed by NinjaBuildBuilder's "deps()"
         // method.
-        let build_deps = if let Some(build_deps) = module_env.get("build_deps".into()) {
-            if let nested_env::EnvKey::List(list) = build_deps {
-                Some(
-                    list.iter()
-                        .map(|x| Cow::from(PathBuf::from(x)))
-                        .collect_vec(),
-                )
-            } else {
-                unreachable!();
-            }
-        } else {
-            None
-        };
+        let build_deps = module_env
+            .get("build_deps".into())
+            .map_or(None, |build_deps| {
+                if let nested_env::EnvKey::List(list) = build_deps {
+                    Some(
+                        list.iter()
+                            .map(|x| {
+                                let x = nested_env::expand(&x, &flattened_env, IfMissing::Empty)
+                                    .unwrap();
+                                Cow::from(PathBuf::from(x))
+                            })
+                            .collect_vec(),
+                    )
+                } else {
+                    unreachable!();
+                }
+            });
 
-        // now for each source file,
-        for source in module.sources.iter().chain(optional_sources.iter()) {
-            // 1. determine full file path (relative to project root)
-            let mut srcpath = srcdir.clone();
-            srcpath.push(source);
+        if let Some(build) = &module.build {
+            // module has custom build rule
 
-            // 2. find ninja rule by lookup of the source file's extension
-            let ext = Path::new(&source)
-                .extension()
-                .and_then(OsStr::to_str)
-                .unwrap();
+            // get build command list, make one large shell command by joining
+            // with " && ".
+            // e.g.,
+            //
+            // ```
+            // cmd:
+            //   - echo foo
+            //   - echo bar
+            // ```
+            //
+            // ... becomes `echo foo && echo bar` as ninja build command.
+            let build_cmd = &build.cmd.join(" && ");
+            let expanded =
+                nested_env::expand(&build_cmd, &flattened_env, IfMissing::Empty).unwrap();
 
-            let rule = rules.get(ext.into()).unwrap();
+            // create custom build ninja rule
+            let rule = NinjaRuleBuilder::default()
+                .name("BUILD")
+                .description(Cow::from("BUILD ${out}"))
+                .command(expanded)
+                .build()
+                .unwrap()
+                .named();
 
-            let ninja_rule = module_rules.get(ext.into()).unwrap();
-            let rule_hash = ninja_rule.get_hash();
+            // collect any specified sources
+            let sources = module
+                .sources
+                .iter()
+                .chain(optional_sources.iter())
+                .map(|source| {
+                    // 1. determine full file path (relative to project root)
+                    let mut srcpath = srcdir.clone();
+                    srcpath.push(source);
+                    srcpath
+                })
+                .collect_vec();
 
-            // 3. determine output path (e.g., name of C object file)
-            let out =
-                srcpath.with_extension(format!("{}.{}", rule_hash, &rule.out.as_ref().unwrap()));
+            // Vec<PathBuf> -> Cow<&Path>
+            let sources = sources
+                .iter()
+                .map(|pathbuf| Cow::from(pathbuf))
+                .collect_vec();
 
-            let mut object = objdir.clone();
-            object.push(out);
+            // collect any specified outs
+            let outs = build.out.as_ref().map_or_else(
+                || vec![],
+                |outs| {
+                    outs.iter()
+                        .map(|out| {
+                            Cow::from(PathBuf::from(
+                                nested_env::expand(&out, &flattened_env, IfMissing::Empty).unwrap(),
+                            ))
+                        })
+                        .collect_vec()
+                },
+            );
 
             // 4. render ninja "build:" snippet and add to this build's
             // ninja statement set
             let build = NinjaBuildBuilder::default()
-                .rule(&*ninja_rule.name)
-                .in_single(Cow::from(&srcpath))
-                .out(object.as_path())
-                //.deps(build_deps.clone())
+                .rule(&*rule.name)
+                .in_vec(sources)
+                .outs(outs.clone())
+                .deps(build_deps.clone())
                 .build()
                 .unwrap();
 
+            // create a phony build entry for the "build tag" of this custom build.
+            // (this creates the same alias for this build's "outs" as data.rs
+            // adds to "build_deps_export", so dependees can pick this up without
+            // knowing the exact outs.)
+            let build_tag = format!(
+                "__done_${{builder}}_${{app}}_{}_{}",
+                module.relpath.as_ref().unwrap().to_str().unwrap(),
+                &module.name
+            );
+            let build_tag =
+                nested_env::expand(&build_tag, &flattened_env, IfMissing::Empty).unwrap();
+
+            let build_tag = NinjaBuildBuilder::default()
+                .rule("phony")
+                .deps(outs.clone())
+                .out(PathBuf::from(build_tag))
+                .build()
+                .unwrap();
+
+            // add ninja rule/build snippets to ninja snippes set
+            ninja_entries.insert(format!("{}", &rule));
             ninja_entries.insert(format!("{}", build));
+            ninja_entries.insert(format!("{}", build_tag));
+        } else {
+            // module is using the default build rule
 
-            // 5. store the output in this build's output list
-            objects.push(object);
+            // map extension -> rule for this module
+            let mut module_rules: IndexMap<String, NinjaRule> = IndexMap::new();
 
-            // 6. optionally create dependency to the download / patch step
-            if let Some(build_deps) = &build_deps {
+            /* apply rules to sources */
+            for source in module.sources.iter().chain(optional_sources.iter()) {
+                let ext = Path::new(&source)
+                    .extension()
+                    .and_then(OsStr::to_str)
+                    .ok_or_else(|| {
+                        anyhow!(format!(
+                            "\"{}\": module \"{:?}\": source file \"{}\" missing extension",
+                            module.defined_in.as_ref().unwrap().to_string_lossy(),
+                            &module.name,
+                            &source
+                        ))
+                    })?;
+
+                // This block finds a rule for this source file's extension
+                // (e.g., .c -> CC).
+                // If there is one, use it, otherwise create a new one from the
+                // context rules, applying this module's env.
+                module_rules.entry(ext.into()).or_insert({
+                    let rule = rules.get(ext.into()).ok_or_else(|| {
+                        anyhow!(
+                            "no rule found for \"{}\" of module \"{}\" (from {})",
+                            source,
+                            module.name,
+                            module.defined_in.as_ref().unwrap().to_string_lossy(),
+                        )
+                    })?;
+
+                    let expanded =
+                        nested_env::expand(&rule.cmd, &flattened_env, IfMissing::Empty).unwrap();
+
+                    let rule = NinjaRuleBuilder::default()
+                        .name(Cow::from(&rule.name))
+                        .description(Some(Cow::from(&rule.name)))
+                        .rspfile(rule.rspfile.as_deref().map(Cow::from))
+                        .rspfile_content(rule.rspfile_content.as_deref().map(Cow::from))
+                        .pool(rule.pool.as_deref().map(Cow::from))
+                        .command(expanded)
+                        .deps(match &rule.gcc_deps {
+                            None => NinjaRuleDeps::None,
+                            Some(s) => NinjaRuleDeps::GCC(s.into()),
+                        })
+                        .build()
+                        .unwrap()
+                        .named();
+                    ninja_entries.insert(format!("{}", &rule));
+                    rule
+                });
+            }
+
+            // now for each source file,
+            for source in module.sources.iter().chain(optional_sources.iter()) {
+                // 1. determine full file path (relative to project root)
+                let mut srcpath = srcdir.clone();
+                srcpath.push(source);
+
+                // 2. find ninja rule by lookup of the source file's extension
+                let ext = Path::new(&source)
+                    .extension()
+                    .and_then(OsStr::to_str)
+                    .unwrap();
+
+                let rule = rules.get(ext.into()).unwrap();
+
+                let ninja_rule = module_rules.get(ext.into()).unwrap();
+                let rule_hash = ninja_rule.get_hash();
+
+                // 3. determine output path (e.g., name of C object file)
+                let out = srcpath.with_extension(format!(
+                    "{}.{}",
+                    rule_hash,
+                    &rule.out.as_ref().unwrap()
+                ));
+
+                let mut object = objdir.clone();
+                object.push(out);
+
+                // 4. render ninja "build:" snippet and add to this build's
+                // ninja statement set
                 let build = NinjaBuildBuilder::default()
-                    .rule("phony")
-                    .in_vec(build_deps.clone())
-                    .out(Cow::from(&srcpath))
+                    .rule(&*ninja_rule.name)
+                    .in_single(Cow::from(&srcpath))
+                    .out(object.as_path())
+                    .deps(build_deps.clone())
                     .build()
                     .unwrap();
 
                 ninja_entries.insert(format!("{}", build));
+
+                // 5. store the output in this build's output list
+                objects.push(object);
+
+                // 6. optionally create dependency to the download / patch step
+                if let Some(build_deps) = &build_deps {
+                    let build = NinjaBuildBuilder::default()
+                        .rule("phony")
+                        .in_vec(build_deps.clone())
+                        .out(Cow::from(&srcpath))
+                        .build()
+                        .unwrap();
+
+                    ninja_entries.insert(format!("{}", build));
+                }
             }
         }
     }

@@ -3,7 +3,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 
 use crate::download;
 use crate::nested_env;
@@ -26,6 +26,8 @@ pub struct Module {
     pub sources: Vec<String>,
     pub sources_optional: Option<IndexMap<String, Vec<String>>>,
 
+    pub build: Option<CustomBuild>,
+
     pub env_local: Env,
     pub env_export: Env,
     pub env_global: Env,
@@ -37,6 +39,7 @@ pub struct Module {
     pub relpath: Option<PathBuf>,
     pub srcdir: Option<PathBuf>,
     pub build_deps: Option<Vec<PathBuf>>,
+    pub build_deps_export: Option<Vec<PathBuf>>,
     pub is_binary: bool,
 }
 
@@ -51,6 +54,7 @@ impl Module {
             notify_all: false,
             // exports: Vec::new(),
             sources: Vec::new(),
+            build: None,
             sources_optional: None,
             env_local: Env::new(),
             env_export: Env::new(),
@@ -62,6 +66,7 @@ impl Module {
             relpath: None,
             srcdir: None,
             build_deps: None,
+            build_deps_export: None,
             blocklist: None,
             allowlist: None,
             download: None,
@@ -78,6 +83,7 @@ impl Module {
             notify_all: defaults.notify_all,
             // exports: Vec::new(),
             sources: defaults.sources.clone(),
+            build: defaults.build.clone(),
             sources_optional: defaults.sources_optional.clone(),
             env_local: defaults.env_local.clone(),
             env_export: defaults.env_export.clone(),
@@ -92,6 +98,7 @@ impl Module {
             download: defaults.download.clone(),
             srcdir: defaults.srcdir.clone(),
             build_deps: None,
+            build_deps_export: None,
         }
     }
 
@@ -153,8 +160,16 @@ impl Module {
         /* start with the global env env */
         let mut module_env = global_env.clone();
 
+        /* collect this modules build_deps (e.g., download steps) */
+        let mut build_deps: Option<IndexSet<_>> = if let Some(build_deps) = &self.build_deps {
+            Some(IndexSet::from_iter(build_deps))
+        } else {
+            None
+        };
+
         /* from each (recursive) import ... */
         let deps = self.get_imports_recursive(&modules, None);
+
         for dep in &deps {
             /* merge that dependency's exported env */
             module_env = nested_env::merge(module_env, dep.env_export.clone());
@@ -171,6 +186,29 @@ impl Module {
                     nested_env::EnvKey::List(list) => list.push_back(dep.create_module_define()),
                 }
             }
+
+            // collect all imported build dependencies into "build_deps"
+            if dep != &self {
+                if let Some(dep_build_deps) = &dep.build_deps_export {
+                    build_deps
+                        .get_or_insert_with(|| IndexSet::new())
+                        .extend(dep_build_deps);
+                }
+            }
+        }
+
+        // convert build deps to env strings
+        // TODO: this will break with non-utf8 filenames.
+        if let Some(mut build_deps) = build_deps {
+            let build_dep_strings = build_deps
+                .drain(..)
+                .map(|dep| String::from(dep.to_str().unwrap()))
+                .collect::<im::Vector<_>>();
+
+            module_env.insert(
+                "build_deps".into(),
+                nested_env::EnvKey::List(build_dep_strings),
+            );
         }
 
         // add *all* modules to this modules "notify" env var if requested
@@ -205,6 +243,26 @@ impl Module {
         self.env_local = nested_env::expand_env(&self.env_local, &self.env_early);
         self.env_export = nested_env::expand_env(&self.env_export, &self.env_early);
         self.env_global = nested_env::expand_env(&self.env_global, &self.env_early);
+    }
+
+    // adds a Ninja target name as build dependency for this target.
+    // gets env expanded on module instantiation.
+    pub fn add_build_dep(&mut self, dep: &PathBuf) {
+        if let Some(build_deps) = &mut self.build_deps {
+            build_deps.push(dep.clone());
+        } else {
+            self.build_deps = Some(vec![dep.clone()]);
+        }
+    }
+
+    // adds a Ninja target name as build dependency for dependees of this target.
+    // gets env expanded on dependee module instantiation.
+    pub fn add_build_dep_export(&mut self, dep: &PathBuf) {
+        if let Some(build_deps_export) = &mut self.build_deps_export {
+            build_deps_export.push(dep.clone());
+        } else {
+            self.build_deps_export = Some(vec![dep.clone()]);
+        }
     }
 
     // returns all fixed and optional sources with srcdir prepended
@@ -245,4 +303,10 @@ impl fmt::Display for Module {
             _ => write!(f, "{}:{}", self.context_name, self.name),
         }
     }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub struct CustomBuild {
+    pub cmd: Vec<String>,
+    pub out: Option<Vec<String>>,
 }
