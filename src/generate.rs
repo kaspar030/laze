@@ -645,6 +645,7 @@ pub struct GenerateResult {
     pub apps: Selector,
     pub build_infos: Vec<(String, String, BuildInfo)>,
 
+    build_id: uuid::Uuid,
     select: Option<Vec<Dependency>>,
     disable: Option<Vec<String>>,
     cli_env_hash: u64,
@@ -663,6 +664,7 @@ impl GenerateResult {
         cli_env: Option<&Env>,
     ) -> GenerateResult {
         GenerateResult {
+            build_id: build_id::get(),
             mode,
             builders,
             apps,
@@ -694,6 +696,9 @@ impl GenerateResult {
         let file = Self::cache_file(build_dir, mode);
         let file = File::open(file)?;
         let res: GenerateResult = bincode::deserialize_from(file)?;
+        if res.build_id != build_id::get() {
+            return Err(anyhow!("cache from different laze version"));
+        }
         if !res.builders.is_superset(builders) {
             return Err(anyhow!("builders don't match"));
         }
