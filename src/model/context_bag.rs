@@ -34,7 +34,7 @@ impl ContextBag {
         }
     }
 
-    pub fn finalize(&mut self) {
+    pub fn finalize(&mut self) -> Result<(), Error> {
         /* ensure there's a "default" context */
         if let None = self.get_by_name(&"default".to_string()) {
             self.add_context(Context::new("default".to_string(), None))
@@ -44,7 +44,14 @@ impl ContextBag {
         /* set the "parent" index of each context that sets a "parent_name" */
         for context in &mut self.contexts {
             if let Some(parent_name) = &context.parent_name {
-                let parent = self.context_map.get(&parent_name.clone()).unwrap();
+                let parent = self.context_map.get(&parent_name.clone()).ok_or_else(|| {
+                    anyhow!(format!(
+                        "{:?}: context \"{}\" has unknown parent \"{}\"",
+                        context.defined_in.as_ref().unwrap().as_os_str(),
+                        &context.name,
+                        &parent_name
+                    ))
+                })?;
                 context.parent_index = Some(*parent);
             }
         }
@@ -89,6 +96,7 @@ impl ContextBag {
                 context.env = Some(env);
             }
         }
+
         for (n, m) in sorted_by_numparents {
             if m == 0 {
                 continue;
@@ -123,6 +131,8 @@ impl ContextBag {
                 context.var_options = combined_var_opts;
             }
         }
+
+        Ok(())
     }
 
     pub fn add_context_or_builder(

@@ -549,7 +549,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
 
     // after this, there's a default context, context relationships and envs have been set up.
     // modules can now be processed.
-    contexts.finalize();
+    contexts.finalize()?;
 
     // for context in &contexts.contexts {
     //     if let Some(env) = &context.env {
