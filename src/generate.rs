@@ -553,12 +553,11 @@ fn configure_build(
 
     // linking
     {
-        let link_rule = match rules.values().find(|rule| rule.name == "LINK") {
-            Some(x) => x,
-            // returning an error here won't show, just not configure the build
-            // None => return Err(anyhow!("missing LINK rule for builder {}", builder.name)),
-            None => panic!("missing LINK rule for builder {}", builder.name),
-        };
+        let link_rule = rules
+            .values()
+            .find(|rule| rule.name == "LINK")
+            .ok_or_else(|| anyhow!("missing LINK rule for builder {}", builder.name))?;
+
         let expanded =
             nested_env::expand(&link_rule.cmd, &global_env_flattened, IfMissing::Empty).unwrap();
 
