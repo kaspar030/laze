@@ -430,7 +430,14 @@ fn configure_build(
             let ext = Path::new(&source)
                 .extension()
                 .and_then(OsStr::to_str)
-                .unwrap();
+                .ok_or_else(|| {
+                    anyhow!(format!(
+                        "\"{}\": module \"{:?}\": source file \"{}\" missing extension",
+                        module.defined_in.as_ref().unwrap().to_string_lossy(),
+                        &module.name,
+                        &source
+                    ))
+                })?;
 
             // This block finds a rule for this source file's extension
             // (e.g., .c -> CC).
