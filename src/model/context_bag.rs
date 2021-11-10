@@ -160,11 +160,15 @@ impl ContextBag {
     }
 
     pub fn add_module(&mut self, mut module: Module) -> Result<(), Error> {
-        let context_id = self.context_map.get(&module.context_name);
-        let context_id = match context_id {
-            Some(id) => id,
-            None => return Err(anyhow!("unknown context")),
-        };
+        let context_id = self.context_map.get(&module.context_name).ok_or_else(|| {
+            anyhow!(format!(
+                "{:?}: module \"{}\": undefined context \"{}\"",
+                module.defined_in.as_ref().unwrap().as_os_str(),
+                &module.name,
+                &module.context_name
+            ))
+        })?;
+
         let context = &mut self.contexts[*context_id];
         module.context_id = Some(*context_id);
         context.modules.insert(module.name.clone(), module);

@@ -623,34 +623,30 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             if let Some(module_list) = list {
                 if let Some(module_list) = module_list {
                     for module in module_list {
-                        contexts
-                            .add_module(convert_module(
-                                &module,
-                                *is_binary,
-                                &data.filename.as_ref().unwrap(),
-                                if *is_binary {
-                                    app_defaults.as_ref()
-                                } else {
-                                    module_defaults.as_ref()
-                                },
-                                build_dir,
-                            ))
-                            .unwrap();
+                        contexts.add_module(convert_module(
+                            &module,
+                            *is_binary,
+                            &data.filename.as_ref().unwrap(),
+                            if *is_binary {
+                                app_defaults.as_ref()
+                            } else {
+                                module_defaults.as_ref()
+                            },
+                            build_dir,
+                        ))?;
                     }
                 } else {
                     if *is_binary {
                         // if an app list is empty, add a default entry.
                         // this allows a convenient file only containing "app:"
                         let module = YamlModule::default(*is_binary);
-                        contexts
-                            .add_module(convert_module(
-                                &module,
-                                *is_binary,
-                                &data.filename.as_ref().unwrap(),
-                                app_defaults.as_ref(),
-                                build_dir,
-                            ))
-                            .unwrap();
+                        contexts.add_module(convert_module(
+                            &module,
+                            *is_binary,
+                            &data.filename.as_ref().unwrap(),
+                            app_defaults.as_ref(),
+                            build_dir,
+                        ))?;
                     }
                 }
             }
