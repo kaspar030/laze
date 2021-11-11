@@ -108,7 +108,8 @@ impl<'a> Hash for NinjaRule<'a> {
 #[builder(setter(into))]
 pub struct NinjaBuild<'a> {
     rule: Cow<'a, str>,
-    out: Cow<'a, Path>,
+
+    outs: Vec<Cow<'a, Path>>,
 
     #[builder(setter(strip_option), default = "None")]
     in_vec: Option<Vec<Cow<'a, Path>>>,
@@ -126,14 +127,29 @@ pub struct NinjaBuild<'a> {
     //   deps: NinjaRuleDeps,
 }
 
+impl<'a> NinjaBuildBuilder<'a> {
+    pub fn out<I>(&mut self, out: I) -> &mut Self
+    where
+        I: Into<Cow<'a, Path>>,
+    {
+        if let Some(outs) = self.outs.as_mut() {
+            outs.push(out.into());
+        } else {
+            self.outs = Some(vec![out.into()]);
+        }
+        self
+    }
+}
+
 impl<'a> fmt::Display for NinjaBuild<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "build {}: $\n    {}",
-            self.out.to_str().unwrap(),
-            self.rule
-        )?;
+        write!(f, "build")?;
+
+        for out in &self.outs {
+            write!(f, " {}", out.to_str().unwrap())?;
+        }
+
+        write!(f, ": $\n    {}", self.rule)?;
 
         if let Some(list) = &self.in_vec {
             for path in list {
