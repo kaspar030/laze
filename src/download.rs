@@ -21,14 +21,19 @@ pub struct Download {
     #[serde(flatten)]
     pub source: DownloadSource,
     pub patches: Option<Vec<String>>,
+    pub dldir: Option<String>,
 }
 
 impl Download {
     pub fn srcdir(&self, build_dir: &Path, module: &Module) -> PathBuf {
         let mut srcdir = PathBuf::from(build_dir);
         srcdir.push("dl");
-        srcdir.push(module.relpath.as_ref().unwrap().clone());
-        srcdir.push(module.name.clone());
+        if let Some(dldir) = &self.dldir {
+            srcdir.push(dldir);
+        } else {
+            srcdir.push(module.relpath.as_ref().unwrap().clone());
+            srcdir.push(module.name.clone());
+        }
         srcdir
     }
 
