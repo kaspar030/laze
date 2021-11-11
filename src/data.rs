@@ -524,6 +524,8 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             "srcdir".into(),
             EnvKey::Single(m.srcdir.as_ref().unwrap().to_str().unwrap().into()),
         );
+
+        m.env_local = crate::nested_env::merge(m.env_local, m.env_early.clone());
         m.apply_early_env();
 
         m
