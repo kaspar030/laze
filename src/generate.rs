@@ -425,6 +425,7 @@ fn configure_build(
         // this ugly block collects all "build_deps" entries (which are Strings
         // converted from Paths) into Vec<Cow<Path>> as needed by NinjaBuildBuilder's "deps()"
         // method.
+        let mut build_deps_hasher = DefaultHasher::new();
         let build_deps = module_env
             .get("build_deps".into())
             .map_or(None, |build_deps| {
@@ -434,6 +435,7 @@ fn configure_build(
                             .map(|x| {
                                 let x = nested_env::expand(&x, &flattened_env, IfMissing::Empty)
                                     .unwrap();
+                                x.hash(&mut build_deps_hasher);
                                 Cow::from(PathBuf::from(x))
                             })
                             .collect_vec(),
@@ -442,6 +444,10 @@ fn configure_build(
                     unreachable!();
                 }
             });
+
+        let build_deps_hash = build_deps
+            .as_ref()
+            .map_or(None, |_| Some(build_deps_hasher.finish()));
 
         if let Some(build) = &module.build {
             // module has custom build rule
@@ -489,19 +495,23 @@ fn configure_build(
                 .map(|pathbuf| Cow::from(pathbuf))
                 .collect_vec();
 
+            let mut hasher = DefaultHasher::new();
             // collect any specified outs
             let outs = build.out.as_ref().map_or_else(
                 || vec![],
                 |outs| {
                     outs.iter()
                         .map(|out| {
-                            Cow::from(PathBuf::from(
+                            let out = Cow::from(PathBuf::from(
                                 nested_env::expand(&out, &flattened_env, IfMissing::Empty).unwrap(),
-                            ))
+                            ));
+                            out.hash(&mut hasher);
+                            out
                         })
                         .collect_vec()
                 },
             );
+            let outs_hash = hasher.finish();
 
             // 4. render ninja "build:" snippet and add to this build's
             // ninja statement set
@@ -513,7 +523,17 @@ fn configure_build(
                 .build()
                 .unwrap();
 
-            // create a phony build entry for the "build tag" of this custom build.
+            // create an alias (phony build entry) for "outs_${hash}" of this custom build.
+            // that way, dependees don't have to list all the outs, but just
+            // this alias
+            let outs_alias_output = Cow::from(PathBuf::from(format!("outs_{}", outs_hash)));
+            let outs_alias = NinjaBuildBuilder::default()
+                .rule("phony")
+                .inputs(outs.clone())
+                .out(outs_alias_output.clone())
+                .build()
+                .unwrap();
+
             // (this creates the same alias for this build's "outs" as data.rs
             // adds to "build_deps_export", so dependees can pick this up without
             // knowing the exact outs.)
@@ -532,9 +552,10 @@ fn configure_build(
                 .build()
                 .unwrap();
 
-            // add ninja rule/build snippets to ninja snippes set
+            // add ninja rule/build snippets to ninja snippets set
             ninja_entries.insert(format!("{}", &rule));
             ninja_entries.insert(format!("{}", build));
+            ninja_entries.insert(format!("{}", outs_alias));
             ninja_entries.insert(format!("{}", build_tag));
         } else {
             // module is using the default build rule
@@ -586,7 +607,7 @@ fn configure_build(
                         })
                         .build()
                         .unwrap()
-                        .named();
+                        .named_with_extra(build_deps_hash);
                     ninja_entries.insert(format!("{}", &rule));
                     rule
                 });
@@ -607,7 +628,7 @@ fn configure_build(
                 let rule = rules.get(ext.into()).unwrap();
 
                 let ninja_rule = module_rules.get(ext.into()).unwrap();
-                let rule_hash = ninja_rule.get_hash();
+                let rule_hash = ninja_rule.get_hash(None);
 
                 // 3. determine output path (e.g., name of C object file)
                 let out = srcpath.with_extension(format!(
@@ -635,16 +656,16 @@ fn configure_build(
                 objects.push(object);
 
                 // 6. optionally create dependency to the download / patch step
-                if let Some(build_deps) = &build_deps {
-                    let build = NinjaBuildBuilder::default()
-                        .rule("phony")
-                        .in_vec(build_deps.clone())
-                        .out(Cow::from(&srcpath))
-                        .build()
-                        .unwrap();
+                // if let Some(build_deps) = &build_deps {
+                //     let build = NinjaBuildBuilder::default()
+                //         .rule("phony")
+                //         .in_vec(build_deps.clone())
+                //         .out(Cow::from(&srcpath))
+                //         .build()
+                //         .unwrap();
 
-                    ninja_entries.insert(format!("{}", build));
-                }
+                //     ninja_entries.insert(format!("{}", build));
+                // }
             }
         }
     }
