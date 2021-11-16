@@ -71,9 +71,12 @@ impl<'a> fmt::Display for NinjaRule<'a> {
 }
 
 impl<'a> NinjaRule<'a> {
-    pub fn get_hash(&self) -> u64 {
+    pub fn get_hash(&self, extra: Option<u64>) -> u64 {
         let mut s = DefaultHasher::new();
         self.hash(&mut s);
+        if let Some(extra) = extra {
+            s.write_u64(extra);
+        }
         s.finish()
     }
 
@@ -83,8 +86,14 @@ impl<'a> NinjaRule<'a> {
         name
     }
 
+    pub fn named_with_extra(mut self, extra: Option<u64>) -> NinjaRule<'a> {
+        let name = self.get_hashed_name(self.get_hash(extra));
+        self.name = Cow::from(name);
+        self
+    }
+
     pub fn named(mut self) -> NinjaRule<'a> {
-        let name = self.get_hashed_name(self.get_hash());
+        let name = self.get_hashed_name(self.get_hash(None));
         self.name = Cow::from(name);
         self
     }
