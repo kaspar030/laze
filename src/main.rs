@@ -258,11 +258,12 @@ fn ninja_run(
         .unwrap()
         .run()?;
     match ninja_exit.code() {
-        Some(code) => {
-            return Ok(code);
-        }
-        None => return Err(anyhow!("ninja probably killed by signal")),
-    };
+        Some(code) => match code {
+            0 => Ok(code),
+            _ => Err(anyhow!("ninja exited with code {}", code)),
+        },
+        None => Err(anyhow!("ninja probably killed by signal")),
+    }
 }
 
 fn main() {
