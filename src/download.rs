@@ -149,7 +149,7 @@ impl Download {
 
         let ninja_patch_build = NinjaBuildBuilder::default()
             .rule(&*ninja_patch_rule.name)
-            .in_vec(patches)
+            .inputs(patches)
             .out(tagfile_patched.as_path())
             .deps(Some(download_dep))
             .build()
