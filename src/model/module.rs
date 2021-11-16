@@ -160,7 +160,7 @@ impl Module {
         /* start with the global env env */
         let mut module_env = global_env.clone();
 
-        /* collect this modules build_deps (e.g., download steps) */
+        /* collect this modules build_deps (e.g., custom build outs) */
         let mut build_deps: Option<IndexSet<_>> = if let Some(build_deps) = &self.build_deps {
             Some(IndexSet::from_iter(build_deps))
         } else {
