@@ -118,14 +118,11 @@ impl<'a> Hash for NinjaRule<'a> {
 pub struct NinjaBuild<'a> {
     rule: Cow<'a, str>,
 
+    #[builder(setter(strip_option), default = "None")]
+    inputs: Option<Vec<Cow<'a, Path>>>,
     outs: Vec<Cow<'a, Path>>,
 
-    #[builder(setter(strip_option), default = "None")]
-    in_vec: Option<Vec<Cow<'a, Path>>>,
-    #[builder(setter(strip_option), default = "None")]
-    in_single: Option<Cow<'a, Path>>,
-
-    #[builder(setter(into), default = "None")]
+    #[builder(default = "None")]
     deps: Option<Vec<Cow<'a, Path>>>,
 
     #[builder(setter(into, strip_option), default = "None")]
@@ -148,6 +145,22 @@ impl<'a> NinjaBuildBuilder<'a> {
         }
         self
     }
+
+    pub fn input<I>(&mut self, input: I) -> &mut Self
+    where
+        I: Into<Cow<'a, Path>>,
+    {
+        if let Some(inputs) = self.inputs.as_mut() {
+            if let Some(inputs) = inputs {
+                inputs.push(input.into());
+            } else {
+                *inputs = Some(vec![input.into()]);
+            }
+        } else {
+            self.inputs = Some(Some(vec![input.into()]));
+        }
+        self
+    }
 }
 
 impl<'a> fmt::Display for NinjaBuild<'a> {
@@ -160,14 +173,10 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
 
         write!(f, ": $\n    {}", self.rule)?;
 
-        if let Some(list) = &self.in_vec {
-            for path in list {
+        if let Some(inputs) = &self.inputs {
+            for path in inputs {
                 write!(f, " $\n    {}", path.to_str().unwrap())?;
             }
-        }
-
-        if let Some(path) = &self.in_single {
-            write!(f, " $\n    {}", path.to_str().unwrap())?;
         }
 
         if self.deps.is_some() || self.always {
@@ -319,7 +328,7 @@ mod tests {
         let out = PathBuf::from("test.o");
         let rule = NinjaBuildBuilder::default()
             .rule("CC")
-            .in_vec(in_vec)
+            .inputs(in_vec)
             .out(out.as_path())
             .build()
             .unwrap();
@@ -345,7 +354,7 @@ mod tests {
         let out = PathBuf::from("test.o");
         let rule = NinjaBuildBuilder::default()
             .rule("CC")
-            .in_vec(in_vec)
+            .inputs(in_vec)
             .out(out.as_path())
             .deps(deps)
             .build()
