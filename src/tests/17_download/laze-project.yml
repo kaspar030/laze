@@ -28,7 +28,7 @@ app:
         url: testrepo
         commit: main
 
-    sources: [foo.c]
+    sources: [foo_downloaded.c]
 
   - name: app2
     download:
@@ -37,4 +37,4 @@ app:
         commit: main
       patches: [0001-patched.patch]
 
-    sources: [foo.c]
+    sources: [foo_downloaded.c]

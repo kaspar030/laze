@@ -7,10 +7,10 @@ Subject: [PATCH] patched
  foo.c | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/foo.c b/foo.c
+diff --git a/foo_downloaded.c b/foo_downloaded.c
 index 257cc56..b97ea46 100644
---- a/foo.c
-+++ b/foo.c
+--- a/foo_downloaded.c
++++ b/foo_downloaded.c
 @@ -1 +1,2 @@
  foo
 +patched

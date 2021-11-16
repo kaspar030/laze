@@ -2,7 +2,7 @@
 
 rm -Rf testrepo
 git init testrepo
-cp foo.c testrepo
+cp foo.c testrepo/foo_downloaded.c
 git -C testrepo add .
 git -C testrepo commit -m ...
 
