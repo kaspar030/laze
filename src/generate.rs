@@ -422,7 +422,7 @@ fn configure_build(
             }
         }
 
-        // this ugly block collects all "build_deps" entries (which are Strings
+        // this ugly block collects all _imported_ "build_deps" entries (which are Strings
         // converted from Paths) into Vec<Cow<Path>> as needed by NinjaBuildBuilder's "deps()"
         // method.
         let mut build_deps_hasher = DefaultHasher::new();
@@ -444,6 +444,16 @@ fn configure_build(
                     unreachable!();
                 }
             });
+
+        // collect build deps that are local to this module
+        let local_build_deps = module.build_deps.as_ref().map_or(None, |build_deps| {
+            Some(
+                build_deps
+                    .iter()
+                    .map(|x| Cow::from(PathBuf::from(x)))
+                    .collect_vec(),
+            )
+        });
 
         let build_deps_hash = build_deps
             .as_ref()
@@ -656,16 +666,16 @@ fn configure_build(
                 objects.push(object);
 
                 // 6. optionally create dependency to the download / patch step
-                // if let Some(build_deps) = &build_deps {
-                //     let build = NinjaBuildBuilder::default()
-                //         .rule("phony")
-                //         .in_vec(build_deps.clone())
-                //         .out(Cow::from(&srcpath))
-                //         .build()
-                //         .unwrap();
+                if let Some(local_build_deps) = &local_build_deps {
+                    let build = NinjaBuildBuilder::default()
+                        .rule("phony")
+                        .inputs(local_build_deps.clone())
+                        .out(Cow::from(&srcpath))
+                        .build()
+                        .unwrap();
 
-                //     ninja_entries.insert(format!("{}", build));
-                // }
+                    ninja_entries.insert(format!("{}", build));
+                }
             }
         }
     }
