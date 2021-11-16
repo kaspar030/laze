@@ -13,6 +13,7 @@ pub enum ExpandError {
 
 #[derive(Debug, Copy, Clone)]
 pub enum IfMissing {
+    #[allow(dead_code)]
     Error,
     Ignore,
     Empty,
