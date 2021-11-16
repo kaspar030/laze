@@ -507,7 +507,7 @@ fn configure_build(
             // ninja statement set
             let build = NinjaBuildBuilder::default()
                 .rule(&*rule.name)
-                .in_vec(sources)
+                .inputs(sources)
                 .outs(outs.clone())
                 .deps(build_deps.clone())
                 .build()
@@ -527,8 +527,8 @@ fn configure_build(
 
             let build_tag = NinjaBuildBuilder::default()
                 .rule("phony")
-                .deps(outs.clone())
-                .out(PathBuf::from(build_tag))
+                .input(outs_alias_output)
+                .out(PathBuf::from(&build_tag))
                 .build()
                 .unwrap();
 
@@ -623,7 +623,7 @@ fn configure_build(
                 // ninja statement set
                 let build = NinjaBuildBuilder::default()
                     .rule(&*ninja_rule.name)
-                    .in_single(Cow::from(&srcpath))
+                    .input(Cow::from(&srcpath))
                     .out(object.as_path())
                     .deps(build_deps.clone())
                     .build()
@@ -677,7 +677,7 @@ fn configure_build(
         // build ninja link target
         let ninja_link_build = NinjaBuildBuilder::default()
             .rule(&*ninja_link_rule.name)
-            .in_vec(objects)
+            .inputs(objects)
             .out(out_elf.as_path())
             .always(link_rule.always)
             .build()
