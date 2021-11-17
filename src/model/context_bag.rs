@@ -171,7 +171,20 @@ impl ContextBag {
 
         let context = &mut self.contexts[*context_id];
         module.context_id = Some(*context_id);
-        context.modules.insert(module.name.clone(), module);
+        match context.modules.entry(module.name.clone()) {
+            indexmap::map::Entry::Occupied(other_module) => {
+                return Err(anyhow!(
+                    "{:?}: module \"{}\", context \"{}\": module name already used in {:?}",
+                    module.defined_in.as_ref().unwrap().as_os_str(),
+                    &module.name,
+                    &module.context_name,
+                    other_module.get().defined_in.as_ref().unwrap().as_os_str(),
+                ))
+            }
+            indexmap::map::Entry::Vacant(entry) => {
+                entry.insert(module);
+            }
+        }
         Ok(())
     }
 
