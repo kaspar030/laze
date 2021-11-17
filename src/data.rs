@@ -13,7 +13,7 @@ use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use anyhow::{Context as _, Result};
+use anyhow::{Context as _, Error, Result};
 use serde::{Deserialize, Deserializer};
 
 use treestate::{FileState, TreeState};
@@ -350,7 +350,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         filename: &PathBuf,
         defaults: Option<&Module>,
         build_dir: &Path,
-    ) -> Module {
+    ) -> Result<Module, Error> {
         let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
         let mut m = init_module(
             &module.name,
@@ -416,7 +416,11 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                     m.disable.as_mut().unwrap().push(dep_name.clone());
                 }
             } else {
-                eprintln!("laze: warning: \"disable\" ignored on regular modules!");
+                return Err(anyhow!(
+                    "{:?}: module {}: \"disable\" not allowed on regular (non-app) modules!",
+                    m.defined_in.unwrap(),
+                    m.name
+                ));
             }
         }
 
@@ -532,7 +536,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         m.env_local = crate::nested_env::merge(m.env_local, m.env_early.clone());
         m.apply_early_env();
 
-        m
+        Ok(m)
     }
 
     // collect and convert contexts
@@ -585,13 +589,16 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         // determine "defaults: module: ..." from yaml document
         let mut module_defaults = if let Some(defaults) = &data.defaults {
             if let Some(module_defaults) = defaults.get(key) {
-                Some(convert_module(
-                    &module_defaults,
-                    is_binary,
-                    &data.filename.as_ref().unwrap(),
-                    subdir_defaults,
-                    build_dir,
-                ))
+                Some(
+                    convert_module(
+                        &module_defaults,
+                        is_binary,
+                        &data.filename.as_ref().unwrap(),
+                        subdir_defaults,
+                        build_dir,
+                    )
+                    .unwrap(),
+                )
             } else {
                 None
             }
@@ -639,7 +646,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                                 module_defaults.as_ref()
                             },
                             build_dir,
-                        ))?;
+                        )?)?;
                     }
                 } else {
                     if *is_binary {
@@ -652,7 +659,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                             &data.filename.as_ref().unwrap(),
                             app_defaults.as_ref(),
                             build_dir,
-                        ))?;
+                        )?)?;
                     }
                 }
             }
