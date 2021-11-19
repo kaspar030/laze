@@ -23,6 +23,7 @@ extern crate serde_derive;
 use anyhow::{Context as _, Error, Result};
 use clap::{crate_version, App, AppSettings, Arg, SubCommand};
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 use signal_hook::{consts::SIGINT, iterator::Signals};
 
 #[global_allocator]
@@ -38,7 +39,7 @@ mod serde_bool_helpers;
 
 use model::{Context, ContextBag, Dependency, Module, Rule, Task};
 
-use generate::{get_ninja_build_file, BuildInfo, GenerateMode, Selector};
+use generate::{get_ninja_build_file, BuildInfo, GenerateMode, Generator, Selector};
 use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
 
@@ -497,7 +498,7 @@ fn try_main() -> Result<i32> {
     match matches.subcommand() {
         ("build", Some(build_matches)) => {
             let verbose = build_matches.occurrences_of("verbose");
-            let build_dir = Path::new(build_matches.value_of("build-dir").unwrap());
+            let build_dir = PathBuf::from(build_matches.value_of("build-dir").unwrap());
 
             // collect builder names from args
             let builders = match build_matches.values_of_lossy("builders") {
@@ -515,6 +516,15 @@ fn try_main() -> Result<i32> {
 
             // collect CLI selected modules
             let select = build_matches.values_of_lossy("select");
+            // convert CLI --select strings to Vec<Dependency>
+            let select = select.map_or(None, |mut vec| {
+                Some(
+                    vec.drain(..)
+                        .map(|dep_name| crate::data::dependency_from_string(&dep_name))
+                        .collect_vec(),
+                )
+            });
+
             let disable = build_matches.values_of_lossy("disable");
 
             // collect CLI env overrides
@@ -535,17 +545,19 @@ fn try_main() -> Result<i32> {
                 false => GenerateMode::Local(start_relpath),
             };
 
-            // arguments parsed, launch generation of ninja file(s)
-            let builds = generate::generate(
-                &project_file,
-                &build_dir,
-                mode.clone(),
-                builders.clone(),
-                apps.clone(),
+            let generator = Generator {
+                project_root: project_file,
+                build_dir: build_dir.clone(),
+                mode: mode.clone(),
+                builders: builders.clone(),
+                apps: apps.clone(),
                 select,
                 disable,
-                cli_env.as_ref(),
-            )?;
+                cli_env,
+            };
+
+            // arguments parsed, launch generation of ninja file(s)
+            let builds = generator.execute()?;
 
             // generation of ninja build file complete.
             // exit here if requested.
@@ -588,6 +600,15 @@ fn try_main() -> Result<i32> {
 
             // collect CLI selected modules
             let select = task_matches.values_of_lossy("select");
+            // convert CLI --select strings to Vec<Dependency>
+            let select = select.map_or(None, |mut vec| {
+                Some(
+                    vec.drain(..)
+                        .map(|dep_name| crate::data::dependency_from_string(&dep_name))
+                        .collect_vec(),
+                )
+            });
+
             let disable = task_matches.values_of_lossy("disable");
 
             let (task, args) = match task_matches.subcommand() {
@@ -632,16 +653,19 @@ fn try_main() -> Result<i32> {
 
             println!("building {} for {}", &apps, &builders);
             // arguments parsed, launch generation of ninja file(s)
-            let builds = generate::generate(
-                &project_file,
-                &build_dir,
-                mode.clone(),
-                builders.clone(),
-                apps.clone(),
+            let generator = Generator {
+                project_root: project_file,
+                build_dir: build_dir.into(),
+                mode: mode.clone(),
+                builders: builders.clone(),
+                apps: apps.clone(),
                 select,
                 disable,
-                cli_env.as_ref(),
-            )?;
+                cli_env,
+            };
+            let builds = generator.execute()?;
+
+            builds.to_cache(&build_dir)?;
 
             let builds: Vec<&(String, String, BuildInfo)> = builds
                 .build_infos

@@ -15,7 +15,6 @@ use std::time::Instant;
 use anyhow::Result;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use nested_env::EnvKey;
 //use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 
@@ -24,7 +23,7 @@ use super::{
     download,
     model::BlockAllow,
     nested_env,
-    nested_env::{Env, IfMissing},
+    nested_env::{Env, EnvKey, IfMissing},
     ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder},
     Build, Context, ContextBag, Dependency, Module, Task,
 };
@@ -67,193 +66,173 @@ fn relroot(relpath: &Path) -> PathBuf {
     }
 }
 
-pub fn generate(
-    project_root: &Path,
-    build_dir: &Path,
-    mode: GenerateMode,
-    builders: Selector,
-    apps: Selector,
-    select: Option<Vec<String>>,
-    disable: Option<Vec<String>>,
-    cli_env: Option<&Env>,
-) -> Result<GenerateResult> {
-    let start = Instant::now();
+pub struct Generator {
+    pub project_root: PathBuf,
+    pub build_dir: PathBuf,
+    pub mode: GenerateMode,
+    pub builders: Selector,
+    pub apps: Selector,
+    pub select: Option<Vec<Dependency>>,
+    pub disable: Option<Vec<String>>,
+    pub cli_env: Option<Env>,
+}
 
-    // convert CLI --select strings to Vec<Dependency>
-    let select = select.map_or(None, |mut vec| {
-        Some(
-            vec.drain(..)
-                .map(|dep_name| crate::data::dependency_from_string(&dep_name))
-                .collect_vec(),
-        )
-    });
+impl Generator {
+    pub fn execute(self) -> Result<GenerateResult> {
+        let start = Instant::now();
 
-    match GenerateResult::from_cache(
-        project_root,
-        build_dir,
-        &mode,
-        &builders,
-        &apps,
-        select.as_ref(),
-        disable.as_ref(),
-        &cli_env,
-    ) {
-        Ok(cached) => {
-            println!("laze: reading cache took {:?}.", start.elapsed());
-            return Ok(cached);
+        match GenerateResult::try_from(&self) {
+            Ok(cached) => {
+                println!("laze: reading cache took {:?}.", start.elapsed());
+                return Ok(cached);
+            }
+            Err(x) => match x {
+                _ => println!("laze: reading cache: {}", x),
+            },
         }
-        Err(x) => match x {
-            _ => println!("laze: reading cache: {}", x),
-        },
-    }
 
-    let (contexts, treestate) = load(project_root, build_dir)?;
+        let (contexts, treestate) = load(&self.project_root, &self.build_dir)?;
 
-    std::fs::create_dir_all(&build_dir)?;
-    let mut ninja_build_file = std::io::BufWriter::new(std::fs::File::create(
-        get_ninja_build_file(build_dir, &mode).as_path(),
-    )?);
+        std::fs::create_dir_all(&self.build_dir)?;
+        let mut ninja_build_file = std::io::BufWriter::new(std::fs::File::create(
+            get_ninja_build_file(&self.build_dir, &self.mode).as_path(),
+        )?);
 
-    ninja_build_file
-        .write_all(format!("builddir = {}\n", build_dir.to_str().unwrap()).as_bytes())?;
+        ninja_build_file
+            .write_all(format!("builddir = {}\n", self.build_dir.to_str().unwrap()).as_bytes())?;
 
-    // add phony helper
-    ninja_build_file.write_all(b"build ALWAYS: phony\n")?;
+        // add phony helper
+        ninja_build_file.write_all(b"build ALWAYS: phony\n")?;
 
-    let start = Instant::now();
+        let start = Instant::now();
 
-    let mut laze_env = im::HashMap::new();
-    laze_env.insert(
-        "in".to_string(),
-        nested_env::EnvKey::Single("\\${in}".to_string()),
-    );
-    laze_env.insert(
-        "out".to_string(),
-        nested_env::EnvKey::Single("\\${out}".to_string()),
-    );
-    laze_env.insert(
-        "build-dir".to_string(),
-        nested_env::EnvKey::Single(build_dir.to_string_lossy().into()),
-    );
+        let mut laze_env = im::HashMap::new();
+        laze_env.insert(
+            "in".to_string(),
+            nested_env::EnvKey::Single("\\${in}".to_string()),
+        );
+        laze_env.insert(
+            "out".to_string(),
+            nested_env::EnvKey::Single("\\${out}".to_string()),
+        );
+        laze_env.insert(
+            "build-dir".to_string(),
+            nested_env::EnvKey::Single(self.build_dir.to_string_lossy().into()),
+        );
 
-    let laze_env = laze_env;
+        let laze_env = laze_env;
 
-    let selected_builders = match &builders {
-        Selector::All => contexts.builders_vec(),
-        Selector::Some(builders) => contexts.builders_by_name(builders)?,
-    };
+        let selected_builders = match &self.builders {
+            Selector::All => contexts.builders_vec(),
+            Selector::Some(builders) => contexts.builders_by_name(builders)?,
+        };
 
-    // get all "binary" modules
-    let bins = contexts
-        .contexts
-        .iter()
-        .flat_map(|ctx| ctx.modules.iter())
-        .filter(|(_, module)| module.is_binary);
+        // get all "binary" modules
+        let bins = contexts
+            .contexts
+            .iter()
+            .flat_map(|ctx| ctx.modules.iter())
+            .filter(|(_, module)| module.is_binary);
 
-    // handle unknown binaries
-    if let Selector::Some(apps) = &apps {
-        let bins = bins.clone();
-        let bins_set: IndexSet<_> = bins.map(|(name, _)| name).collect();
-        let apps: IndexSet<&String> = apps.iter().collect();
-        let bins_unknown = apps.difference(&bins_set).collect_vec();
-        if !bins_unknown.is_empty() {
+        // handle unknown binaries
+        if let Selector::Some(apps) = &self.apps {
+            let bins = bins.clone();
+            let bins_set: IndexSet<_> = bins.map(|(name, _)| name).collect();
+            let apps: IndexSet<&String> = apps.iter().collect();
+            let bins_unknown = apps.difference(&bins_set).collect_vec();
+            if !bins_unknown.is_empty() {
+                return Err(anyhow!(format!(
+                    "unknown binaries specified: {}",
+                    bins_unknown.iter().cloned().join(", ")
+                )));
+            }
+        }
+
+        // filter selected apps, if specified
+        // also filter by apps in the start folder, if not in global mode
+        let mut bins_not_in_relpath = Vec::new();
+        let bins = bins
+            .filter(|(_, module)| {
+                if let Selector::Some(apps) = &self.apps {
+                    if let None = apps.get(&module.name[..]) {
+                        return false;
+                    }
+                }
+                if let GenerateMode::Local(start_dir) = &self.mode {
+                    if module.relpath.as_ref().unwrap() != start_dir {
+                        match self.apps {
+                            Selector::Some(_) => bins_not_in_relpath.push(&module.name),
+                            Selector::All => (),
+                        }
+                        return false;
+                    }
+                }
+                true
+            })
+            .collect_vec();
+
+        if !bins_not_in_relpath.is_empty() {
             return Err(anyhow!(format!(
-                "unknown binaries specified: {}",
-                bins_unknown.iter().cloned().join(", ")
+                "the following binaries are not defined in the current folder: {}",
+                bins_not_in_relpath.iter().cloned().join(", ")
             )));
         }
-    }
 
-    // filter selected apps, if specified
-    // also filter by apps in the start folder, if not in global mode
-    let mut bins_not_in_relpath = Vec::new();
-    let bins = bins
-        .filter(|(_, module)| {
-            if let Selector::Some(apps) = &apps {
-                if let None = apps.get(&module.name[..]) {
-                    return false;
+        // create (builder, bin) tuples
+        let builder_bin_tuples = selected_builders.iter().cartesian_product(bins);
+
+        // actually configure builds
+        let mut builds = builder_bin_tuples
+            .collect::<Vec<_>>()
+            .par_iter()
+            // `.par_bridge()` instead of `collect()+par_iter()` yields slight (1%) configure time
+            // speedup, at the price of changing the order of build rules. not worth losing
+            // reproducible output.
+            .filter_map(|(builder, (_, bin))| {
+                match configure_build(
+                    bin,
+                    &contexts,
+                    builder,
+                    &laze_env,
+                    self.select.as_ref(),
+                    self.disable.as_ref(),
+                    &self.cli_env.as_ref(),
+                )
+                .unwrap()
+                {
+                    Some((build_info, ninja_entries)) => Some((
+                        builder.name.clone(),
+                        bin.name.clone(),
+                        build_info,
+                        ninja_entries,
+                    )),
+                    _ => None,
                 }
-            }
-            if let GenerateMode::Local(start_dir) = &mode {
-                if module.relpath.as_ref().unwrap() != start_dir {
-                    match apps {
-                        Selector::Some(_) => bins_not_in_relpath.push(&module.name),
-                        Selector::All => (),
-                    }
-                    return false;
-                }
-            }
-            true
-        })
-        .collect_vec();
+            })
+            .collect::<Vec<(String, String, BuildInfo, IndexSet<String>)>>();
 
-    if !bins_not_in_relpath.is_empty() {
-        return Err(anyhow!(format!(
-            "the following binaries are not defined in the current folder: {}",
-            bins_not_in_relpath.iter().cloned().join(", ")
-        )));
+        let mut combined_ninja_entries = IndexSet::new();
+        let builds = builds
+            .drain(..)
+            .map(|(builder, bin, build_info, ninja_entries)| {
+                combined_ninja_entries.extend(ninja_entries);
+                (builder, bin, build_info)
+            })
+            .collect::<Vec<_>>();
+
+        for entry in combined_ninja_entries {
+            ninja_build_file.write_all(entry.as_bytes())?;
+        }
+
+        let num_built = builds.len();
+        println!(
+            "configured {} builds (took {:?}).",
+            num_built,
+            start.elapsed()
+        );
+
+        Ok(GenerateResult::new(self, builds, treestate))
     }
-
-    // create (builder, bin) tuples
-    let builder_bin_tuples = selected_builders.iter().cartesian_product(bins);
-
-    // actually configure builds
-    let mut builds = builder_bin_tuples
-        .collect::<Vec<_>>()
-        .par_iter()
-        // `.par_bridge()` instead of `collect()+par_iter()` yields slight (1%) configure time
-        // speedup, at the price of changing the order of build rules. not worth losing
-        // reproducible output.
-        .filter_map(|(builder, (_, bin))| {
-            match configure_build(
-                bin,
-                &contexts,
-                builder,
-                &laze_env,
-                select.as_ref(),
-                disable.as_ref(),
-                &cli_env,
-            )
-            .unwrap()
-            {
-                Some((build_info, ninja_entries)) => Some((
-                    builder.name.clone(),
-                    bin.name.clone(),
-                    build_info,
-                    ninja_entries,
-                )),
-                _ => None,
-            }
-        })
-        .collect::<Vec<(String, String, BuildInfo, IndexSet<String>)>>();
-
-    let mut combined_ninja_entries = IndexSet::new();
-    let builds = builds
-        .drain(..)
-        .map(|(builder, bin, build_info, ninja_entries)| {
-            combined_ninja_entries.extend(ninja_entries);
-            (builder, bin, build_info)
-        })
-        .collect::<Vec<_>>();
-
-    for entry in combined_ninja_entries {
-        ninja_build_file.write_all(entry.as_bytes())?;
-    }
-
-    let num_built = builds.len();
-    println!(
-        "configured {} builds (took {:?}).",
-        num_built,
-        start.elapsed()
-    );
-
-    let result = GenerateResult::new(
-        mode, builders, apps, builds, treestate, select, disable, cli_env,
-    );
-    let start = Instant::now();
-    result.to_cache(&build_dir)?;
-    println!("laze: writing cache took {:?}.", start.elapsed());
-    Ok(result)
 }
 
 // This function "renders" a specific app/builder pair, if dependencies
@@ -781,24 +760,19 @@ pub struct GenerateResult {
 
 impl GenerateResult {
     pub fn new(
-        mode: GenerateMode,
-        builders: Selector,
-        apps: Selector,
+        generator: Generator,
         build_infos: BuildInfoList,
         treestate: FileTreeState,
-        select: Option<Vec<Dependency>>,
-        disable: Option<Vec<String>>,
-        cli_env: Option<&Env>,
     ) -> GenerateResult {
         GenerateResult {
             build_id: build_id::get(),
-            mode,
-            builders,
-            apps,
+            mode: generator.mode,
+            builders: generator.builders,
+            apps: generator.apps,
+            select: generator.select,
+            disable: generator.disable,
+            cli_env_hash: generator.cli_env.as_ref().map_or(0, calculate_hash),
             build_infos,
-            select,
-            disable,
-            cli_env_hash: cli_env.map_or(0, calculate_hash),
             treestate,
         }
     }
@@ -810,54 +784,52 @@ impl GenerateResult {
         }
     }
 
-    pub fn from_cache(
-        _project_root: &Path,
-        build_dir: &Path,
-        mode: &GenerateMode,
-        builders: &Selector,
-        apps: &Selector,
-        select: Option<&Vec<Dependency>>,
-        disable: Option<&Vec<String>>,
-        cli_env: &Option<&Env>,
-    ) -> Result<GenerateResult> {
-        let file = Self::cache_file(build_dir, mode);
+    pub fn to_cache(&self, build_dir: &Path) -> std::result::Result<(), Box<bincode::ErrorKind>> {
+        let start = Instant::now();
+        let file = Self::cache_file(build_dir, &self.mode);
+        let file = File::create(file)?;
+        let result = bincode::serialize_into(file, self);
+        println!("laze: writing cache took {:?}.", start.elapsed());
+        result
+    }
+}
+
+impl TryFrom<&Generator> for GenerateResult {
+    type Error = anyhow::Error;
+
+    fn try_from(generator: &Generator) -> Result<Self, Self::Error> {
+        let file = Self::cache_file(&generator.build_dir, &generator.mode);
         let file = File::open(file)?;
         let res: GenerateResult = bincode::deserialize_from(file)?;
         if res.build_id != build_id::get() {
             return Err(anyhow!("cache from different laze version"));
         }
-        if !res.builders.is_superset(builders) {
+        if !res.builders.is_superset(&generator.builders) {
             return Err(anyhow!("builders don't match"));
         }
-        if !res.apps.is_superset(apps) {
+        if !res.apps.is_superset(&generator.apps) {
             return Err(anyhow!("apps don't match"));
         }
-        if let GenerateMode::Local(path) = mode {
+        if let GenerateMode::Local(path) = &generator.mode {
             if let GenerateMode::Local(cached_path) = &res.mode {
                 if path != cached_path {
                     return Err(anyhow!("local paths don't match"));
                 }
             }
         }
-        if !res.select.as_ref().eq(&select) {
+        if !res.select.as_ref().eq(&generator.select.as_ref()) {
             return Err(anyhow!("CLI selects don't match"));
         }
-        if !res.disable.as_ref().eq(&disable) {
+        if !res.disable.as_ref().eq(&generator.disable.as_ref()) {
             return Err(anyhow!("CLI disables don't match"));
         }
-        if res.cli_env_hash != cli_env.map_or(0, calculate_hash) {
+        if res.cli_env_hash != generator.cli_env.as_ref().map_or(0, calculate_hash) {
             return Err(anyhow!("laze: CLI env doesn't match"));
         }
         if res.treestate.has_changed() {
             return Err(anyhow!("laze: build files have changed"));
         }
         Ok(res)
-    }
-
-    pub fn to_cache(&self, build_dir: &Path) -> std::result::Result<(), Box<bincode::ErrorKind>> {
-        let file = Self::cache_file(build_dir, &self.mode);
-        let file = File::create(file)?;
-        bincode::serialize_into(file, self)
     }
 }
 
