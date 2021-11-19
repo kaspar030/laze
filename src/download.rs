@@ -8,7 +8,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-use super::{ninja::NinjaBuildBuilder, ninja::NinjaRuleBuilder, Module, Rule};
+use super::{ninja::NinjaBuildBuilder, Module, Rule};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum DownloadSource {
@@ -76,15 +76,7 @@ impl Download {
         // TODO: expand with global env?
         let expanded = &download_rule.cmd;
 
-        let ninja_download_rule = NinjaRuleBuilder::default()
-            .name(&download_rule.name)
-            .description(Some(Cow::from(&download_rule.name)))
-            .command(expanded)
-            .rspfile(download_rule.rspfile.as_deref().map(Cow::from))
-            .rspfile_content(download_rule.rspfile_content.as_deref().map(Cow::from))
-            .pool(download_rule.pool.as_deref().map(Cow::from))
-            .build()
-            .unwrap();
+        let ninja_download_rule = download_rule.to_ninja().command(expanded).build().unwrap();
 
         // "srcdir" is filled in data.rs
         let srcdir = module.srcdir.as_ref().unwrap();
@@ -123,15 +115,7 @@ impl Download {
         // TODO: expand with global env?
         let expanded = &patch_rule.cmd;
 
-        let ninja_patch_rule = NinjaRuleBuilder::default()
-            .name(&patch_rule.name)
-            .description(Some(Cow::from(&patch_rule.name)))
-            .command(expanded)
-            .rspfile(patch_rule.rspfile.as_deref().map(Cow::from))
-            .rspfile_content(patch_rule.rspfile_content.as_deref().map(Cow::from))
-            .pool(patch_rule.pool.as_deref().map(Cow::from))
-            .build()
-            .unwrap();
+        let ninja_patch_rule = patch_rule.to_ninja().command(expanded).build().unwrap();
 
         // "srcdir" is filled in data.rs
         let srcdir = module.srcdir.as_ref().unwrap();

@@ -25,7 +25,7 @@ use super::{
     model::BlockAllow,
     nested_env,
     nested_env::{Env, IfMissing},
-    ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder, NinjaRuleDeps},
+    ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder},
     Build, Context, ContextBag, Dependency, Module, Task,
 };
 
@@ -604,17 +604,9 @@ fn configure_build(
                     let expanded =
                         nested_env::expand(&rule.cmd, &flattened_env, IfMissing::Empty).unwrap();
 
-                    let rule = NinjaRuleBuilder::default()
-                        .name(Cow::from(&rule.name))
-                        .description(Some(Cow::from(&rule.name)))
-                        .rspfile(rule.rspfile.as_deref().map(Cow::from))
-                        .rspfile_content(rule.rspfile_content.as_deref().map(Cow::from))
-                        .pool(rule.pool.as_deref().map(Cow::from))
+                    let rule = rule
+                        .to_ninja()
                         .command(expanded)
-                        .deps(match &rule.gcc_deps {
-                            None => NinjaRuleDeps::None,
-                            Some(s) => NinjaRuleDeps::GCC(s.into()),
-                        })
                         .build()
                         .unwrap()
                         .named_with_extra(build_deps_hash);
@@ -694,13 +686,9 @@ fn configure_build(
         let expanded =
             nested_env::expand(&link_rule.cmd, &global_env_flattened, IfMissing::Empty).unwrap();
 
-        let ninja_link_rule = NinjaRuleBuilder::default()
-            .name(&link_rule.name)
-            .description(Some(Cow::from(&link_rule.name)))
+        let ninja_link_rule = link_rule
+            .to_ninja()
             .command(expanded)
-            .rspfile(link_rule.rspfile.as_deref().map(Cow::from))
-            .rspfile_content(link_rule.rspfile_content.as_deref().map(Cow::from))
-            .pool(link_rule.pool.as_deref().map(Cow::from))
             .build()
             .unwrap()
             .named();
