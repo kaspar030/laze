@@ -66,15 +66,17 @@ fn relroot(relpath: &Path) -> PathBuf {
     }
 }
 
+#[derive(Builder)]
+#[builder(setter(into))]
 pub struct Generator {
-    pub project_root: PathBuf,
-    pub build_dir: PathBuf,
-    pub mode: GenerateMode,
-    pub builders: Selector,
-    pub apps: Selector,
-    pub select: Option<Vec<Dependency>>,
-    pub disable: Option<Vec<String>>,
-    pub cli_env: Option<Env>,
+    project_root: PathBuf,
+    build_dir: PathBuf,
+    mode: GenerateMode,
+    builders: Selector,
+    apps: Selector,
+    select: Option<Vec<Dependency>>,
+    disable: Option<Vec<String>>,
+    cli_env: Option<Env>,
 }
 
 impl Generator {

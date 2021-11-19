@@ -39,7 +39,7 @@ mod serde_bool_helpers;
 
 use model::{Context, ContextBag, Dependency, Module, Rule, Task};
 
-use generate::{get_ninja_build_file, BuildInfo, GenerateMode, Generator, Selector};
+use generate::{get_ninja_build_file, BuildInfo, GenerateMode, GeneratorBuilder, Selector};
 use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
 
@@ -545,16 +545,17 @@ fn try_main() -> Result<i32> {
                 false => GenerateMode::Local(start_relpath),
             };
 
-            let generator = Generator {
-                project_root: project_file,
-                build_dir: build_dir.clone(),
-                mode: mode.clone(),
-                builders: builders.clone(),
-                apps: apps.clone(),
-                select,
-                disable,
-                cli_env,
-            };
+            let generator = GeneratorBuilder::default()
+                .project_root(project_file)
+                .build_dir(build_dir.clone())
+                .mode(mode.clone())
+                .builders(builders.clone())
+                .apps(apps.clone())
+                .select(select)
+                .disable(disable)
+                .cli_env(cli_env)
+                .build()
+                .unwrap();
 
             // arguments parsed, launch generation of ninja file(s)
             let builds = generator.execute()?;
@@ -652,17 +653,20 @@ fn try_main() -> Result<i32> {
             };
 
             println!("building {} for {}", &apps, &builders);
+
             // arguments parsed, launch generation of ninja file(s)
-            let generator = Generator {
-                project_root: project_file,
-                build_dir: build_dir.into(),
-                mode: mode.clone(),
-                builders: builders.clone(),
-                apps: apps.clone(),
-                select,
-                disable,
-                cli_env,
-            };
+            let generator = GeneratorBuilder::default()
+                .project_root(project_file)
+                .build_dir(build_dir)
+                .mode(mode.clone())
+                .builders(builders.clone())
+                .apps(apps.clone())
+                .select(select)
+                .disable(disable)
+                .cli_env(cli_env)
+                .build()
+                .unwrap();
+
             let builds = generator.execute()?;
 
             builds.to_cache(&build_dir)?;
