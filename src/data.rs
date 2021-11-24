@@ -8,6 +8,7 @@ extern crate pathdiff;
 extern crate serde_yaml;
 
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
@@ -87,7 +88,7 @@ enum StringOrVecString {
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlModule {
     name: Option<String>,
-    context: Option<String>,
+    context: Option<StringOrVecString>,
     depends: Option<Vec<StringOrMapString>>,
     selects: Option<Vec<String>>,
     uses: Option<Vec<String>>,
@@ -121,6 +122,17 @@ impl YamlModule {
             allowlist: None,
             download: None,
             is_binary,
+        }
+    }
+
+    fn get_contexts(&self) -> Vec<Option<&String>> {
+        if let Some(contexts) = &self.context {
+            match contexts {
+                StringOrVecString::Single(single) => vec![Some(&single)],
+                StringOrVecString::List(list) => list.iter().map(|x| Some(x)).collect_vec(),
+            }
+        } else {
+            return vec![None];
         }
     }
 }
@@ -346,19 +358,15 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
 
     fn convert_module(
         module: &YamlModule,
+        context: Option<&String>,
         is_binary: bool,
         filename: &PathBuf,
         defaults: Option<&Module>,
         build_dir: &Path,
     ) -> Result<Module, Error> {
         let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
-        let mut m = init_module(
-            &module.name,
-            module.context.as_ref(),
-            is_binary,
-            filename,
-            defaults,
-        );
+
+        let mut m = init_module(&module.name, context, is_binary, filename, defaults);
 
         // convert module dependencies
         // "selects" means "module will be part of the build"
@@ -589,9 +597,21 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         // determine "defaults: module: ..." from yaml document
         let mut module_defaults = if let Some(defaults) = &data.defaults {
             if let Some(module_defaults) = defaults.get(key) {
+                let context =
+                    &module_defaults
+                        .context
+                        .as_ref()
+                        .map_or(None, |context| match context {
+                            StringOrVecString::List(_) => {
+                                panic!("module defaults with context _list_")
+                            }
+                            StringOrVecString::Single(context) => Some(context),
+                        });
+
                 Some(
                     convert_module(
                         &module_defaults,
+                        *context,
                         is_binary,
                         &data.filename.as_ref().unwrap(),
                         subdir_defaults,
@@ -636,30 +656,36 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             if let Some(module_list) = list {
                 if let Some(module_list) = module_list {
                     for module in module_list {
-                        contexts.add_module(convert_module(
-                            &module,
-                            *is_binary,
-                            &data.filename.as_ref().unwrap(),
-                            if *is_binary {
-                                app_defaults.as_ref()
-                            } else {
-                                module_defaults.as_ref()
-                            },
-                            build_dir,
-                        )?)?;
+                        for context in module.get_contexts() {
+                            contexts.add_module(convert_module(
+                                &module,
+                                context,
+                                *is_binary,
+                                &data.filename.as_ref().unwrap(),
+                                if *is_binary {
+                                    app_defaults.as_ref()
+                                } else {
+                                    module_defaults.as_ref()
+                                },
+                                build_dir,
+                            )?)?;
+                        }
                     }
                 } else {
                     if *is_binary {
                         // if an app list is empty, add a default entry.
                         // this allows a convenient file only containing "app:"
                         let module = YamlModule::default(*is_binary);
-                        contexts.add_module(convert_module(
-                            &module,
-                            *is_binary,
-                            &data.filename.as_ref().unwrap(),
-                            app_defaults.as_ref(),
-                            build_dir,
-                        )?)?;
+                        for context in module.get_contexts() {
+                            contexts.add_module(convert_module(
+                                &module,
+                                context,
+                                *is_binary,
+                                &data.filename.as_ref().unwrap(),
+                                app_defaults.as_ref(),
+                                build_dir,
+                            )?)?;
+                        }
                     }
                 }
             }
