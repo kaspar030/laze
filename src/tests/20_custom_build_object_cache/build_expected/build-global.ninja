@@ -1,0 +1,64 @@
+builddir = build
+build ALWAYS: phony
+rule CC_2563940449587458123
+  command = echo  ${in} > ${out}
+  description = CC
+
+build build/objects/single_app.18259766525449260054.o: $
+    CC_2563940449587458123 $
+    single_app.c $
+    | $
+    __done_builder0_single_app__shared_module
+
+rule BUILD_13927864424831170064
+  command = echo VARIABLE_from_builder0 > build/builder0/foo.c
+  description = BUILD ${out}
+
+build build/builder0/foo.c: $
+    BUILD_13927864424831170064
+
+build outs_13954979718853993981: $
+    phony $
+    build/builder0/foo.c
+
+build __done_builder0_single_app__shared_module: $
+    phony $
+    outs_13954979718853993981
+
+rule LINK_5506617845631750009
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build/builder0/single_app/single_app.elf: $
+    LINK_5506617845631750009 $
+    build/objects/single_app.18259766525449260054.o
+
+rule CC_10098699559447939889
+  command = echo  ${in} > ${out}
+  description = CC
+
+build build/objects/single_app.4535216892627470363.o: $
+    CC_10098699559447939889 $
+    single_app.c $
+    | $
+    __done_builder1_single_app__shared_module
+
+rule BUILD_13535410127151112283
+  command = echo VARIABLE_from_builder1 > build/builder1/foo.c
+  description = BUILD ${out}
+
+build build/builder1/foo.c: $
+    BUILD_13535410127151112283
+
+build outs_15211011165607661143: $
+    phony $
+    build/builder1/foo.c
+
+build __done_builder1_single_app__shared_module: $
+    phony $
+    outs_15211011165607661143
+
+build build/builder1/single_app/single_app.elf: $
+    LINK_5506617845631750009 $
+    build/objects/single_app.4535216892627470363.o
+

@@ -1,0 +1,47 @@
+context:
+  - name: default
+    rule:
+      - name: CC
+        in: "c"
+        out: "o"
+        cmd: "echo ${EXPORT_VAR} ${in} > ${out}"
+      - name: LINK
+        in: "o"
+        options:
+          combine: true
+        cmd: "cat ${in} > ${out}"
+    env:
+      bindir: build/${builder}/${app}
+
+builder:
+  - name: builder0
+  - name: builder1
+
+module:
+  - name: shared_module
+    context: default
+    depends:
+      - module_defining_variable
+    build:
+      cmd:
+        - echo ${VARIABLE} > build/${builder}/foo.c
+      out:
+        - build/${builder}/foo.c
+
+  - name: module_defining_variable
+    context: builder0
+    env:
+      export:
+        VARIABLE: VARIABLE_from_builder0
+
+  - name: module_defining_variable
+    context: builder1
+    env:
+      export:
+        VARIABLE: VARIABLE_from_builder1
+app:
+  - name: single_app
+    depends:
+      - shared_module
+    sources:
+      - single_app.c
