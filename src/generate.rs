@@ -233,7 +233,10 @@ impl Generator {
             start.elapsed()
         );
 
-        Ok(GenerateResult::new(self, builds, treestate))
+        let build_dir = self.build_dir.clone();
+        let result = GenerateResult::new(self, builds, treestate);
+        result.to_cache(&build_dir)?;
+        Ok(result)
     }
 }
 

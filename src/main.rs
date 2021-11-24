@@ -560,9 +560,6 @@ fn try_main() -> Result<i32> {
             // arguments parsed, launch generation of ninja file(s)
             let builds = generator.execute()?;
 
-            // store cache
-            builds.to_cache(&build_dir)?;
-
             // generation of ninja build file complete.
             // exit here if requested.
             if build_matches.is_present("generate-only") {
@@ -671,8 +668,6 @@ fn try_main() -> Result<i32> {
                 .unwrap();
 
             let builds = generator.execute()?;
-
-            builds.to_cache(&build_dir)?;
 
             let builds: Vec<&(String, String, BuildInfo)> = builds
                 .build_infos
