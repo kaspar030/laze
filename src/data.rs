@@ -101,6 +101,7 @@ struct YamlModule {
     blocklist: Option<Vec<String>>,
     allowlist: Option<Vec<String>>,
     download: Option<Download>,
+    srcdir: Option<String>,
     #[serde(skip)]
     is_binary: bool,
 }
@@ -116,6 +117,7 @@ impl YamlModule {
             disable: None,
             notify_all: false,
             sources: None,
+            srcdir: None,
             build: None,
             env: None,
             blocklist: None,
@@ -529,7 +531,10 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             m.add_build_dep_export(&build_tag);
         }
 
-        m.srcdir = Some(srcdir);
+        m.srcdir = module
+            .srcdir
+            .as_ref()
+            .map_or(Some(srcdir), |s| Some(PathBuf::from(s)));
 
         // populate "early env"
         m.env_early
