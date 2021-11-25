@@ -385,6 +385,7 @@ fn configure_build(
 
         // "srcdir" is either the folder of laze.yml that defined this module,
         // *or* if it was downloaded, the download folder.
+        // *or*, it was overridden using "srcdir:"
         // This is populated in data.rs, so unwrap() always succeeds.
         let srcdir = module.srcdir.as_ref().unwrap();
 
@@ -479,7 +480,10 @@ fn configure_build(
                     // 1. determine full file path (relative to project root)
                     let mut srcpath = srcdir.clone();
                     srcpath.push(source);
-                    srcpath
+                    let srcpath = srcpath.to_str().unwrap();
+                    PathBuf::from(
+                        nested_env::expand(srcpath, &flattened_env, IfMissing::Empty).unwrap(),
+                    )
                 })
                 .collect_vec();
 
@@ -604,6 +608,12 @@ fn configure_build(
                 // 1. determine full file path (relative to project root)
                 let mut srcpath = srcdir.clone();
                 srcpath.push(source);
+
+                // expand variables in source path
+                let srcpath = srcpath.to_str().unwrap();
+                let srcpath = PathBuf::from(
+                    nested_env::expand(srcpath, &flattened_env, IfMissing::Empty).unwrap(),
+                );
 
                 // 2. find ninja rule by lookup of the source file's extension
                 let ext = Path::new(&source)
