@@ -157,7 +157,7 @@ struct YamlModuleEnv {
 //     Ok(data)
 // }
 
-fn process_removes(strings: &mut Vec<Dependency>) {
+fn process_removes(strings: &mut Vec<Dependency<String>>) {
     let removals = strings
         .iter()
         .filter(|x| x.get_name().starts_with("-"))
@@ -167,14 +167,14 @@ fn process_removes(strings: &mut Vec<Dependency>) {
     strings.retain(|x| !(x.get_name().starts_with("-") || removals.contains(&x.get_name()[..])));
 }
 
-pub fn dependency_from_string(dep_name: &String) -> Dependency {
+pub fn dependency_from_string(dep_name: &String) -> Dependency<String> {
     match dep_name.as_bytes()[0] {
         b'?' => Dependency::Soft(dep_name[1..].to_string()),
         _ => Dependency::Hard(dep_name.clone()),
     }
 }
 
-pub fn dependency_from_string_if(dep_name: &String, other: &String) -> Dependency {
+pub fn dependency_from_string_if(dep_name: &String, other: &String) -> Dependency<String> {
     match dep_name.as_bytes()[0] {
         b'?' => Dependency::IfThenSoft(other.clone(), dep_name[1..].to_string()),
         _ => Dependency::IfThenHard(other.clone(), dep_name.clone()),

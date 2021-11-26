@@ -17,7 +17,7 @@ pub struct Context {
     pub modules: IndexMap<String, Module>,
     pub rules: Option<IndexMap<String, Rule>>,
     pub env: Option<Env>,
-    pub select: Option<Vec<Dependency>>,
+    pub select: Option<Vec<Dependency<String>>>,
     pub disable: Option<Vec<String>>,
 
     pub var_options: Option<im::HashMap<String, MergeOption>>,
@@ -175,7 +175,7 @@ impl Context {
         result
     }
 
-    pub fn collect_selected_modules(&self, contexts: &ContextBag) -> Vec<Dependency> {
+    pub fn collect_selected_modules(&self, contexts: &ContextBag) -> Vec<Dependency<String>> {
         let mut result = Vec::new();
         let mut parents = Vec::new();
         self.get_parents(contexts, &mut parents);

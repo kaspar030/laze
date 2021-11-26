@@ -74,7 +74,7 @@ pub struct Generator {
     mode: GenerateMode,
     builders: Selector,
     apps: Selector,
-    select: Option<Vec<Dependency>>,
+    select: Option<Vec<Dependency<String>>>,
     disable: Option<Vec<String>>,
     cli_env: Option<Env>,
 }
@@ -249,7 +249,7 @@ fn configure_build(
     contexts: &ContextBag,
     builder: &Context,
     laze_env: &Env,
-    select: Option<&Vec<Dependency>>,
+    select: Option<&Vec<Dependency<String>>>,
     disable: Option<&Vec<String>>,
     cli_env: &Option<&Env>,
 ) -> Result<Option<(BuildInfo, IndexSet<String>)>> {
@@ -767,7 +767,7 @@ pub struct GenerateResult {
     pub build_infos: Vec<(String, String, BuildInfo)>,
 
     build_id: uuid::Uuid,
-    select: Option<Vec<Dependency>>,
+    select: Option<Vec<Dependency<String>>>,
     disable: Option<Vec<String>>,
     cli_env_hash: u64,
     treestate: FileTreeState,

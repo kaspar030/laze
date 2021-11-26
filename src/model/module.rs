@@ -15,8 +15,8 @@ pub struct Module {
     pub name: String,
     pub context_name: String,
 
-    pub selects: Vec<Dependency>,
-    pub imports: Vec<Dependency>,
+    pub selects: Vec<Dependency<String>>,
+    pub imports: Vec<Dependency<String>>,
     pub disable: Option<Vec<String>>,
     pub notify_all: bool,
 

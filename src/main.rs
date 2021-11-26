@@ -69,7 +69,7 @@ impl<'a: 'b, 'b> Build<'b> {
         binary: &'a Module,
         builder: &'a Context,
         contexts: &'a ContextBag,
-        cli_selects: Option<&Vec<Dependency>>,
+        cli_selects: Option<&Vec<Dependency<String>>>,
     ) -> Build<'b> {
         let build_context = Context::new_build_context(builder.name.clone(), builder);
 
