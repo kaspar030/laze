@@ -128,19 +128,21 @@ impl<'a: 'b, 'b> Build<'b> {
         &'s self,
         module: &'m Module,
         module_set: &mut IndexMap<&'m String, &'m Module>,
+        if_then_deps: &mut IndexMap<String, Vec<Dependency<String>>>,
         disabled_modules: &HashSet<String>,
     ) -> Result<(), Error> {
         let prev_len = module_set.len();
-
-        fn reset(module_set: &mut IndexMap<&String, &Module>, len: usize) {
-            while module_set.len() > len {
-                module_set.pop();
-            }
-        }
+        let if_then_deps_prev_len = if_then_deps.len();
 
         module_set.insert(&module.name, module);
 
-        for dep in &module.selects {
+        let mut late_if_then_deps = Vec::new();
+        if let Some(deps) = if_then_deps.get(&module.name) {
+            late_if_then_deps.extend(deps.iter().cloned());
+        }
+
+        for dep in module.selects.iter().chain(late_if_then_deps.iter()) {
+            //.chain(late_if_then_deps) {
             let (dep_name, optional) = match dep {
                 Dependency::Hard(name) => (name, false),
                 Dependency::Soft(name) => (name, true),
@@ -148,6 +150,10 @@ impl<'a: 'b, 'b> Build<'b> {
                     if module_set.contains_key(other) {
                         (name, false)
                     } else {
+                        if_then_deps
+                            .entry(other.clone())
+                            .or_insert_with(|| Vec::new())
+                            .push(Dependency::Hard(name.clone()));
                         continue;
                     }
                 }
@@ -155,6 +161,11 @@ impl<'a: 'b, 'b> Build<'b> {
                     if module_set.contains_key(other) {
                         (name, true)
                     } else {
+                        if_then_deps
+                            .entry(other.clone())
+                            .or_insert_with(|| Vec::new())
+                            .push(Dependency::Soft(name.clone()));
+
                         continue;
                     }
                 }
@@ -166,7 +177,9 @@ impl<'a: 'b, 'b> Build<'b> {
 
             if disabled_modules.contains(dep_name) {
                 if !optional {
-                    reset(module_set, prev_len);
+                    module_set.truncate(prev_len);
+                    if_then_deps.truncate(if_then_deps_prev_len);
+
                     bail!(
                         "binary {} for builder {}: {} depends on disabled module {}",
                         self.binary.name,
@@ -185,7 +198,8 @@ impl<'a: 'b, 'b> Build<'b> {
                     if optional {
                         continue;
                     } else {
-                        reset(module_set, prev_len);
+                        module_set.truncate(prev_len);
+                        if_then_deps.truncate(if_then_deps_prev_len);
                         bail!(
                             "binary {} for builder {}: {} depends on unavailable module {}",
                             self.binary.name,
@@ -197,9 +211,12 @@ impl<'a: 'b, 'b> Build<'b> {
                 }
             };
 
-            if let Err(x) = self.resolve_module_deep(module, module_set, disabled_modules) {
+            if let Err(x) =
+                self.resolve_module_deep(module, module_set, if_then_deps, disabled_modules)
+            {
                 if !optional {
-                    reset(module_set, prev_len);
+                    module_set.truncate(prev_len);
+                    if_then_deps.truncate(if_then_deps_prev_len);
                     return Err(x);
                 }
             }
@@ -212,8 +229,14 @@ impl<'a: 'b, 'b> Build<'b> {
         disabled_modules: &HashSet<String>,
     ) -> Result<IndexMap<&String, &Module>, Error> {
         let mut modules = IndexMap::new();
+        let mut if_then_deps = IndexMap::new();
 
-        if let Err(x) = self.resolve_module_deep(&self.binary, &mut modules, disabled_modules) {
+        if let Err(x) = self.resolve_module_deep(
+            &self.binary,
+            &mut modules,
+            &mut if_then_deps,
+            disabled_modules,
+        ) {
             return Err(x);
         }
 
