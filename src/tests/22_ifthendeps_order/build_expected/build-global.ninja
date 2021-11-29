@@ -1,0 +1,27 @@
+builddir = build
+build ALWAYS: phony
+rule CC_1643978158559613747
+  command = echo export_from_fifth_module export_from_third_module export_from_fourth_module export_from_second_module export_from_first_module ${in} > ${out}
+  description = CC
+
+build build/objects/app.13953780255372831052.o: $
+    CC_1643978158559613747 $
+    app.c
+
+rule CC_5767099186035483882
+  command = echo export_from_second_module export_from_first_module ${in} > ${out}
+  description = CC
+
+build build/objects/module.5571264317339904527.o: $
+    CC_5767099186035483882 $
+    module.c
+
+rule LINK_5506617845631750009
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build/default/app/app.elf: $
+    LINK_5506617845631750009 $
+    build/objects/app.13953780255372831052.o $
+    build/objects/module.5571264317339904527.o
+
