@@ -3,6 +3,10 @@ kind: pipeline
 type: docker
 name: default
 
+clone:
+  git:
+  image: plugins/git:next
+
 steps:
   - name: test
     image: rust:latest
@@ -79,6 +83,6 @@ steps:
         || true # temporarily allow an arror
 ---
 kind: signature
-hmac: 9375ac2285b20f9ca231597af4d6dd9c0a96e15618f592fbe8f09a3be1b43f89
+hmac: 93f611abcdc25afe8ce773c0eeb4cf8cd7b160b7704fec28f6718f4d256cbb8c
 
 ...
