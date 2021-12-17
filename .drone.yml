@@ -24,6 +24,9 @@ steps:
       - rustup toolchain install nightly
       - rustup +nightly component add llvm-tools-preview
       - cargo install --locked cargo-udeps
+      - "#"
+      - "# configure git"
+      - git config --global init.defaultBranch main
 
       - "#"
       - "# compiling with stable rust"
@@ -83,6 +86,6 @@ steps:
         || true # temporarily allow an arror
 ---
 kind: signature
-hmac: 93f611abcdc25afe8ce773c0eeb4cf8cd7b160b7704fec28f6718f4d256cbb8c
+hmac: 702042ee7f915fd407312d2125a0fc7b2ee5954be07e0c941a183db08a3fdba0
 
 ...
