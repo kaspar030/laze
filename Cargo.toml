@@ -26,7 +26,7 @@ shell-words = "1.0.0"
 simple-error = "0.2.3"
 treestate = "0.1.0"
 im = { version = "15.0.0", features = ["rayon", "serde"] }
-signal-hook = "0.3.12"
+signal-hook = "0.3.13"
 mimalloc = { version = "0.1.27", default-features = false }
 build_id = "0.2.1"
 uuid = { version = "0.8.2", features = ["serde"] }
