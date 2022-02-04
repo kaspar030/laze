@@ -503,6 +503,7 @@ fn configure_build(
                             let out = Cow::from(PathBuf::from(
                                 nested_env::expand(&out, &flattened_env, IfMissing::Empty).unwrap(),
                             ));
+                            // TODO: check if this hashes the path or a Cow
                             out.hash(&mut hasher);
                             out
                         })
