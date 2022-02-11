@@ -424,7 +424,7 @@ fn try_main() -> Result<i32> {
         .subcommand(
             SubCommand::with_name("task")
                 .about("run builder specific task")
-                .usage("lazers task [FLAGS] [OPTIONS] <TASK> [ARGS]...")
+                .usage("laze task [FLAGS] [OPTIONS] <TASK> [ARGS]...")
                 .setting(AppSettings::AllowExternalSubcommands)
                 .setting(AppSettings::SubcommandRequired)
                 .arg(
