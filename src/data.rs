@@ -186,13 +186,12 @@ fn load_all<'a>(
     index_start: usize,
     included_by: Option<usize>,
 ) -> Result<Vec<YamlFile>> {
-    let file = read_to_string(filename)
-        .with_context(|| format!("while reading {}", filename.display()))?;
+    let file = read_to_string(filename).with_context(|| format!("{:?}", filename))?;
 
     let mut result = Vec::new();
     for (n, doc) in serde_yaml::Deserializer::from_str(&file).enumerate() {
-        let mut parsed = YamlFile::deserialize(doc)
-            .with_context(|| format!("while parsing {}", filename.display()))?;
+        let mut parsed =
+            YamlFile::deserialize(doc).with_context(|| format!("{}", filename.display()))?;
         parsed.filename = Some(filename.clone());
         parsed.doc_idx = Some(index_start + n);
         parsed.included_by = included_by;
