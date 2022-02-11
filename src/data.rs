@@ -189,11 +189,9 @@ fn load_all<'a>(
     let file = read_to_string(filename)
         .with_context(|| format!("while reading {}", filename.display()))?;
 
-    let docs: Vec<&str> = file.split("\n---\n").collect();
-
     let mut result = Vec::new();
-    for (n, doc) in docs.iter().enumerate() {
-        let mut parsed: YamlFile = serde_yaml::from_str(doc)
+    for (n, doc) in serde_yaml::Deserializer::from_str(&file).enumerate() {
+        let mut parsed = YamlFile::deserialize(doc)
             .with_context(|| format!("while parsing {}", filename.display()))?;
         parsed.filename = Some(filename.clone());
         parsed.doc_idx = Some(index_start + n);
