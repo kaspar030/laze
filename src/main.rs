@@ -21,7 +21,7 @@ use std::thread;
 extern crate serde_derive;
 
 use anyhow::{Context as _, Error, Result};
-use clap::{crate_version, App, AppSettings, Arg, SubCommand};
+use clap::{crate_version, Arg, Command};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use signal_hook::{consts::SIGINT, iterator::Signals};
@@ -303,6 +303,219 @@ fn main() {
 
 pub static IGNORE_SIGINT: AtomicBool = AtomicBool::new(false);
 
+fn clap() -> clap::Command<'static> {
+    Command::new("laze in rust")
+        .version(crate_version!())
+        .author("Kaspar Schleiser <kaspar@schleiser.de>")
+        .about("Build a lot, fast")
+        .infer_subcommands(true)
+        .arg(
+            Arg::new("chdir")
+                .short('C')
+                .long("chdir")
+                .help("change working directory before doing anything else")
+                .global(true)
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::new("global")
+                .short('g')
+                .long("global")
+                .help("global mode")
+                .global(true)
+                .required(false),
+        )
+        .subcommand(
+            Command::new("build")
+                .about("generate build files and build")
+                .arg(
+                    Arg::new("build-dir")
+                        .short('B')
+                        .long("build-dir")
+                        .takes_value(true)
+                        .value_name("DIR")
+                        .default_value("build")
+                        .help("specify build dir (relative to project root)"),
+                )
+                .arg(
+                    Arg::new("generate-only")
+                        .short('G')
+                        .long("generate-only")
+                        .help("generate build files only, don't start build")
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("builders")
+                        .short('b')
+                        .long("builders")
+                        .help("builders to configure")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple_values(true)
+                        .use_value_delimiter(true)
+                        .require_value_delimiter(true)
+                        .env("LAZE_BUILDERS"),
+                )
+                .arg(
+                    Arg::new("apps")
+                        .short('a')
+                        .long("apps")
+                        .help("apps to configure")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple_values(true)
+                        .use_value_delimiter(true)
+                        .require_value_delimiter(true)
+                        .env("LAZE_APPS"),
+                )
+                .arg(
+                    Arg::new("verbose")
+                        .short('v')
+                        .long("verbose")
+                        .help("be verbose (e.g., show command lines)")
+                        .multiple_occurrences(true),
+                )
+                .arg(
+                    Arg::new("select")
+                        .short('s')
+                        .long("select")
+                        .alias("enable")
+                        .help("extra modules to select/enable")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple_values(true)
+                        .use_value_delimiter(true)
+                        .require_value_delimiter(true)
+                        .env("LAZE_SELECT"),
+                )
+                .arg(
+                    Arg::new("disable")
+                        .short('d')
+                        .long("disable")
+                        .help("disable modules")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple_values(true)
+                        .use_value_delimiter(true)
+                        .require_value_delimiter(true)
+                        .env("LAZE_DISABLE"),
+                )
+                .arg(
+                    Arg::new("define")
+                        .short('D')
+                        .long("define")
+                        .help("set/override variable")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple_occurrences(true)
+                        //                        .number_of_values(1)
+                        .env("LAZE_DEFINE"),
+                ),
+        )
+        .subcommand(
+            Command::new("task")
+                .about("run builder specific task")
+                .override_usage("laze task [FLAGS] [OPTIONS] <TASK> [ARGS]...")
+                .allow_external_subcommands(true)
+                .subcommand_required(true)
+                .arg(
+                    Arg::new("build-dir")
+                        .short('B')
+                        .long("build-dir")
+                        .takes_value(true)
+                        .value_name("DIR")
+                        .default_value("build")
+                        .help("specify build dir (relative to project root)"),
+                )
+                .arg(
+                    Arg::new("verbose")
+                        .short('v')
+                        .long("verbose")
+                        .help("be verbose (e.g., show command lines)")
+                        .multiple_occurrences(true),
+                )
+                .arg(
+                    Arg::new("builder")
+                        .short('b')
+                        .long("builder")
+                        .help("builder to run task for")
+                        .required(false)
+                        .takes_value(true)
+                        .env("LAZE_BUILDERS"),
+                )
+                .arg(
+                    Arg::new("app")
+                        .short('a')
+                        .long("app")
+                        .help("application target to run task for")
+                        .required(false)
+                        .takes_value(true)
+                        .env("LAZE_APPS"),
+                )
+                .arg(
+                    Arg::new("select")
+                        .short('s')
+                        .long("select")
+                        .alias("enable")
+                        .help("extra modules to select/enable")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple_values(true)
+                        .use_value_delimiter(true)
+                        .require_value_delimiter(true)
+                        .env("LAZE_SELECT"),
+                )
+                .arg(
+                    Arg::new("disable")
+                        .short('d')
+                        .long("disable")
+                        .help("disable modules")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple_values(true)
+                        .use_value_delimiter(true)
+                        .require_value_delimiter(true)
+                        .env("LAZE_DISABLE"),
+                )
+                .arg(
+                    Arg::new("define")
+                        .short('D')
+                        .long("define")
+                        .help("set/override variable")
+                        .required(false)
+                        .takes_value(true)
+                        .multiple_occurrences(true)
+                        .env("LAZE_DEFINE"),
+                ),
+        )
+        .subcommand(
+            Command::new("clean")
+                .about("clean current configuration")
+                .arg(
+                    Arg::new("build-dir")
+                        .short('B')
+                        .long("build-dir")
+                        .takes_value(true)
+                        .value_name("DIR")
+                        .default_value("build")
+                        .help("specify build dir (relative to project root)"),
+                )
+                .arg(
+                    Arg::new("verbose")
+                        .short('v')
+                        .long("verbose")
+                        .help("be verbose (e.g., show command lines)")
+                        .multiple_occurrences(true),
+                )
+                .arg(
+                    Arg::new("unused").short('u').long("unused").help(
+                        "clean built files that are not produced by the current configuration",
+                    ),
+                ),
+        )
+}
+
 fn try_main() -> Result<i32> {
     let mut signals = Signals::new(&[SIGINT])?;
 
@@ -316,211 +529,7 @@ fn try_main() -> Result<i32> {
         }
     });
 
-    let matches =
-        App::new("laze in rust")
-            .version(crate_version!())
-            .author("Kaspar Schleiser <kaspar@schleiser.de>")
-            .about("Build a lot, fast")
-            .setting(AppSettings::InferSubcommands)
-            .arg(
-                Arg::with_name("chdir")
-                    .short("C")
-                    .long("chdir")
-                    .help("change working directory before doing anything else")
-                    .global(true)
-                    .required(false)
-                    .takes_value(true),
-            )
-            .arg(
-                Arg::with_name("global")
-                    .short("g")
-                    .long("global")
-                    .help("global mode")
-                    .global(true)
-                    .required(false),
-            )
-            .subcommand(
-                SubCommand::with_name("build")
-                    .about("generate build files and build")
-                    .arg(
-                        Arg::with_name("build-dir")
-                            .short("B")
-                            .long("build-dir")
-                            .takes_value(true)
-                            .value_name("DIR")
-                            .default_value("build")
-                            .help("specify build dir (relative to project root)"),
-                    )
-                    .arg(
-                        Arg::with_name("generate-only")
-                            .short("G")
-                            .long("generate-only")
-                            .help("generate build files only, don't start build")
-                            .required(false),
-                    )
-                    .arg(
-                        Arg::with_name("builders")
-                            .short("b")
-                            .long("builders")
-                            .help("builders to configure")
-                            .required(false)
-                            .takes_value(true)
-                            .multiple(true)
-                            .require_delimiter(true)
-                            .env("LAZE_BUILDERS"),
-                    )
-                    .arg(
-                        Arg::with_name("apps")
-                            .short("a")
-                            .long("apps")
-                            .help("apps to configure")
-                            .required(false)
-                            .takes_value(true)
-                            .multiple(true)
-                            .require_delimiter(true)
-                            .env("LAZE_APPS"),
-                    )
-                    .arg(
-                        Arg::with_name("verbose")
-                            .short("v")
-                            .long("verbose")
-                            .help("be verbose (e.g., show command lines)")
-                            .multiple(true),
-                    )
-                    .arg(
-                        Arg::with_name("select")
-                            .short("s")
-                            .long("select")
-                            .alias("enable")
-                            .help("extra modules to select/enable")
-                            .required(false)
-                            .takes_value(true)
-                            .multiple(true)
-                            .require_delimiter(true)
-                            .env("LAZE_SELECT"),
-                    )
-                    .arg(
-                        Arg::with_name("disable")
-                            .short("d")
-                            .long("disable")
-                            .help("disable modules")
-                            .required(false)
-                            .takes_value(true)
-                            .multiple(true)
-                            .require_delimiter(true)
-                            .env("LAZE_DISABLE"),
-                    )
-                    .arg(
-                        Arg::with_name("define")
-                            .short("D")
-                            .long("define")
-                            .help("set/override variable")
-                            .required(false)
-                            .takes_value(true)
-                            .multiple(true)
-                            .number_of_values(1)
-                            .env("LAZE_DEFINE"),
-                    ),
-            )
-            .subcommand(
-                SubCommand::with_name("task")
-                    .about("run builder specific task")
-                    .usage("laze task [FLAGS] [OPTIONS] <TASK> [ARGS]...")
-                    .setting(AppSettings::AllowExternalSubcommands)
-                    .setting(AppSettings::SubcommandRequired)
-                    .arg(
-                        Arg::with_name("build-dir")
-                            .short("B")
-                            .long("build-dir")
-                            .takes_value(true)
-                            .value_name("DIR")
-                            .default_value("build")
-                            .help("specify build dir (relative to project root)"),
-                    )
-                    .arg(
-                        Arg::with_name("verbose")
-                            .short("v")
-                            .long("verbose")
-                            .help("be verbose (e.g., show command lines)")
-                            .multiple(true),
-                    )
-                    .arg(
-                        Arg::with_name("builder")
-                            .short("b")
-                            .long("builder")
-                            .help("builder to run task for")
-                            .required(false)
-                            .takes_value(true)
-                            .env("LAZE_BUILDERS"),
-                    )
-                    .arg(
-                        Arg::with_name("app")
-                            .short("a")
-                            .long("app")
-                            .help("application target to run task for")
-                            .required(false)
-                            .takes_value(true)
-                            .env("LAZE_APPS"),
-                    )
-                    .arg(
-                        Arg::with_name("select")
-                            .short("s")
-                            .long("select")
-                            .alias("enable")
-                            .help("extra modules to select/enable")
-                            .required(false)
-                            .takes_value(true)
-                            .multiple(true)
-                            .require_delimiter(true)
-                            .env("LAZE_SELECT"),
-                    )
-                    .arg(
-                        Arg::with_name("disable")
-                            .short("d")
-                            .long("disable")
-                            .help("disable modules")
-                            .required(false)
-                            .takes_value(true)
-                            .multiple(true)
-                            .require_delimiter(true)
-                            .env("LAZE_DISABLE"),
-                    )
-                    .arg(
-                        Arg::with_name("define")
-                            .short("D")
-                            .long("define")
-                            .help("set/override variable")
-                            .required(false)
-                            .takes_value(true)
-                            .multiple(true)
-                            .number_of_values(1)
-                            .env("LAZE_DEFINE"),
-                    ),
-            )
-            .subcommand(
-                SubCommand::with_name("clean")
-                    .about("clean current configuration")
-                    .arg(
-                        Arg::with_name("build-dir")
-                            .short("B")
-                            .long("build-dir")
-                            .takes_value(true)
-                            .value_name("DIR")
-                            .default_value("build")
-                            .help("specify build dir (relative to project root)"),
-                    )
-                    .arg(
-                        Arg::with_name("verbose")
-                            .short("v")
-                            .long("verbose")
-                            .help("be verbose (e.g., show command lines)")
-                            .multiple(true),
-                    )
-                    .arg(Arg::with_name("unused").short("u").long("unused").help(
-                        "clean built files that are not produced by the current configuration",
-                    )),
-            )
-            .get_matches();
+    let matches = clap().get_matches();
 
     if let Some(dir) = matches.value_of("chdir") {
         env::set_current_dir(dir).context(format!("cannot change to directory \"{}\"", dir))?;
@@ -543,7 +552,7 @@ fn try_main() -> Result<i32> {
         .context(format!("cannot change to \"{}\"", &project_root.display()))?;
 
     match matches.subcommand() {
-        ("build", Some(build_matches)) => {
+        Some(("build", build_matches)) => {
             let verbose = build_matches.occurrences_of("verbose");
             let build_dir = PathBuf::from(build_matches.value_of("build-dir").unwrap());
 
@@ -639,7 +648,7 @@ fn try_main() -> Result<i32> {
             let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
             ninja_run(ninja_build_file.as_path(), verbose > 0, targets)?;
         }
-        ("task", Some(task_matches)) => {
+        Some(("task", task_matches)) => {
             let verbose = task_matches.occurrences_of("verbose");
             let build_dir = Path::new(task_matches.value_of("build-dir").unwrap());
 
@@ -660,7 +669,7 @@ fn try_main() -> Result<i32> {
             let disable = task_matches.values_of_lossy("disable");
 
             let (task, args) = match task_matches.subcommand() {
-                (name, Some(matches)) => {
+                Some((name, matches)) => {
                     let args = matches.values_of("").map(|v| v.collect());
                     (name, args)
                 }
@@ -760,7 +769,7 @@ fn try_main() -> Result<i32> {
 
             task.execute(project_root.as_ref(), args, verbose)?;
         }
-        ("clean", Some(clean_matches)) => {
+        Some(("clean", clean_matches)) => {
             let verbose = clean_matches.occurrences_of("verbose");
             let unused = clean_matches.is_present("unused");
             let build_dir = PathBuf::from(clean_matches.value_of("build-dir").unwrap());
@@ -780,4 +789,12 @@ fn try_main() -> Result<i32> {
     };
 
     Ok(0)
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_clap() {
+        crate::clap().debug_assert();
+    }
 }
