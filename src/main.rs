@@ -142,7 +142,6 @@ impl<'a: 'b, 'b> Build<'b> {
         }
 
         for dep in module.selects.iter().chain(late_if_then_deps.iter()) {
-            //.chain(late_if_then_deps) {
             let (dep_name, optional) = match dep {
                 Dependency::Hard(name) => (name, false),
                 Dependency::Soft(name) => (name, true),
