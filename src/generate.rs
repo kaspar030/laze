@@ -343,6 +343,7 @@ fn configure_build(
         EnvKey::Single(binary.relpath.as_ref().unwrap().to_str().unwrap().into()),
     );
 
+    // same with "relroot"
     global_env.insert(
         "relroot".into(),
         EnvKey::Single(
