@@ -242,15 +242,6 @@ impl<'a: 'b, 'b> Build<'b> {
 
         Ok(modules)
     }
-
-    //fn configure(&'a mut self) -> Result<&'a mut Build, Box<dyn Error>> {
-    //    Ok(self)
-    //}
-
-    //    fn configure(&'a mut self) -> Result<&'a mut Build, Box<dyn Error>> {
-    //        self.resolve_modules()?;
-    //        Ok(self)
-    //    }
 }
 
 fn determine_project_root(start: &PathBuf) -> Result<(PathBuf, PathBuf)> {
