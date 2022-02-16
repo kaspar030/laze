@@ -22,7 +22,7 @@ rayon = "1.5.0"
 serde = "1.0.133"
 serde_derive = "1.0.124"
 serde_yaml = "0.8.23"
-shell-words = "1.0.0"
+shell-words = "1.1.0"
 simple-error = "0.2.3"
 treestate = "0.1.0"
 im = { version = "15.0.0", features = ["rayon", "serde"] }
