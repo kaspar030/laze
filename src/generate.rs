@@ -326,7 +326,10 @@ fn configure_build(
     let mut global_env =
         nested_env::merge(laze_env.clone(), build.build_context.env.clone().unwrap());
 
-    /* import global module environments into global build context env */
+    // import global module environments into global build context env
+    // modules contains the dependencies in order (a->b, b->c => a,b,c)
+    // we want modules to override or append to env vars deeper in the tree,
+    // so iterate in reverse order, merging higher envs onto the deeper ones.
     for (_, module) in modules.iter().rev() {
         global_env = nested_env::merge(global_env, module.env_global.clone());
     }
