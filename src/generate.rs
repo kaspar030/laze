@@ -567,6 +567,7 @@ fn configure_build(
             let mut module_rules: IndexMap<String, NinjaRule> = IndexMap::new();
 
             /* apply rules to sources */
+            // BUG01: ext is taken *before* variable substitution
             for source in module.sources.iter().chain(optional_sources.iter()) {
                 let ext = Path::new(&source)
                     .extension()
@@ -621,10 +622,7 @@ fn configure_build(
                 );
 
                 // 2. find ninja rule by lookup of the source file's extension
-                let ext = Path::new(&source)
-                    .extension()
-                    .and_then(OsStr::to_str)
-                    .unwrap();
+                let ext = srcpath.extension().and_then(OsStr::to_str).unwrap();
 
                 let rule = rules.get(ext.into()).unwrap();
 
