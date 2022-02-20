@@ -1,15 +1,5 @@
 builddir = build
 build ALWAYS: phony
-rule CC_2563940449587458123
-  command = echo  ${in} > ${out}
-  description = CC
-
-build build/objects/single_app.18259766525449260054.o: $
-    CC_2563940449587458123 $
-    single_app.c $
-    | $
-    __done_builder0_single_app__shared_module
-
 rule BUILD_13927864424831170064
   command = echo VARIABLE_from_builder0 > build/builder0/foo.c
   description = BUILD ${out}
@@ -21,8 +11,20 @@ build outs_14335828599879439701: $
     phony $
     build/builder0/foo.c
 
-build __done_builder0_single_app__shared_module: $
-    phony $
+rule CC_17703379314822159114
+  command = echo ${in} > ${out}
+  description = CC
+
+build build/objects/single_app.12448338304170182989.o: $
+    CC_17703379314822159114 $
+    single_app.c $
+    | $
+    outs_14335828599879439701
+
+build build/objects/build/builder0/foo.12448338304170182989.o: $
+    CC_17703379314822159114 $
+    build/builder0/foo.c $
+    | $
     outs_14335828599879439701
 
 rule LINK_5506617845631750009
@@ -31,17 +33,8 @@ rule LINK_5506617845631750009
 
 build build/builder0/single_app/single_app.elf: $
     LINK_5506617845631750009 $
-    build/objects/single_app.18259766525449260054.o
-
-rule CC_2990894117628388244
-  command = echo  ${in} > ${out}
-  description = CC
-
-build build/objects/single_app.15152615778353486414.o: $
-    CC_2990894117628388244 $
-    single_app.c $
-    | $
-    __done_builder2_single_app__shared_module
+    build/objects/single_app.12448338304170182989.o $
+    build/objects/build/builder0/foo.12448338304170182989.o
 
 rule BUILD_17311411820591600230
   command = echo VARIABLE_from_builder2 > build/builder2/foo.c
@@ -54,11 +47,20 @@ build outs_14843055299136356683: $
     phony $
     build/builder2/foo.c
 
-build __done_builder2_single_app__shared_module: $
-    phony $
+build build/objects/single_app.6641319649905749186.o: $
+    CC_17703379314822159114 $
+    single_app.c $
+    | $
+    outs_14843055299136356683
+
+build build/objects/build/builder2/foo.6641319649905749186.o: $
+    CC_17703379314822159114 $
+    build/builder2/foo.c $
+    | $
     outs_14843055299136356683
 
 build build/builder2/single_app/single_app.elf: $
     LINK_5506617845631750009 $
-    build/objects/single_app.15152615778353486414.o
+    build/objects/single_app.6641319649905749186.o $
+    build/objects/build/builder2/foo.6641319649905749186.o
 

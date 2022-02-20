@@ -4,7 +4,7 @@ context:
       - name: CC
         in: "c"
         out: "o"
-        cmd: "echo ${EXPORT_VAR} ${in} > ${out}"
+        cmd: "echo ${in} > ${out}"
       - name: LINK
         in: "o"
         options:
@@ -25,11 +25,16 @@ module:
       - builder2
     depends:
       - module_defining_variable
+    is_build_dep: true
     build:
       cmd:
         - echo ${VARIABLE} > build/${builder}/foo.c
       out:
         - build/${builder}/foo.c
+    env:
+      export:
+        shared_module_foo:
+          - build/${builder}
 
   - name: module_defining_variable
     context: builder0
@@ -55,3 +60,4 @@ app:
       - shared_module
     sources:
       - single_app.c
+      - ${shared_module_foo}/foo.c
