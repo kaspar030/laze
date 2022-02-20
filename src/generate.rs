@@ -17,6 +17,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 //use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
+use solvent::DepGraph;
 
 use super::{
     data::{load, FileTreeState},
@@ -378,8 +379,54 @@ fn configure_build(
     /* set containing ninja build or rule blocks */
     let mut ninja_entries = IndexSet::new();
 
+    /* iterate modules once, building both the module's env including imports,
+     * and the list of imports that are build dependencies */
+    let modules: IndexMap<&String, _> = modules
+        .iter()
+        .map(|(module_name, module)| {
+            let (module_env, module_build_deps) = module.build_env(&global_env, &modules);
+            (*module_name, (*module, module_env, module_build_deps))
+        })
+        .collect();
+
+    // generate build order dependencies
+    let mut build_dep_graph: DepGraph<&String> = DepGraph::new();
+    let build_dep_graph_rootnode = String::from("");
+
+    for (module_name, (_, _, module_build_deps)) in modules.iter() {
+        if let Some(module_build_deps) = module_build_deps {
+            for dep in module_build_deps {
+                build_dep_graph.register_dependency(*module_name, &dep.name);
+            }
+        }
+        build_dep_graph.register_dependency(&build_dep_graph_rootnode, *module_name);
+    }
+
+    let mut modules_in_build_order = Vec::new();
+    for node in build_dep_graph
+        .dependencies_of(&&build_dep_graph_rootnode)
+        .unwrap()
+    {
+        match node {
+            Ok(dep_name) => {
+                if *dep_name != &build_dep_graph_rootnode {
+                    modules_in_build_order.push(modules.get(dep_name).unwrap());
+                }
+            }
+            Err(_) => {
+                println!(
+                    "error: {} for {}: build dependency cycle detected.",
+                    binary.name, builder.name
+                );
+                return Ok(None);
+            }
+        }
+    }
+
+    let mut module_build_dep_files: IndexMap<&String, IndexSet<PathBuf>> = IndexMap::new();
+
     /* now handle each module */
-    for (_, module) in modules.iter() {
+    for (module, module_env, module_build_deps) in modules_in_build_order.iter() {
         // handle possible remote sources
         let download_rules = download::handle_module(module, &build_dir, &rules)?;
 
@@ -392,9 +439,6 @@ fn configure_build(
         // *or*, it was overridden using "srcdir:"
         // This is populated in data.rs, so unwrap() always succeeds.
         let srcdir = module.srcdir.as_ref().unwrap();
-
-        /* build final module env */
-        let module_env = module.build_env(&global_env, &modules);
 
         let flattened_env = nested_env::flatten_with_opts_option(&module_env, merge_opts.as_ref());
         //println!("{:#?}", builder.var_options);
@@ -411,42 +455,70 @@ fn configure_build(
             }
         }
 
-        // this ugly block collects all _imported_ "build_deps" entries (which are Strings
-        // converted from Paths) into Vec<Cow<Path>> as needed by NinjaBuildBuilder's "deps()"
-        // method.
-        let mut build_deps_hasher = DefaultHasher::new();
-        let build_deps = module_env
-            .get("build_deps".into())
-            .map_or(None, |build_deps| {
-                if let nested_env::EnvKey::List(list) = build_deps {
-                    Some(
-                        list.iter()
-                            .map(|x| {
-                                let x = nested_env::expand(&x, &flattened_env, IfMissing::Empty)
-                                    .unwrap();
-                                x.hash(&mut build_deps_hasher);
-                                Cow::from(PathBuf::from(x))
-                            })
-                            .collect_vec(),
-                    )
-                } else {
-                    unreachable!();
-                }
-            });
+        // collect exported build_dep_files from dependencies
+        let imported_build_deps = {
+            if let Some(module_build_deps) = module_build_deps {
+                let mut imported_build_deps = IndexSet::new();
 
-        // collect build deps that are local to this module
-        let local_build_deps = module.build_deps.as_ref().map_or(None, |build_deps| {
+                for dep in module_build_deps {
+                    imported_build_deps.extend(
+                        module_build_dep_files
+                            .get(&dep.name)
+                            .unwrap()
+                            .iter()
+                            .cloned(),
+                    );
+                }
+                Some(imported_build_deps)
+            } else {
+                None
+            }
+        };
+
+        // export local build deps
+        let local_build_deps = if let Some(local_build_deps) = &module.build_dep_files {
+            module_build_dep_files
+                .entry(&module.name)
+                .or_insert_with(|| IndexSet::new())
+                .extend(local_build_deps.iter().cloned());
+
             Some(
-                build_deps
+                local_build_deps
                     .iter()
-                    .map(|x| Cow::from(PathBuf::from(x)))
+                    .map(|pathbuf| Cow::from(pathbuf))
                     .collect_vec(),
             )
-        });
+        } else {
+            None
+        };
 
-        let build_deps_hash = build_deps
-            .as_ref()
-            .map_or(None, |_| Some(build_deps_hasher.finish()));
+        let has_build_deps = imported_build_deps.is_some() || module.build_dep_files.is_some();
+        // combine local build deps and imported build deps
+        let combined_build_deps_iters = [&imported_build_deps, &module.build_dep_files];
+        let combined_build_deps = {
+            if has_build_deps {
+                Some(
+                    combined_build_deps_iters
+                        .iter()
+                        .flat_map(|x| x.iter())
+                        .flatten()
+                        .map(|pathbuf| Cow::from(pathbuf))
+                        .collect_vec(),
+                )
+            } else {
+                None
+            }
+        };
+
+        let build_deps_hash = {
+            if let Some(combined_build_deps) = &combined_build_deps {
+                let mut hasher = DefaultHasher::new();
+                combined_build_deps.hash(&mut hasher);
+                hasher.finish()
+            } else {
+                0
+            }
+        };
 
         if let Some(build) = &module.build {
             // module has custom build rule
@@ -522,7 +594,7 @@ fn configure_build(
                 .rule(&*rule.name)
                 .inputs(sources)
                 .outs(outs.clone())
-                .deps(build_deps.clone())
+                .deps(combined_build_deps)
                 .build()
                 .unwrap();
 
@@ -533,33 +605,20 @@ fn configure_build(
             let outs_alias = NinjaBuildBuilder::default()
                 .rule("phony")
                 .inputs(outs.clone())
-                .out(outs_alias_output.clone())
+                .out(outs_alias_output)
                 .build()
                 .unwrap();
 
-            // (this creates the same alias for this build's "outs" as data.rs
-            // adds to "build_deps_export", so dependees can pick this up without
-            // knowing the exact outs.)
-            let build_tag = format!(
-                "__done_${{builder}}_${{app}}_{}_{}",
-                module.relpath.as_ref().unwrap().to_str().unwrap(),
-                &module.name
-            );
-            let build_tag =
-                nested_env::expand(&build_tag, &flattened_env, IfMissing::Empty).unwrap();
-
-            let build_tag = NinjaBuildBuilder::default()
-                .rule("phony")
-                .input(outs_alias_output)
-                .out(PathBuf::from(&build_tag))
-                .build()
-                .unwrap();
+            // append our outs alias to this module's exported build deps
+            module_build_dep_files
+                .entry(&module.name)
+                .or_insert_with(|| IndexSet::new())
+                .insert(PathBuf::from(format!("outs_{}", outs_hash)));
 
             // add ninja rule/build snippets to ninja snippets set
             ninja_entries.insert(format!("{}", &rule));
             ninja_entries.insert(format!("{}", build));
             ninja_entries.insert(format!("{}", outs_alias));
-            ninja_entries.insert(format!("{}", build_tag));
         } else {
             // module is using the default build rule
 
@@ -598,12 +657,7 @@ fn configure_build(
                     let expanded =
                         nested_env::expand(&rule.cmd, &flattened_env, IfMissing::Empty).unwrap();
 
-                    let rule = rule
-                        .to_ninja()
-                        .command(expanded)
-                        .build()
-                        .unwrap()
-                        .named_with_extra(build_deps_hash);
+                    let rule = rule.to_ninja().command(expanded).build().unwrap().named();
                     ninja_entries.insert(format!("{}", &rule));
                     rule
                 });
@@ -632,7 +686,7 @@ fn configure_build(
                 // 3. determine output path (e.g., name of C object file)
                 let out = srcpath.with_extension(format!(
                     "{}.{}",
-                    rule_hash,
+                    rule_hash ^ build_deps_hash,
                     &rule.out.as_ref().unwrap()
                 ));
 
@@ -644,8 +698,8 @@ fn configure_build(
                 let build = NinjaBuildBuilder::default()
                     .rule(&*ninja_rule.name)
                     .input(Cow::from(&srcpath))
+                    .deps(combined_build_deps.clone())
                     .out(object.as_path())
-                    .deps(build_deps.clone())
                     .build()
                     .unwrap();
 
@@ -655,10 +709,12 @@ fn configure_build(
                 objects.push(object);
 
                 // 6. optionally create dependency to the download / patch step
-                if let Some(local_build_deps) = &local_build_deps {
+                // TODO OPT: don't create one build entry per file, but one for
+                // all files at once
+                if local_build_deps.is_some() {
                     let build = NinjaBuildBuilder::default()
                         .rule("phony")
-                        .inputs(local_build_deps.clone())
+                        .deps(local_build_deps.clone())
                         .out(Cow::from(&srcpath))
                         .build()
                         .unwrap();

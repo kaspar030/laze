@@ -3,7 +3,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::{indexset, IndexMap, IndexSet};
 
 use crate::download;
 use crate::nested_env;
@@ -38,8 +38,8 @@ pub struct Module {
     pub defined_in: Option<PathBuf>,
     pub relpath: Option<PathBuf>,
     pub srcdir: Option<PathBuf>,
-    pub build_deps: Option<Vec<PathBuf>>,
-    pub build_deps_export: Option<Vec<PathBuf>>,
+    pub build_dep_files: Option<IndexSet<PathBuf>>,
+    pub is_build_dep: bool,
     pub is_binary: bool,
 }
 
@@ -65,8 +65,8 @@ impl Module {
             defined_in: None,
             relpath: None,
             srcdir: None,
-            build_deps: None,
-            build_deps_export: None,
+            build_dep_files: None,
+            is_build_dep: false,
             blocklist: None,
             allowlist: None,
             download: None,
@@ -97,8 +97,8 @@ impl Module {
             allowlist: defaults.blocklist.clone(),
             download: defaults.download.clone(),
             srcdir: defaults.srcdir.clone(),
-            build_deps: None,
-            build_deps_export: None,
+            build_dep_files: None,
+            is_build_dep: false,
         }
     }
 
@@ -156,16 +156,16 @@ impl Module {
         result
     }
 
-    pub fn build_env(&self, global_env: &Env, modules: &IndexMap<&String, &Module>) -> Env {
+    pub fn build_env<'a>(
+        &'a self,
+        global_env: &Env,
+        modules: &IndexMap<&String, &'a Module>,
+    ) -> (Env, Option<IndexSet<&'a Module>>) {
         /* start with the global env env */
         let mut module_env = global_env.clone();
 
-        /* collect this modules build_deps (e.g., custom build outs) */
-        let mut build_deps: Option<IndexSet<_>> = if let Some(build_deps) = &self.build_deps {
-            Some(IndexSet::from_iter(build_deps))
-        } else {
-            None
-        };
+        /* collect this module's module build deps */
+        let mut build_dep_modules = None;
 
         /* from each (recursive) import ... */
         let deps = self.get_imports_recursive(&modules, None);
@@ -187,28 +187,14 @@ impl Module {
                 }
             }
 
-            // collect all imported build dependencies into "build_deps"
+            // collect all imported file build dependencies
             if dep != &self {
-                if let Some(dep_build_deps) = &dep.build_deps_export {
-                    build_deps
+                if dep.is_build_dep {
+                    build_dep_modules
                         .get_or_insert_with(|| IndexSet::new())
-                        .extend(dep_build_deps);
+                        .insert(*dep);
                 }
             }
-        }
-
-        // convert build deps to env strings
-        // TODO: this will break with non-utf8 filenames.
-        if let Some(mut build_deps) = build_deps {
-            let build_dep_strings = build_deps
-                .drain(..)
-                .map(|dep| String::from(dep.to_str().unwrap()))
-                .collect::<im::Vector<_>>();
-
-            module_env.insert(
-                "build_deps".into(),
-                nested_env::EnvKey::List(build_dep_strings),
-            );
         }
 
         // add *all* modules to this modules "notify" env var if requested
@@ -223,7 +209,7 @@ impl Module {
         /* merge the module's local env */
         module_env = nested_env::merge(module_env, self.env_local.clone());
 
-        module_env
+        (module_env, build_dep_modules)
     }
 
     fn create_module_define(&self) -> String {
@@ -247,21 +233,11 @@ impl Module {
 
     // adds a Ninja target name as build dependency for this target.
     // gets env expanded on module instantiation.
-    pub fn add_build_dep(&mut self, dep: &PathBuf) {
-        if let Some(build_deps) = &mut self.build_deps {
-            build_deps.push(dep.clone());
+    pub fn add_build_dep_file(&mut self, dep: &PathBuf) {
+        if let Some(build_dep_files) = &mut self.build_dep_files {
+            build_dep_files.insert(dep.clone());
         } else {
-            self.build_deps = Some(vec![dep.clone()]);
-        }
-    }
-
-    // adds a Ninja target name as build dependency for dependees of this target.
-    // gets env expanded on dependee module instantiation.
-    pub fn add_build_dep_export(&mut self, dep: &PathBuf) {
-        if let Some(build_deps_export) = &mut self.build_deps_export {
-            build_deps_export.push(dep.clone());
-        } else {
-            self.build_deps_export = Some(vec![dep.clone()]);
+            self.build_dep_files = Some(indexset![dep.clone()]);
         }
     }
 

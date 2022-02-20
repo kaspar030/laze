@@ -101,7 +101,9 @@ struct YamlModule {
     blocklist: Option<Vec<String>>,
     allowlist: Option<Vec<String>>,
     download: Option<Download>,
-    srcdir: Option<String>,
+    srcdir: Option<PathBuf>,
+    #[serde(default = "default_as_false")]
+    is_build_dep: bool,
     #[serde(skip)]
     is_binary: bool,
 }
@@ -123,6 +125,7 @@ impl YamlModule {
             blocklist: None,
             allowlist: None,
             download: None,
+            is_build_dep: false,
             is_binary,
         }
     }
@@ -509,23 +512,24 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             let srcdir = download.srcdir(build_dir, &m);
             let tagfile = download.tagfile(&srcdir);
 
-            m.add_build_dep(&tagfile);
-            m.add_build_dep_export(&tagfile);
+            m.add_build_dep_file(&tagfile);
+
+            // if a module has downloaded files, always consider it to be a
+            // build dependency, as all dependees / users might include e.g.,
+            // downloaded headers.
+            m.is_build_dep = true;
+
             srcdir
         } else {
             PathBuf::from(relpath.clone())
         };
 
         m.build = module.build.clone();
-        if m.build.is_some() {
-            // the custom build knows it's outputs only in the build configuration phase.
-            // at that point, module's build dependencies cannot be changed anymore.
-            // thus, we need a build configuration unique phony target name here.
-            let build_tag = PathBuf::from(format!(
-                "__done_${{builder}}_${{app}}_{}_{}",
-                &relpath, &m.name
-            ));
-            m.add_build_dep_export(&build_tag);
+
+        if m.download.is_none() {
+            // if a module has downloaded source, it is already a build dependency
+            // for dependees / users. Otherwise, do what the user thinks.
+            m.is_build_dep = module.is_build_dep;
         }
 
         m.srcdir = module
