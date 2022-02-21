@@ -1,3 +1,4 @@
 /target
 build/
+!/src/tests/*/build_expected/**
 *.profraw
