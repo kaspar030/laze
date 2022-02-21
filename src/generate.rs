@@ -122,6 +122,10 @@ impl Generator {
             "build-dir".to_string(),
             nested_env::EnvKey::Single(self.build_dir.to_string_lossy().into()),
         );
+        laze_env.insert(
+            "outfile".to_string(),
+            nested_env::EnvKey::Single("${bindir}/${app}.elf".into()),
+        );
 
         let laze_env = laze_env;
 
@@ -364,11 +368,10 @@ fn configure_build(
     let out_string = String::from("out");
     let mut global_env_flattened = nested_env::flatten_with_opts_option(&tmp, merge_opts.as_ref());
 
-    let bindir = nested_env::expand("${bindir}", &global_env_flattened, IfMissing::Empty).unwrap();
-    let bindir = PathBuf::from(bindir);
-
     /* build application file name */
-    let out_elf = Path::new(&bindir).join(&binary.name).with_extension("elf");
+    let outfile = PathBuf::from(
+        nested_env::expand("${outfile}", &global_env_flattened, IfMissing::Empty).unwrap(),
+    );
 
     let mut objdir = build_dir.clone();
     objdir.push("objects");
@@ -750,7 +753,7 @@ fn configure_build(
         let ninja_link_build = NinjaBuildBuilder::default()
             .rule(&*ninja_link_rule.name)
             .inputs(objects)
-            .out(out_elf.as_path())
+            .out(outfile.as_path())
             .always(link_rule.always)
             .build()
             .unwrap();
@@ -760,7 +763,7 @@ fn configure_build(
     }
 
     // collect tasks
-    global_env_flattened.insert(&out_string, String::from(out_elf.to_str().unwrap()));
+    global_env_flattened.insert(&out_string, String::from(outfile.to_str().unwrap()));
     let tasks = build
         .build_context
         .collect_tasks(&contexts, &global_env_flattened);
@@ -768,7 +771,7 @@ fn configure_build(
     Ok(Some((
         BuildInfo {
             tasks,
-            out: out_elf,
+            out: outfile,
         },
         ninja_entries,
     )))
