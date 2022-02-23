@@ -50,8 +50,6 @@ struct YamlFile {
     #[serde(skip)]
     filename: Option<PathBuf>,
     #[serde(skip)]
-    included_from: Option<PathBuf>,
-    #[serde(skip)]
     doc_idx: Option<usize>,
     #[serde(skip)]
     included_by: Option<usize>,
