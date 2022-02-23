@@ -71,6 +71,7 @@ fn relroot(relpath: &Path) -> PathBuf {
 #[builder(setter(into))]
 pub struct Generator {
     project_root: PathBuf,
+    project_file: PathBuf,
     build_dir: PathBuf,
     mode: GenerateMode,
     builders: Selector,
@@ -94,7 +95,7 @@ impl Generator {
             },
         }
 
-        let (contexts, treestate) = load(&self.project_root, &self.build_dir)?;
+        let (contexts, treestate) = load(&self.project_file, &self.build_dir)?;
 
         std::fs::create_dir_all(&self.build_dir)?;
         let mut ninja_build_file = std::io::BufWriter::new(std::fs::File::create(
@@ -125,6 +126,10 @@ impl Generator {
         laze_env.insert(
             "outfile".to_string(),
             nested_env::EnvKey::Single("${bindir}/${app}.elf".into()),
+        );
+        laze_env.insert(
+            "project-root".to_string(),
+            nested_env::EnvKey::Single(self.project_root.to_string_lossy().into()),
         );
 
         let laze_env = laze_env;

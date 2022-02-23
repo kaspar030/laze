@@ -592,7 +592,8 @@ fn try_main() -> Result<i32> {
             };
 
             let generator = GeneratorBuilder::default()
-                .project_root(project_file)
+                .project_root(project_root)
+                .project_file(project_file)
                 .build_dir(build_dir.clone())
                 .mode(mode.clone())
                 .builders(builders.clone())
@@ -702,7 +703,8 @@ fn try_main() -> Result<i32> {
 
             // arguments parsed, launch generation of ninja file(s)
             let generator = GeneratorBuilder::default()
-                .project_root(project_file)
+                .project_root(&project_root)
+                .project_file(project_file)
                 .build_dir(build_dir)
                 .mode(mode.clone())
                 .builders(builders.clone())
