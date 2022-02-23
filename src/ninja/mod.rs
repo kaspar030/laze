@@ -86,11 +86,11 @@ impl<'a> NinjaRule<'a> {
         name
     }
 
-    pub fn named_with_extra(mut self, extra: Option<u64>) -> NinjaRule<'a> {
-        let name = self.get_hashed_name(self.get_hash(extra));
-        self.name = Cow::from(name);
-        self
-    }
+    // pub fn named_with_extra(mut self, extra: Option<u64>) -> NinjaRule<'a> {
+    //     let name = self.get_hashed_name(self.get_hash(extra));
+    //     self.name = Cow::from(name);
+    //     self
+    // }
 
     pub fn named(mut self) -> NinjaRule<'a> {
         let name = self.get_hashed_name(self.get_hash(None));
