@@ -26,7 +26,7 @@ use super::{
     nested_env,
     nested_env::{Env, EnvKey, IfMissing},
     ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder},
-    Build, Context, ContextBag, Dependency, Module, Task,
+    utils, Build, Context, ContextBag, Dependency, Module, Task,
 };
 
 #[derive(Deserialize, Serialize)]
@@ -853,7 +853,7 @@ impl GenerateResult {
             apps: generator.apps,
             select: generator.select,
             disable: generator.disable,
-            cli_env_hash: generator.cli_env.as_ref().map_or(0, calculate_hash),
+            cli_env_hash: generator.cli_env.as_ref().map_or(0, utils::calculate_hash),
             build_infos,
             treestate,
         }
@@ -905,7 +905,7 @@ impl TryFrom<&Generator> for GenerateResult {
         if !res.disable.as_ref().eq(&generator.disable.as_ref()) {
             return Err(anyhow!("CLI disables don't match"));
         }
-        if res.cli_env_hash != generator.cli_env.as_ref().map_or(0, calculate_hash) {
+        if res.cli_env_hash != generator.cli_env.as_ref().map_or(0, utils::calculate_hash) {
             return Err(anyhow!("laze: CLI env doesn't match"));
         }
         if res.treestate.has_changed() {
@@ -913,10 +913,4 @@ impl TryFrom<&Generator> for GenerateResult {
         }
         Ok(res)
     }
-}
-
-fn calculate_hash<T: Hash>(t: &T) -> u64 {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    s.finish()
 }
