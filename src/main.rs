@@ -36,6 +36,7 @@ mod model;
 mod nested_env;
 mod ninja;
 mod serde_bool_helpers;
+mod utils;
 
 use model::{Context, ContextBag, Dependency, Module, Rule, Task};
 
