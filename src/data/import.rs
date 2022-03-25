@@ -15,6 +15,16 @@ pub struct Import {
     download: Download,
 }
 
+fn get_existing_file(path: &Path, filenames: &[&str]) -> Option<PathBuf> {
+    for filename in filenames.iter() {
+        let fullpath = path.join(filename);
+        if path.join(filename).exists() {
+            return Some(PathBuf::from(fullpath));
+        }
+    }
+    None
+}
+
 impl Import {
     pub fn get_path<T: AsRef<Path>>(&self, build_dir: T) -> Result<PathBuf, Error> {
         let source_hash = calculate_hash(&self.download);
@@ -83,7 +93,15 @@ impl Import {
             }
         }
 
-        return Ok(path.join("laze.yml"));
+        if let Some(laze_file) =
+            get_existing_file(&path, &["laze-lib.yml", "laze.yml", "laze-project.yml"])
+        {
+            return Ok(laze_file);
+        } else {
+            return Err(anyhow!(
+                "no \"laze-lib.yml\", \"laze.yml\" or \"laze-project.yml\" in import"
+            ));
+        }
     }
 
     pub fn get_name(&self) -> Option<&str> {
