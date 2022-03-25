@@ -10,16 +10,28 @@ use std::path::{Path, PathBuf};
 
 use super::{ninja::NinjaBuildBuilder, Module, Rule};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub enum DownloadSource {
-    #[serde(rename = "git")]
-    Git { url: String, commit: String },
+pub mod source {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Hash)]
+    pub enum Source {
+        #[serde(rename = "git")]
+        Git(Git),
+    }
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Hash)]
+    #[serde(untagged)]
+    pub enum Git {
+        Commit { url: String, commit: String },
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub use source::{Git, Source};
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Hash)]
 pub struct Download {
     #[serde(flatten)]
-    pub source: DownloadSource,
+    pub source: source::Source,
     pub patches: Option<Vec<String>>,
     pub dldir: Option<String>,
 }
@@ -61,7 +73,7 @@ impl Download {
     ) -> Result<Vec<String>> {
         let mut env = IndexMap::new();
         let rulename = match &self.source {
-            DownloadSource::Git { commit, url } => {
+            Source::Git(Git::Commit { url, commit }) => {
                 env.insert("commit".to_string(), commit.to_string());
                 env.insert("url".to_string(), url.to_string());
                 "GIT_DOWNLOAD"
@@ -104,7 +116,7 @@ impl Download {
     fn patch(&self, module: &Module, rules: &IndexMap<String, &Rule>) -> Result<Vec<String>> {
         let patches = self.patches.as_ref().unwrap();
         let rulename = match &self.source {
-            DownloadSource::Git { .. } => "GIT_PATCH",
+            Source::Git { .. } => "GIT_PATCH",
         };
 
         let patch_rule = match rules.values().find(|rule| rule.name == rulename) {

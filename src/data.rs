@@ -25,6 +25,9 @@ use super::nested_env::{Env, EnvKey, MergeOption};
 use super::{Context, ContextBag, Dependency, Module, Rule, Task};
 use crate::serde_bool_helpers::default_as_false;
 
+mod import;
+use import::Import;
+
 pub type FileTreeState = TreeState<FileState, PathBuf>;
 
 // Any value that is present is considered Some value, including null.
@@ -44,7 +47,7 @@ struct YamlFile {
     module: Option<Option<Vec<YamlModule>>>,
     #[serde(default, deserialize_with = "deserialize_some")]
     app: Option<Option<Vec<YamlModule>>>,
-    import: Option<Vec<String>>,
+    import: Option<Vec<Import>>,
     subdirs: Option<Vec<String>>,
     defaults: Option<HashMap<String, YamlModule>>,
     #[serde(skip)]
@@ -244,6 +247,11 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                 for subdir in subdirs {
                     let sub_file = Path::new(&relpath).join(subdir).join("laze.yml");
                     filenames.insert((sub_file, new.doc_idx));
+                }
+            }
+            if let Some(imports) = &new.import {
+                for import in imports {
+                    filenames.insert((import.handle(build_dir)?, new.doc_idx));
                 }
             }
         }
