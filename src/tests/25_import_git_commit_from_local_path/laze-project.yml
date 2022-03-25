@@ -1,0 +1,20 @@
+builder:
+  - name: single_builder
+    rule:
+        - name: CC
+          in: 'c'
+          out: 'o'
+          cmd: 'cat ${in} > ${out}'
+        - name: LINK
+          in: 'o'
+          options:
+              combine: true
+          cmd: 'cat ${in} > ${out}'
+
+    env:
+      bindir: build/${builder}/${app}
+
+import:
+  - git:
+       url: ./testrepo
+       commit: HEAD

@@ -1,0 +1,4 @@
+app:
+  - name: imported_app
+    sources:
+      - foo_imported.c

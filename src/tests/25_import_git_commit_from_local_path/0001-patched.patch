@@ -1,0 +1,19 @@
+From cdba7b95cf89fc4d209f6dd88a516332c1405712 Mon Sep 17 00:00:00 2001
+From: Kaspar Schleiser <kaspar@schleiser.de>
+Date: Fri, 19 Mar 2021 13:59:50 +0100
+Subject: [PATCH] patched
+
+---
+ foo.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/foo_downloaded.c b/foo_downloaded.c
+index 257cc56..b97ea46 100644
+--- a/foo_downloaded.c
++++ b/foo_downloaded.c
+@@ -1 +1,2 @@
+ foo
++patched
+-- 
+2.31.0
+
