@@ -15,7 +15,7 @@ ${LAZE} build -g
 
 clean_temp_files
 rm -Rf testrepo
-rm -Rf build/imports/testrepo-11985653632366690788
+rm -Rf build/imports
 
 diff -r build build_expected
 
