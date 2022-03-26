@@ -8,7 +8,7 @@ mod task;
 
 pub use blockallow::BlockAllow;
 pub use context::Context;
-pub use context_bag::ContextBag;
+pub use context_bag::{ContextBag, IsAncestor};
 pub use dependency::Dependency;
 pub use module::{CustomBuild, Module};
 pub use rule::Rule;

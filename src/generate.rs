@@ -291,6 +291,19 @@ fn configure_build(
         return Ok(None);
     }
 
+    match contexts.is_ancestor(binary.context_id.unwrap(), builder.index.unwrap(), 0) {
+        crate::model::IsAncestor::No => {
+            println!(
+                "app {}: builder {} is not an ancestor of {}",
+                binary.name,
+                builder.name,
+                contexts.context_by_id(binary.context_id.unwrap()).name,
+            );
+            return Ok(None);
+        }
+        _ => (),
+    };
+
     println!("configuring {} for {}", binary.name, builder.name);
 
     /* create build instance (binary A for builder X) */
