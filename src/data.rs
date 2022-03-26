@@ -56,6 +56,8 @@ struct YamlFile {
     doc_idx: Option<usize>,
     #[serde(skip)]
     included_by: Option<usize>,
+    #[serde(skip)]
+    import_root: Option<ImportRoot>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -185,11 +187,8 @@ pub fn dependency_from_string_if(dep_name: &String, other: &String) -> Dependenc
     }
 }
 
-fn load_all<'a>(
-    filename: &PathBuf,
-    index_start: usize,
-    included_by: Option<usize>,
-) -> Result<Vec<YamlFile>> {
+fn load_all<'a>(file_include: &FileInclude, index_start: usize) -> Result<Vec<YamlFile>> {
+    let filename = &file_include.filename;
     let file = read_to_string(filename).with_context(|| format!("{:?}", filename))?;
 
     let mut result = Vec::new();
@@ -198,11 +197,53 @@ fn load_all<'a>(
             YamlFile::deserialize(doc).with_context(|| format!("{}", filename.display()))?;
         parsed.filename = Some(filename.clone());
         parsed.doc_idx = Some(index_start + n);
-        parsed.included_by = included_by;
+        parsed.included_by = file_include.included_by_doc_idx;
+        parsed.import_root = file_include.import_root.clone();
         result.push(parsed);
     }
 
     Ok(result)
+}
+
+#[derive(Hash, Debug, PartialEq, Eq, Clone)]
+struct ImportRoot(PathBuf);
+impl ImportRoot {
+    fn path(&self) -> &Path {
+        self.0.as_path()
+    }
+}
+
+#[derive(Hash, Debug, PartialEq, Eq)]
+struct FileInclude {
+    filename: PathBuf,
+    included_by_doc_idx: Option<usize>,
+    import_root: Option<ImportRoot>,
+}
+
+impl FileInclude {
+    fn new(
+        filename: PathBuf,
+        included_by_doc_idx: Option<usize>,
+        import_root: Option<ImportRoot>,
+    ) -> Self {
+        FileInclude {
+            filename,
+            included_by_doc_idx,
+            import_root,
+        }
+    }
+
+    fn new_import(filename: PathBuf, included_by_doc_idx: Option<usize>) -> Self {
+        // TODO: (opt) Cow import_root?
+        let import_root = Some(ImportRoot(PathBuf::from(
+            filename.parent().as_ref().unwrap(),
+        )));
+        FileInclude {
+            filename,
+            included_by_doc_idx,
+            import_root,
+        }
+    }
 }
 
 pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeState)> {
@@ -216,23 +257,17 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
     // when reading files, any "subdir" will be converted to "subdir/laze.yml", then added to the
     // set.
     // using an IndexSet so files can only be added once
-    let mut filenames: IndexSet<(_, Option<usize>)> = IndexSet::new();
-    filenames.insert((PathBuf::from(filename), None));
+    let mut filenames: IndexSet<FileInclude> = IndexSet::new();
+    filenames.insert(FileInclude::new(PathBuf::from(filename), None, None));
 
     let mut filenames_pos = 0;
     while filenames_pos < filenames.len() {
-        let (filename, included_by_doc_idx) = filenames.get_index(filenames_pos).unwrap();
-        let filename = filename.clone();
+        let include = filenames.get_index(filenames_pos).unwrap();
+        let filename = include.filename.clone();
         let new_index_start = yaml_datas.len();
 
-        let included_by = if let Some(doc_idx) = included_by_doc_idx {
-            Some(*doc_idx)
-        } else {
-            None
-        };
-
         // load all yaml documents from filename, append to yaml_datas
-        yaml_datas.extend(load_all(&filename, new_index_start, included_by)?.drain(..));
+        yaml_datas.extend(load_all(&include, new_index_start)?.drain(..));
         filenames_pos += 1;
 
         let new_index_end = yaml_datas.len();
@@ -246,12 +281,22 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                 // collect subdirs, add do filenames list
                 for subdir in subdirs {
                     let sub_file = Path::new(&relpath).join(subdir).join("laze.yml");
-                    filenames.insert((sub_file, new.doc_idx));
+                    filenames.insert(FileInclude::new(
+                        sub_file,
+                        new.doc_idx,
+                        new.import_root.clone(),
+                    ));
                 }
             }
             if let Some(imports) = &new.import {
                 for import in imports {
-                    filenames.insert((import.handle(build_dir)?, new.doc_idx));
+                    // TODO: `import.handle()` does the actual git checkout (or whatever
+                    // import action), so probably better handling of any errors is
+                    // in order.
+                    filenames.insert(FileInclude::new_import(
+                        import.handle(build_dir)?,
+                        new.doc_idx,
+                    ));
                 }
             }
         }
@@ -262,6 +307,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         contexts: &mut ContextBag,
         is_builder: bool,
         filename: &PathBuf,
+        import_root: &Option<ImportRoot>,
     ) {
         let context_name = &context.name;
         let context_parent = match &context.parent {
@@ -319,9 +365,16 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         context_
             .env_early
             .insert("relpath".into(), EnvKey::Single(relpath));
-        context_
-            .env_early
-            .insert("root".into(), EnvKey::Single(".".into()));
+        if let Some(import_root) = import_root {
+            context_.env_early.insert(
+                "root".into(),
+                EnvKey::Single(import_root.path().to_str().unwrap().into()),
+            );
+        } else {
+            context_
+                .env_early
+                .insert("root".into(), EnvKey::Single(".".into()));
+        }
         context_.apply_early_env();
 
         context_.defined_in = Some(filename.clone());
@@ -369,6 +422,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         context: Option<&String>,
         is_binary: bool,
         filename: &PathBuf,
+        import_root: &Option<ImportRoot>,
         defaults: Option<&Module>,
         build_dir: &Path,
     ) -> Result<Module, Error> {
@@ -546,8 +600,15 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         // populate "early env"
         m.env_early
             .insert("relpath".into(), EnvKey::Single(relpath));
-        m.env_early
-            .insert("root".into(), EnvKey::Single(".".into()));
+        if let Some(import_root) = import_root {
+            m.env_early.insert(
+                "root".into(),
+                EnvKey::Single(import_root.path().to_str().unwrap().into()),
+            );
+        } else {
+            m.env_early
+                .insert("root".into(), EnvKey::Single(".".into()));
+        }
         m.env_early.insert(
             "srcdir".into(),
             EnvKey::Single(m.srcdir.as_ref().unwrap().to_str().unwrap().into()),
@@ -571,6 +632,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                         &mut contexts,
                         *is_builder,
                         &data.filename.as_ref().unwrap(),
+                        &data.import_root,
                     );
                 }
             }
@@ -626,6 +688,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                         *context,
                         is_binary,
                         &data.filename.as_ref().unwrap(),
+                        &data.import_root,
                         subdir_defaults,
                         build_dir,
                     )
@@ -674,6 +737,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                                 context,
                                 *is_binary,
                                 &data.filename.as_ref().unwrap(),
+                                &data.import_root,
                                 if *is_binary {
                                     app_defaults.as_ref()
                                 } else {
@@ -694,6 +758,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                                 context,
                                 *is_binary,
                                 &data.filename.as_ref().unwrap(),
+                                &data.import_root,
                                 app_defaults.as_ref(),
                                 build_dir,
                             )?)?;
@@ -711,7 +776,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
     );
 
     let start = Instant::now();
-    let treestate = FileTreeState::new(filenames.iter().map(|(path, _)| path));
+    let treestate = FileTreeState::new(filenames.iter().map(|include| &include.filename));
     println!(
         "laze: stat'ing {} files took {:?}",
         filenames.len(),

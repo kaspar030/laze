@@ -57,7 +57,7 @@ pub fn get_ninja_build_file(build_dir: &Path, mode: &GenerateMode) -> PathBuf {
 fn relroot(relpath: &Path) -> PathBuf {
     let components = relpath.components().count();
     if components == 0 {
-        "./".into()
+        "${root}".into()
     } else {
         let mut res = PathBuf::new();
         for _ in 0..components {
