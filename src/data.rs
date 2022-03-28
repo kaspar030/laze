@@ -349,9 +349,6 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             }
         }
         context_.var_options = context.var_options.clone();
-        if let Some(tasks) = &context.tasks {
-            context_.tasks = Some(tasks.clone());
-        }
         // populate "early env"
         let relpath = {
             let relpath = filename.parent().unwrap().to_str().unwrap();
@@ -375,6 +372,17 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                 .env_early
                 .insert("root".into(), EnvKey::Single(".".into()));
         }
+
+        if let Some(tasks) = &context.tasks {
+            let flattened_early_env = crate::nested_env::flatten(&context_.env_early);
+            context_.tasks = Some(
+                tasks
+                    .iter()
+                    .map(|(name, task)| (name.clone(), task.with_env(&flattened_early_env)))
+                    .collect(),
+            )
+        }
+
         context_.apply_early_env();
 
         context_.defined_in = Some(filename.clone());
