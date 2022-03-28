@@ -397,12 +397,26 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         context: Option<&String>,
         is_binary: bool,
         filename: &PathBuf,
+        import_root: &Option<ImportRoot>,
         defaults: Option<&Module>,
     ) -> Module {
         let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
         let name = match name {
             Some(name) => name.clone(),
-            None => relpath.clone(),
+            None => {
+                if let Some(import_root) = import_root {
+                    filename
+                        .parent()
+                        .unwrap()
+                        .strip_prefix(import_root.path())
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_string()
+                } else {
+                    relpath.clone()
+                }
+            }
         };
 
         let mut module = match defaults {
@@ -428,7 +442,14 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
     ) -> Result<Module, Error> {
         let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
 
-        let mut m = init_module(&module.name, context, is_binary, filename, defaults);
+        let mut m = init_module(
+            &module.name,
+            context,
+            is_binary,
+            filename,
+            import_root,
+            defaults,
+        );
 
         // convert module dependencies
         // "selects" means "module will be part of the build"
