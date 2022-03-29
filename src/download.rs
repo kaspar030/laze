@@ -17,6 +17,8 @@ pub mod source {
     pub enum Source {
         #[serde(rename = "git")]
         Git(Git),
+        #[serde(rename = "laze")]
+        Laze(String),
     }
 
     #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Hash)]
@@ -78,6 +80,7 @@ impl Download {
                 env.insert("url".to_string(), url.to_string());
                 "GIT_DOWNLOAD"
             }
+            _ => return Err(anyhow!("unsupported download type")),
         };
 
         let download_rule = match rules.values().find(|rule| rule.name == rulename) {
@@ -117,6 +120,7 @@ impl Download {
         let patches = self.patches.as_ref().unwrap();
         let rulename = match &self.source {
             Source::Git { .. } => "GIT_PATCH",
+            _ => return Err(anyhow!("unsupported download type for patching")),
         };
 
         let patch_rule = match rules.values().find(|rule| rule.name == rulename) {

@@ -2,7 +2,8 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::Error;
+use anyhow::{Context, Error};
+use rust_embed::RustEmbed;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -14,6 +15,10 @@ pub struct Import {
     #[serde(flatten)]
     download: Download,
 }
+
+#[derive(RustEmbed)]
+#[folder = "assets"]
+struct Asset;
 
 fn get_existing_file(path: &Path, filenames: &[&str]) -> Option<PathBuf> {
     for filename in filenames.iter() {
@@ -90,6 +95,32 @@ impl Import {
                         ));
                     }
                 }
+                Source::Laze(name) => {
+                    let mut at_least_one = false;
+                    let prefix = format!("{}/", name);
+                    for filename in Asset::iter().filter(|x| x.starts_with(&prefix)) {
+                        if !at_least_one {
+                            at_least_one = true;
+                            std::fs::create_dir_all(&path)
+                                .with_context(|| format!("creating {:?}", &path))?;
+                        }
+
+                        let embedded_file = Asset::get(&filename).unwrap();
+                        let filename = filename.strip_prefix(&prefix).unwrap();
+                        let filename = path.join(&filename);
+                        let parent = path.parent().unwrap();
+                        std::fs::create_dir_all(path.parent().unwrap())
+                            .with_context(|| format!("creating {:?}", &parent))?;
+                        std::fs::write(&filename, embedded_file.data)
+                            .with_context(|| format!("creating {:?}", &filename))?;
+                    }
+                    if at_least_one {
+                        File::create(&tagfile)
+                            .with_context(|| format!("creating {:?}", &tagfile))?;
+                    } else {
+                        return Err(anyhow!("could not import from laze defaults: {}", name));
+                    }
+                }
             }
         }
 
@@ -104,10 +135,23 @@ impl Import {
         }
     }
 
-    pub fn get_name(&self) -> Option<&str> {
+    pub fn get_name(&self) -> Option<String> {
         match &self.download.source {
-            Source::Git(Git::Commit { url, .. }) => url.split("/").last(),
-            //_ => None,
+            Source::Git(Git::Commit { url, .. }) => url.split("/").last().map(|x| x.to_string()),
+            Source::Laze(name) => {
+                let prefix = format!("{}/", name);
+
+                if Asset::iter()
+                    .filter(|x| x.starts_with(&prefix))
+                    .next()
+                    .is_some()
+                {
+                    let build_id_hash = calculate_hash(&build_id::get());
+                    Some(format!("laze/{}-{}", name, build_id_hash))
+                } else {
+                    None
+                }
+            } //_ => None,
         }
     }
 }

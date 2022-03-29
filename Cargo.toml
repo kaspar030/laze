@@ -32,6 +32,7 @@ build_id = "0.2.1"
 uuid = { version = "0.8.2", features = ["serde"] }
 solvent = { version = "0.8.3", features = ["deterministic"] }
 url = "2.2.2"
+rust-embed = "6.3.0"
 
 
 [profile.release]
