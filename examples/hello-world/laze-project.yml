@@ -1,24 +1,6 @@
-# define a builder
-builder:
-  - name: default
-    env:
-      bindir: "${build-dir}/bin/${builder}/${app}"
-      CC: gcc
-      LINK: gcc
-    rule:
-      - name: CC
-        in: 'c'
-        out: 'o'
-        depfile: "$out.d"
-        deps: gcc
-        cmd: ${CC} -MD -MF $out.d -c ${in} -o ${out}
-      - name: LINK
-        in: 'o'
-        cmd: ${LINK} ${in} -o ${out}
-    tasks:
-      run:
-        cmd:
-          - ${out}
+# import default context and builder
+import:
+  - laze: defaults
 
 # define an application named "hello"
 app:
