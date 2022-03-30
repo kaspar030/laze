@@ -308,7 +308,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         is_builder: bool,
         filename: &PathBuf,
         import_root: &Option<ImportRoot>,
-    ) {
+    ) -> Result<(), Error> {
         let context_name = &context.name;
         let context_parent = match &context.parent {
             Some(x) => x.clone(),
@@ -334,7 +334,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                 ),
                 is_builder,
             )
-            .unwrap();
+            .with_context(|| format!("{:?}: adding context \"{}\"", &filename, &context_name))?;
         context_.env = context.env.clone();
         if let Some(rules) = &context.rule {
             context_.rules = Some(IndexMap::new());
@@ -398,6 +398,8 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                     .collect::<Vec<_>>(),
             );
         }
+
+        Ok(())
     }
 
     fn init_module(
@@ -662,7 +664,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                         *is_builder,
                         &data.filename.as_ref().unwrap(),
                         &data.import_root,
-                    );
+                    )?;
                 }
             }
         }

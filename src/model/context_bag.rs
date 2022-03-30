@@ -140,8 +140,12 @@ impl ContextBag {
         mut context: Context,
         is_builder: bool,
     ) -> Result<&mut Context, Error> {
-        if self.context_map.contains_key(&context.name) {
-            return Err(anyhow!("context name already used"));
+        if let Some(context_id) = self.context_map.get(&context.name) {
+            let context = self.context_by_id(*context_id);
+            return Err(anyhow!(
+                "context name already defined in {:?}",
+                context.defined_in.as_ref().unwrap()
+            ));
         }
 
         let last = self.contexts.len();
