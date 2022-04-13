@@ -23,12 +23,12 @@ on:
     #branches:
     #- release_test
     tags:
-    - "v[0-9]+.[0-9]+.[0-9]+"
+    - "[0-9]+.[0-9]+.[0-9]+"
 jobs:
   create-release:
     name: create-release
     runs-on: ubuntu-latest
-    env:
+      #env:
       # Set to force version number, e.g., when no tag exists.
       #LAZE_VERSION: TEST-0.0.0
     outputs:
@@ -42,7 +42,7 @@ jobs:
           # Apparently, this is the right way to get a tag name. Really?
           #
           # See: https://github.community/t5/GitHub-Actions/How-to-get-just-the-tag-name/m-p/32167/highlight/true#M1027
-          echo "LAZE_VERSION=${GITHUB_REF#refs/tags/}" | cut -c 2- >> $GITHUB_ENV
+          echo "LAZE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           echo "version is: ${{ env.LAZE_VERSION }}"
       - name: Create GitHub release
         id: release
