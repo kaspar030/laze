@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "import" from git
 - "import" from assets bundled with laze (e.g., "import: laze: defaults")
 - this CHANGELOG.md
+- providing binary releases on Github
+
+### Fixed
+- apply early environment (e.g., `$root`) to task commands
+- don't panic on duplicate context definition, show involved files
 
 ## [0.1.5] - 2021-09-21
 ### Added
@@ -20,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 [Unreleased]: https://github.com/kaspar030/laze/compare/v0.1.5...HEAD
+[0.1.6]: https://github.com/kaspar030/laze/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/kaspar030/laze/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/kaspar030/laze/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/kaspar030/laze/compare/v0.1.2...v0.1.3

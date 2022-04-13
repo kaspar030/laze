@@ -20,17 +20,17 @@ name: release
 on:
   push:
     # Enable when testing release infrastructure on a branch.
-    # branches:
-    # - ag/work
+    #branches:
+    #- release_test
     tags:
     - "v[0-9]+.[0-9]+.[0-9]+"
 jobs:
   create-release:
     name: create-release
     runs-on: ubuntu-latest
-    # env:
+    env:
       # Set to force version number, e.g., when no tag exists.
-      # LAZE_VERSION: TEST-0.0.0
+      #LAZE_VERSION: TEST-0.0.0
     outputs:
       upload_url: ${{ steps.release.outputs.upload_url }}
       laze_version: ${{ env.LAZE_VERSION }}
@@ -67,11 +67,12 @@ jobs:
       TARGET_DIR: ./target
       # Emit backtraces on panics.
       RUST_BACKTRACE: 1
-      # Build static releases with PCRE2.
-      PCRE2_SYS_STATIC: 1
+      # use clang for mimalloc
+      CC_arm_unknown_linux_musleabihf: clang
     strategy:
       matrix:
-        build: [linux, linux-arm, macos, win-msvc, win-gnu, win32-msvc]
+        #build: [linux, linux-arm, macos, win-msvc, win-gnu, win32-msvc]
+        build: [linux, linux-arm, macos]
         include:
         - build: linux
           os: ubuntu-18.04
@@ -80,7 +81,7 @@ jobs:
         - build: linux-arm
           os: ubuntu-18.04
           rust: nightly
-          target: arm-unknown-linux-gnueabihf
+          target: armv7-unknown-linux-musleabihf
         - build: macos
           os: macos-latest
           rust: nightly
@@ -137,7 +138,7 @@ jobs:
         echo "target dir is: ${{ env.TARGET_DIR }}"
 
     - name: Build release binary
-      run: ${{ env.CARGO }} build --verbose --release --features pcre2 ${{ env.TARGET_FLAGS }}
+      run: ${{ env.CARGO }} build --verbose --release ${{ env.TARGET_FLAGS }}
 
     - name: Strip release binary (linux and macos)
       if: matrix.build == 'linux' || matrix.build == 'macos'
@@ -148,19 +149,19 @@ jobs:
       run: |
         docker run --rm -v \
           "$PWD/target:/target:Z" \
-          rustembedded/cross:arm-unknown-linux-gnueabihf \
-          arm-linux-gnueabihf-strip \
-          /target/arm-unknown-linux-gnueabihf/release/laze
+          rustembedded/cross:armv7-unknown-linux-musleabihf \
+          arm-linux-musleabihf-strip \
+          /target/armv7-unknown-linux-musleabihf/release/laze
 
     - name: Build archive
       shell: bash
       run: |
         outdir="$(ci/cargo-out-dir "${{ env.TARGET_DIR }}")"
         staging="laze-${{ needs.create-release.outputs.laze_version }}-${{ matrix.target }}"
-        mkdir -p "$staging"/doc}
+        mkdir -p "$staging"/doc
 
         cp {README.md,LICENSE} "$staging/"
-        cp {CHANGELOG.md} "$staging/doc/"
+        cp CHANGELOG.md "$staging/doc/"
         #cp "$outdir"/{rg.bash,rg.fish,_rg.ps1} "$staging/complete/"
         #cp complete/_rg "$staging/complete/"
 
@@ -170,7 +171,7 @@ jobs:
           echo "ASSET=$staging.zip" >> $GITHUB_ENV
         else
           # The man page is only generated on Unix systems. ¯\_(ツ)_/¯
-          cp "$outdir"/laze.1 "$staging/doc/"
+          #cp "$outdir"/laze.1 "$staging/doc/"
           cp "target/${{ matrix.target }}/release/laze" "$staging/"
           tar czf "$staging.tar.gz" "$staging"
           echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
