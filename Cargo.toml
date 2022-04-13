@@ -1,6 +1,6 @@
 [package]
 name = "laze"
-version = "0.1.6"
+version = "0.1.7"
 authors = ["Kaspar Schleiser <kaspar@schleiser.de>"]
 edition = "2021"
 
