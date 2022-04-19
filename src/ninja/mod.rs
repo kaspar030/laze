@@ -15,7 +15,7 @@ pub enum NinjaRuleDeps {
 
 impl Default for NinjaRuleDeps {
     fn default() -> NinjaRuleDeps {
-        return NinjaRuleDeps::None;
+        NinjaRuleDeps::None
     }
 }
 
@@ -48,23 +48,23 @@ impl<'a> fmt::Display for NinjaRule<'a> {
             self.command,
             match &self.description {
                 Some(description) => format!("  description = {}\n", description),
-                None => format!(""),
+                None => String::new(),
             },
             match &self.deps {
-                NinjaRuleDeps::None => format!(""),
+                NinjaRuleDeps::None => String::new(),
                 NinjaRuleDeps::GCC(s) => format!("  deps = gcc\n  depfile = {}\n", s),
             },
             match &self.rspfile {
                 Some(rspfile) => format!("  rspfile = {}\n", rspfile),
-                None => format!(""),
+                None => String::new(),
             },
             match &self.rspfile_content {
                 Some(rspfile_content) => format!("  rspfile_content = {}\n", rspfile_content),
-                None => format!(""),
+                None => String::new(),
             },
             match &self.pool {
                 Some(pool) => format!("  pool = {}\n", pool),
-                None => format!(""),
+                None => String::new(),
             },
         )
     }
@@ -190,15 +190,15 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
                 write!(f, " $\n    ALWAYS")?;
             }
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
 
         if let Some(env) = self.env {
             for (k, v) in env {
-                write!(f, "  {} = {}\n", k, v)?;
+                writeln!(f, "  {} = {}", k, v)?;
             }
         }
 
-        write!(f, "\n")
+        writeln!(f)
     }
 }
 
