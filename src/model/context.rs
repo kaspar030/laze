@@ -7,7 +7,7 @@ use crate::Env;
 use crate::MergeOption;
 use crate::{ContextBag, Dependency, Module, Rule, Task};
 
-#[derive(PartialEq, Eq)]
+#[derive(Eq)]
 pub struct Context {
     pub name: String,
     pub parent_name: Option<String>,
@@ -199,5 +199,11 @@ impl Context {
 impl Hash for Context {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.name.hash(state);
+    }
+}
+
+impl PartialEq for Context {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
     }
 }

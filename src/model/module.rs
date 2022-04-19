@@ -10,7 +10,7 @@ use crate::nested_env;
 use crate::nested_env::Env;
 use crate::Dependency;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Eq, Debug)]
 pub struct Module {
     pub name: String,
     pub context_name: String,
@@ -269,6 +269,12 @@ impl Hash for Module {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.name.hash(state);
         self.context_name.hash(state);
+    }
+}
+
+impl PartialEq for Module {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.context_name == other.context_name
     }
 }
 

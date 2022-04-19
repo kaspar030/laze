@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher};
 
 use crate::serde_bool_helpers::default_as_false;
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Eq, Clone)]
 pub struct Rule {
     pub name: String,
     pub cmd: String,
@@ -51,6 +51,12 @@ impl Hash for Rule {
         /* rules are unique per context subtree, so hashing the name is
          * sufficient. */
         self.name.hash(state);
+    }
+}
+
+impl PartialEq for Rule {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
     }
 }
 
