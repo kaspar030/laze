@@ -48,19 +48,19 @@ impl EnvKey {
     fn flatten_with_opts(&self, opts: &MergeOption) -> String {
         let mut res = String::new();
         if let Some(start) = &opts.start {
-            res.push_str(&start);
+            res.push_str(start);
         }
 
         match self {
             EnvKey::Single(s) => {
                 if let Some(prefix) = &opts.prefix {
-                    res.push_str(&prefix);
+                    res.push_str(prefix);
                 }
 
-                res.push_str(&s);
+                res.push_str(s);
 
                 if let Some(suffix) = &opts.suffix {
-                    res.push_str(&suffix);
+                    res.push_str(suffix);
                 }
             }
             EnvKey::List(list) => {
@@ -74,16 +74,16 @@ impl EnvKey {
                         continue;
                     }
                     if let Some(prefix) = &opts.prefix {
-                        res.push_str(&prefix);
+                        res.push_str(prefix);
                     }
 
-                    res.push_str(&s);
+                    res.push_str(s);
 
                     if let Some(suffix) = &opts.suffix {
-                        res.push_str(&suffix);
+                        res.push_str(suffix);
                     }
                     if pos != last {
-                        res.push_str(&joiner);
+                        res.push_str(joiner);
                     }
                 }
             }
@@ -170,7 +170,7 @@ pub fn assign_from_string(env: Env, assignment: &str) -> Result<Env, anyhow::Err
         let mut new = Env::new();
         new.insert(var.to_string(), EnvKey::List(vector![value.to_owned()]));
         res = merge(env, new);
-    } else if let Some((var, value)) = assignment.split_once("=") {
+    } else if let Some((var, value)) = assignment.split_once('=') {
         let mut new = Env::new();
         new.insert(var.to_string(), EnvKey::Single(value.to_string()));
         res = merge(env, new);

@@ -70,7 +70,7 @@ where
     let mut escapes = false;
     while cursor < f.len() {
         if let Some(start) = (&f[cursor..]).find("${") {
-            if start > 0 && (&f[cursor..])[start - 1..start] == "\\".to_string() {
+            if start > 0 && (&f[cursor..])[start - 1..start] == *"\\" {
                 cursor += start + 1;
                 escapes = true;
                 continue;
@@ -126,7 +126,7 @@ where
                 IfMissing::Ignore => {
                     result.push_str("${");
                     result.push_str(key_);
-                    result.push_str("}")
+                    result.push('}')
                 }
                 IfMissing::Empty => (),
             },
@@ -164,7 +164,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.insert("A".to_string(), "a".to_string());
         let vars: HashMap<&String, String> =
-            vars.iter().map(|(k, v)| (k.into(), v.into())).collect();
+            vars.iter().map(|(k, v)| (k, v.into())).collect();
         assert_eq!(
             expand("${A} simple string", &vars, IfMissing::Error),
             Ok("a simple string".to_string())
@@ -177,7 +177,7 @@ mod tests {
         vars.insert("A".to_string(), "a".to_string());
         vars.insert("B".to_string(), "with variables".to_string());
         let vars: HashMap<&String, String> =
-            vars.iter().map(|(k, v)| (k.into(), v.into())).collect();
+            vars.iter().map(|(k, v)| (k, v.into())).collect();
         assert_eq!(
             expand("${A} simple string ${B}", &vars, IfMissing::Error),
             Ok("a simple string with variables".to_string())
@@ -208,7 +208,7 @@ mod tests {
         vars.insert("A".to_string(), "a(${B})".to_string());
         vars.insert("B".to_string(), "b()".to_string());
         let vars: HashMap<&String, String> =
-            vars.iter().map(|(k, v)| (k.into(), v.into())).collect();
+            vars.iter().map(|(k, v)| (k, v.into())).collect();
         assert_eq!(
             expand("x${A}x", &vars, IfMissing::Error),
             Ok("xa(b())x".to_string())
@@ -220,7 +220,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.insert("A".to_string(), "\\${a}".to_string());
         let vars: HashMap<&String, String> =
-            vars.iter().map(|(k, v)| (k.into(), v.into())).collect();
+            vars.iter().map(|(k, v)| (k, v.into())).collect();
         assert_eq!(
             expand("${A} simple string", &vars, IfMissing::Error),
             Ok("${a} simple string".to_string())
