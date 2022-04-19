@@ -501,12 +501,7 @@ fn configure_build(
                 .or_insert_with(IndexSet::new)
                 .extend(local_build_deps.iter().cloned());
 
-            Some(
-                local_build_deps
-                    .iter()
-                    .map(Cow::from)
-                    .collect_vec(),
-            )
+            Some(local_build_deps.iter().map(Cow::from).collect_vec())
         } else {
             None
         };
@@ -583,28 +578,22 @@ fn configure_build(
                 .collect_vec();
 
             // Vec<PathBuf> -> Cow<&Path>
-            let sources = sources
-                .iter()
-                .map(Cow::from)
-                .collect_vec();
+            let sources = sources.iter().map(Cow::from).collect_vec();
 
             let mut hasher = DefaultHasher::new();
             // collect any specified outs
-            let outs = build.out.as_ref().map_or_else(
-                std::vec::Vec::new,
-                |outs| {
-                    outs.iter()
-                        .map(|out| {
-                            let out = Cow::from(PathBuf::from(
-                                nested_env::expand(&out, &flattened_env, IfMissing::Empty).unwrap(),
-                            ));
-                            // TODO: check if this hashes the path or a Cow
-                            out.hash(&mut hasher);
-                            out
-                        })
-                        .collect_vec()
-                },
-            );
+            let outs = build.out.as_ref().map_or_else(std::vec::Vec::new, |outs| {
+                outs.iter()
+                    .map(|out| {
+                        let out = Cow::from(PathBuf::from(
+                            nested_env::expand(&out, &flattened_env, IfMissing::Empty).unwrap(),
+                        ));
+                        // TODO: check if this hashes the path or a Cow
+                        out.hash(&mut hasher);
+                        out
+                    })
+                    .collect_vec()
+            });
             let outs_hash = hasher.finish();
 
             // 4. render ninja "build:" snippet and add to this build's

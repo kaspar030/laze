@@ -141,8 +141,7 @@ impl Import {
             Source::Laze(name) => {
                 let prefix = format!("{}/", name);
 
-                if Asset::iter().any(|x| x.starts_with(&prefix))
-                {
+                if Asset::iter().any(|x| x.starts_with(&prefix)) {
                     let build_id_hash = calculate_hash(&build_id::get());
                     Some(format!("laze/{}-{}", name, build_id_hash))
                 } else {

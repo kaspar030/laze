@@ -562,9 +562,11 @@ fn try_main() -> Result<i32> {
             // collect CLI selected modules
             let select = build_matches.values_of_lossy("select");
             // convert CLI --select strings to Vec<Dependency>
-            let select = select.map(|mut vec| vec.drain(..)
-                        .map(|dep_name| crate::data::dependency_from_string(&dep_name))
-                        .collect_vec());
+            let select = select.map(|mut vec| {
+                vec.drain(..)
+                    .map(|dep_name| crate::data::dependency_from_string(&dep_name))
+                    .collect_vec()
+            });
 
             let disable = build_matches.values_of_lossy("disable");
 
@@ -644,9 +646,11 @@ fn try_main() -> Result<i32> {
             // collect CLI selected modules
             let select = task_matches.values_of_lossy("select");
             // convert CLI --select strings to Vec<Dependency>
-            let select = select.map(|mut vec| vec.drain(..)
-                        .map(|dep_name| crate::data::dependency_from_string(&dep_name))
-                        .collect_vec());
+            let select = select.map(|mut vec| {
+                vec.drain(..)
+                    .map(|dep_name| crate::data::dependency_from_string(&dep_name))
+                    .collect_vec()
+            });
 
             let disable = task_matches.values_of_lossy("disable");
 

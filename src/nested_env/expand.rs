@@ -163,8 +163,7 @@ mod tests {
     fn single_expansion() {
         let mut vars = HashMap::new();
         vars.insert("A".to_string(), "a".to_string());
-        let vars: HashMap<&String, String> =
-            vars.iter().map(|(k, v)| (k, v.into())).collect();
+        let vars: HashMap<&String, String> = vars.iter().map(|(k, v)| (k, v.into())).collect();
         assert_eq!(
             expand("${A} simple string", &vars, IfMissing::Error),
             Ok("a simple string".to_string())
@@ -176,8 +175,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.insert("A".to_string(), "a".to_string());
         vars.insert("B".to_string(), "with variables".to_string());
-        let vars: HashMap<&String, String> =
-            vars.iter().map(|(k, v)| (k, v.into())).collect();
+        let vars: HashMap<&String, String> = vars.iter().map(|(k, v)| (k, v.into())).collect();
         assert_eq!(
             expand("${A} simple string ${B}", &vars, IfMissing::Error),
             Ok("a simple string with variables".to_string())
@@ -207,8 +205,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.insert("A".to_string(), "a(${B})".to_string());
         vars.insert("B".to_string(), "b()".to_string());
-        let vars: HashMap<&String, String> =
-            vars.iter().map(|(k, v)| (k, v.into())).collect();
+        let vars: HashMap<&String, String> = vars.iter().map(|(k, v)| (k, v.into())).collect();
         assert_eq!(
             expand("x${A}x", &vars, IfMissing::Error),
             Ok("xa(b())x".to_string())
@@ -219,8 +216,7 @@ mod tests {
     fn single_expansion_escaped() {
         let mut vars = HashMap::new();
         vars.insert("A".to_string(), "\\${a}".to_string());
-        let vars: HashMap<&String, String> =
-            vars.iter().map(|(k, v)| (k, v.into())).collect();
+        let vars: HashMap<&String, String> = vars.iter().map(|(k, v)| (k, v.into())).collect();
         assert_eq!(
             expand("${A} simple string", &vars, IfMissing::Error),
             Ok("${a} simple string".to_string())

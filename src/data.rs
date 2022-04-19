@@ -702,15 +702,15 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         // determine "defaults: module: ..." from yaml document
         let mut module_defaults = if let Some(defaults) = &data.defaults {
             if let Some(module_defaults) = defaults.get(key) {
-                let context =
-                    &module_defaults
-                        .context
-                        .as_ref().and_then(|context| match context {
-                            StringOrVecString::List(_) => {
-                                panic!("module defaults with context _list_")
-                            }
-                            StringOrVecString::Single(context) => Some(context),
-                        });
+                let context = &module_defaults
+                    .context
+                    .as_ref()
+                    .and_then(|context| match context {
+                        StringOrVecString::List(_) => {
+                            panic!("module defaults with context _list_")
+                        }
+                        StringOrVecString::Single(context) => Some(context),
+                    });
 
                 Some(
                     convert_module(
