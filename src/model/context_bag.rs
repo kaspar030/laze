@@ -36,7 +36,7 @@ impl ContextBag {
 
     pub fn finalize(&mut self) -> Result<(), Error> {
         /* ensure there's a "default" context */
-        if let None = self.get_by_name(&"default".to_string()) {
+        if self.get_by_name(&"default".to_string()).is_none() {
             self.add_context(Context::new("default".to_string(), None))
                 .unwrap();
         }
@@ -268,8 +268,8 @@ impl ContextBag {
             None => IsAncestor::No,
         };
 
-        if let Some(_) = allowlist {
-            if let Some(_) = blocklist {
+        if allowlist.is_some() {
+            if blocklist.is_some() {
                 if let IsAncestor::Yes(allow_index, allow_depth) = allowlist_entry {
                     if let IsAncestor::Yes(block_index, block_depth) = blocklist_entry {
                         if allow_depth > block_depth {
@@ -277,21 +277,15 @@ impl ContextBag {
                         }
                     }
                     return BlockAllow::allow(allow_index, allow_depth);
-                } else {
-                    if let IsAncestor::Yes(block_index, block_depth) = blocklist_entry {
-                        return BlockAllow::block(block_index, block_depth);
-                    }
-                }
-            } else {
-                if let IsAncestor::No = allowlist_entry {
-                    return BlockAllow::Blocked;
-                }
-            }
-        } else {
-            if let Some(_) = blocklist {
-                if let IsAncestor::Yes(block_index, block_depth) = blocklist_entry {
+                } else if let IsAncestor::Yes(block_index, block_depth) = blocklist_entry {
                     return BlockAllow::block(block_index, block_depth);
                 }
+            } else if let IsAncestor::No = allowlist_entry {
+                return BlockAllow::Blocked;
+            }
+        } else if blocklist.is_some() {
+            if let IsAncestor::Yes(block_index, block_depth) = blocklist_entry {
+                return BlockAllow::block(block_index, block_depth);
             }
         }
 

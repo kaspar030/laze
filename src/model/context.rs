@@ -93,7 +93,7 @@ impl Context {
         match module {
             Some(module) => {
                 //println!("found module {} in {}.", module_name, self.name);
-                Some((&self, module))
+                Some((self, module))
             }
             None => match self.parent_index {
                 Some(id) => {

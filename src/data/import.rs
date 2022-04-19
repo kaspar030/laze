@@ -24,7 +24,7 @@ fn get_existing_file(path: &Path, filenames: &[&str]) -> Option<PathBuf> {
     for filename in filenames.iter() {
         let fullpath = path.join(filename);
         if path.join(filename).exists() {
-            return Some(PathBuf::from(fullpath));
+            return Some(fullpath);
         }
     }
     None
@@ -53,12 +53,12 @@ impl Import {
                 Source::Git(Git::Commit { url, commit }) => {
                     println!("IMPORT Git {}:{} -> {:?}", &url, commit, path);
 
-                    let status = if Url::parse(&url).is_ok() {
+                    let status = if Url::parse(url).is_ok() {
                         Command::new("git")
                             .args([
                                 "cache",
                                 "clone",
-                                &url,
+                                url,
                                 commit,
                                 path.as_os_str().to_str().unwrap(),
                             ])
@@ -68,7 +68,7 @@ impl Import {
                             .args([
                                 "clone",
                                 "--no-checkout",
-                                &url,
+                                url,
                                 path.as_os_str().to_str().unwrap(),
                             ])
                             .status()?;
@@ -78,7 +78,7 @@ impl Import {
                                     "-C",
                                     path.as_os_str().to_str().unwrap(),
                                     "checkout",
-                                    &commit,
+                                    commit,
                                 ])
                                 .status()?;
                         }
@@ -127,7 +127,7 @@ impl Import {
         if let Some(laze_file) =
             get_existing_file(&path, &["laze-lib.yml", "laze.yml", "laze-project.yml"])
         {
-            return Ok(laze_file);
+            Ok(laze_file)
         } else {
             return Err(anyhow!(
                 "no \"laze-lib.yml\", \"laze.yml\" or \"laze-project.yml\" in import"
@@ -137,14 +137,11 @@ impl Import {
 
     pub fn get_name(&self) -> Option<String> {
         match &self.download.source {
-            Source::Git(Git::Commit { url, .. }) => url.split("/").last().map(|x| x.to_string()),
+            Source::Git(Git::Commit { url, .. }) => url.split('/').last().map(|x| x.to_string()),
             Source::Laze(name) => {
                 let prefix = format!("{}/", name);
 
-                if Asset::iter()
-                    .filter(|x| x.starts_with(&prefix))
-                    .next()
-                    .is_some()
+                if Asset::iter().any(|x| x.starts_with(&prefix))
                 {
                     let build_id_hash = calculate_hash(&build_id::get());
                     Some(format!("laze/{}-{}", name, build_id_hash))

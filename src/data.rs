@@ -136,8 +136,8 @@ impl YamlModule {
     fn get_contexts(&self) -> Vec<Option<&String>> {
         if let Some(contexts) = &self.context {
             match contexts {
-                StringOrVecString::Single(single) => vec![Some(&single)],
-                StringOrVecString::List(list) => list.iter().map(|x| Some(x)).collect_vec(),
+                StringOrVecString::Single(single) => vec![Some(single)],
+                StringOrVecString::List(list) => list.iter().map(Some).collect_vec(),
             }
         } else {
             return vec![None];
@@ -166,11 +166,11 @@ struct YamlModuleEnv {
 fn process_removes(strings: &mut Vec<Dependency<String>>) {
     let removals = strings
         .iter()
-        .filter(|x| x.get_name().starts_with("-"))
+        .filter(|x| x.get_name().starts_with('-'))
         .map(|x| x.get_name()[1..].to_string())
         .collect::<HashSet<_>>();
 
-    strings.retain(|x| !(x.get_name().starts_with("-") || removals.contains(&x.get_name()[..])));
+    strings.retain(|x| !(x.get_name().starts_with('-') || removals.contains(&x.get_name()[..])));
 }
 
 pub fn dependency_from_string(dep_name: &String) -> Dependency<String> {
@@ -267,7 +267,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         let new_index_start = yaml_datas.len();
 
         // load all yaml documents from filename, append to yaml_datas
-        yaml_datas.extend(load_all(&include, new_index_start)?.drain(..));
+        yaml_datas.append(&mut load_all(include, new_index_start)?);
         filenames_pos += 1;
 
         let new_index_end = yaml_datas.len();
@@ -352,7 +352,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         // populate "early env"
         let relpath = {
             let relpath = filename.parent().unwrap().to_str().unwrap();
-            if relpath == "" {
+            if relpath.is_empty() {
                 ".".to_string()
             } else {
                 relpath.to_string()
@@ -394,7 +394,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             context_.select = Some(
                 select
                     .iter()
-                    .map(|dep_name| dependency_from_string(dep_name))
+                    .map(dependency_from_string)
                     .collect::<Vec<_>>(),
             );
         }
@@ -430,7 +430,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         };
 
         let mut module = match defaults {
-            Some(defaults) => Module::from(defaults, name.clone(), context.cloned()),
+            Some(defaults) => Module::from(defaults, name, context.cloned()),
             None => Module::new(name, context.cloned()),
         };
 
@@ -508,7 +508,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         }
         if let Some(disable) = &module.disable {
             if m.is_binary {
-                if let None = m.disable {
+                if m.disable.is_none() {
                     m.disable = Some(Vec::new());
                 }
                 // println!("disables:");
@@ -569,7 +569,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             // if there are optional sources, merge them into the module's
             // optional sources map
             if !sources_optional.is_empty() {
-                if let None = m.sources_optional {
+                if m.sources_optional.is_none() {
                     m.sources_optional = Some(IndexMap::new());
                 }
                 let m_sources_optional = m.sources_optional.as_mut().unwrap();
@@ -662,7 +662,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                         context,
                         &mut contexts,
                         *is_builder,
-                        &data.filename.as_ref().unwrap(),
+                        data.filename.as_ref().unwrap(),
                         &data.import_root,
                     )?;
                 }
@@ -705,8 +705,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                 let context =
                     &module_defaults
                         .context
-                        .as_ref()
-                        .map_or(None, |context| match context {
+                        .as_ref().and_then(|context| match context {
                             StringOrVecString::List(_) => {
                                 panic!("module defaults with context _list_")
                             }
@@ -715,10 +714,10 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
 
                 Some(
                     convert_module(
-                        &module_defaults,
+                        module_defaults,
                         *context,
                         is_binary,
-                        &data.filename.as_ref().unwrap(),
+                        data.filename.as_ref().unwrap(),
                         &data.import_root,
                         subdir_defaults,
                         build_dir,
@@ -731,7 +730,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         } else {
             None
         };
-        if let None = module_defaults {
+        if module_defaults.is_none() {
             if let Some(subdir_defaults) = subdir_defaults {
                 module_defaults = Some(subdir_defaults.clone());
             }
@@ -749,7 +748,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         );
         let app_defaults = get_defaults(data, &subdir_app_defaults_map, "app", true, build_dir);
 
-        if let Some(_) = data.subdirs {
+        if data.subdirs.is_some() {
             if let Some(module_defaults) = &module_defaults {
                 subdir_module_defaults_map.insert(data.doc_idx.unwrap(), module_defaults.clone());
             }
@@ -764,10 +763,10 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                     for module in module_list {
                         for context in module.get_contexts() {
                             contexts.add_module(convert_module(
-                                &module,
+                                module,
                                 context,
                                 *is_binary,
-                                &data.filename.as_ref().unwrap(),
+                                data.filename.as_ref().unwrap(),
                                 &data.import_root,
                                 if *is_binary {
                                     app_defaults.as_ref()
@@ -778,22 +777,20 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                             )?)?;
                         }
                     }
-                } else {
-                    if *is_binary {
-                        // if an app list is empty, add a default entry.
-                        // this allows a convenient file only containing "app:"
-                        let module = YamlModule::default(*is_binary);
-                        for context in module.get_contexts() {
-                            contexts.add_module(convert_module(
-                                &module,
-                                context,
-                                *is_binary,
-                                &data.filename.as_ref().unwrap(),
-                                &data.import_root,
-                                app_defaults.as_ref(),
-                                build_dir,
-                            )?)?;
-                        }
+                } else if *is_binary {
+                    // if an app list is empty, add a default entry.
+                    // this allows a convenient file only containing "app:"
+                    let module = YamlModule::default(*is_binary);
+                    for context in module.get_contexts() {
+                        contexts.add_module(convert_module(
+                            &module,
+                            context,
+                            *is_binary,
+                            data.filename.as_ref().unwrap(),
+                            &data.import_root,
+                            app_defaults.as_ref(),
+                            build_dir,
+                        )?)?;
                     }
                 }
             }

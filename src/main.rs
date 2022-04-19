@@ -98,7 +98,7 @@ impl<'a: 'b, 'b> Build<'b> {
         };
 
         /* fixup name to "$builder_name:$binary_name" */
-        build.build_context.name.push_str(&":");
+        build.build_context.name.push(':');
         build.build_context.name.push_str(&build.binary.name);
 
         /* collect environment from builder */
@@ -152,7 +152,7 @@ impl<'a: 'b, 'b> Build<'b> {
                     } else {
                         if_then_deps
                             .entry(other.clone())
-                            .or_insert_with(|| Vec::new())
+                            .or_insert_with(Vec::new)
                             .push(Dependency::Hard(name.clone()));
                         continue;
                     }
@@ -163,7 +163,7 @@ impl<'a: 'b, 'b> Build<'b> {
                     } else {
                         if_then_deps
                             .entry(other.clone())
-                            .or_insert_with(|| Vec::new())
+                            .or_insert_with(Vec::new)
                             .push(Dependency::Soft(name.clone()));
 
                         continue;
@@ -512,10 +512,8 @@ fn try_main() -> Result<i32> {
 
     thread::spawn(move || {
         for sig in signals.forever() {
-            if sig == SIGINT {
-                if !IGNORE_SIGINT.load(std::sync::atomic::Ordering::SeqCst) {
-                    std::process::exit(130);
-                }
+            if sig == SIGINT && !IGNORE_SIGINT.load(std::sync::atomic::Ordering::SeqCst) {
+                std::process::exit(130);
             }
         }
     });
@@ -564,13 +562,9 @@ fn try_main() -> Result<i32> {
             // collect CLI selected modules
             let select = build_matches.values_of_lossy("select");
             // convert CLI --select strings to Vec<Dependency>
-            let select = select.map_or(None, |mut vec| {
-                Some(
-                    vec.drain(..)
+            let select = select.map(|mut vec| vec.drain(..)
                         .map(|dep_name| crate::data::dependency_from_string(&dep_name))
-                        .collect_vec(),
-                )
-            });
+                        .collect_vec());
 
             let disable = build_matches.values_of_lossy("disable");
 
@@ -650,13 +644,9 @@ fn try_main() -> Result<i32> {
             // collect CLI selected modules
             let select = task_matches.values_of_lossy("select");
             // convert CLI --select strings to Vec<Dependency>
-            let select = select.map_or(None, |mut vec| {
-                Some(
-                    vec.drain(..)
+            let select = select.map(|mut vec| vec.drain(..)
                         .map(|dep_name| crate::data::dependency_from_string(&dep_name))
-                        .collect_vec(),
-                )
-            });
+                        .collect_vec());
 
             let disable = task_matches.values_of_lossy("disable");
 
@@ -724,7 +714,7 @@ fn try_main() -> Result<i32> {
                 .filter(|(builder, app, build_info)| {
                     builders.selects(builder)
                         && apps.selects(app)
-                        && build_info.tasks.contains_key(task.into())
+                        && build_info.tasks.contains_key(task)
                 })
                 .collect();
 
@@ -738,7 +728,7 @@ fn try_main() -> Result<i32> {
                 return Err(anyhow!("please specify one of these."));
             }
 
-            if builds.len() < 1 {
+            if builds.is_empty() {
                 return Err(anyhow!("no matching target for task \"{}\" found.", task));
             }
 
@@ -746,10 +736,10 @@ fn try_main() -> Result<i32> {
             let targets = Some(vec![build.2.out.clone()]);
 
             let task_name = task;
-            let task = build.2.tasks.get(task.into()).unwrap();
+            let task = build.2.tasks.get(task).unwrap();
 
             if task.build_app() {
-                let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
+                let ninja_build_file = get_ninja_build_file(build_dir, &mode);
                 if ninja_run(ninja_build_file.as_path(), verbose > 0, targets)? != 0 {
                     return Err(anyhow!("build error"));
                 };

@@ -164,7 +164,7 @@ impl Generator {
         let bins = bins
             .filter(|(_, module)| {
                 if let Selector::Some(apps) = &self.apps {
-                    if let None = apps.get(&module.name[..]) {
+                    if apps.get(&module.name[..]).is_none() {
                         return false;
                     }
                 }
@@ -314,7 +314,7 @@ fn configure_build(
     };
 
     // collect disabled modules from app and build context
-    let mut disabled_modules = build.build_context.collect_disabled_modules(&contexts);
+    let mut disabled_modules = build.build_context.collect_disabled_modules(contexts);
     if let Some(disable) = &binary.disable {
         for entry in disable {
             disabled_modules.insert(entry.clone());
@@ -340,7 +340,7 @@ fn configure_build(
 
     /* collect build context rules */
     let mut rules = IndexMap::new();
-    let rules = build.build_context.collect_rules(&contexts, &mut rules);
+    let rules = build.build_context.collect_rules(contexts, &mut rules);
     let merge_opts = &builder.var_options;
 
     // create initial build context global env.
@@ -447,7 +447,7 @@ fn configure_build(
     /* now handle each module */
     for (module, module_env, module_build_deps) in modules_in_build_order.iter() {
         // handle possible remote sources
-        let download_rules = download::handle_module(module, &build_dir, &rules)?;
+        let download_rules = download::handle_module(module, &build_dir, rules)?;
 
         if let Some(mut download_rules) = download_rules {
             ninja_entries.extend(download_rules.drain(..));
@@ -459,7 +459,7 @@ fn configure_build(
         // This is populated in data.rs, so unwrap() always succeeds.
         let srcdir = module.srcdir.as_ref().unwrap();
 
-        let flattened_env = nested_env::flatten_with_opts_option(&module_env, merge_opts.as_ref());
+        let flattened_env = nested_env::flatten_with_opts_option(module_env, merge_opts.as_ref());
         //println!("{:#?}", builder.var_options);
 
         // add optional sources, if needed
@@ -498,13 +498,13 @@ fn configure_build(
         let local_build_deps = if let Some(local_build_deps) = &module.build_dep_files {
             module_build_dep_files
                 .entry(&module.name)
-                .or_insert_with(|| IndexSet::new())
+                .or_insert_with(IndexSet::new)
                 .extend(local_build_deps.iter().cloned());
 
             Some(
                 local_build_deps
                     .iter()
-                    .map(|pathbuf| Cow::from(pathbuf))
+                    .map(Cow::from)
                     .collect_vec(),
             )
         } else {
@@ -521,7 +521,7 @@ fn configure_build(
                         .iter()
                         .flat_map(|x| x.iter())
                         .flatten()
-                        .map(|pathbuf| Cow::from(pathbuf))
+                        .map(Cow::from)
                         .collect_vec(),
                 )
             } else {
@@ -585,13 +585,13 @@ fn configure_build(
             // Vec<PathBuf> -> Cow<&Path>
             let sources = sources
                 .iter()
-                .map(|pathbuf| Cow::from(pathbuf))
+                .map(Cow::from)
                 .collect_vec();
 
             let mut hasher = DefaultHasher::new();
             // collect any specified outs
             let outs = build.out.as_ref().map_or_else(
-                || vec![],
+                std::vec::Vec::new,
                 |outs| {
                     outs.iter()
                         .map(|out| {
@@ -631,7 +631,7 @@ fn configure_build(
             // append our outs alias to this module's exported build deps
             module_build_dep_files
                 .entry(&module.name)
-                .or_insert_with(|| IndexSet::new())
+                .or_insert_with(IndexSet::new)
                 .insert(PathBuf::from(format!("outs_{}", outs_hash)));
 
             // add ninja rule/build snippets to ninja snippets set
@@ -664,7 +664,7 @@ fn configure_build(
                 // If there is one, use it, otherwise create a new one from the
                 // context rules, applying this module's env.
                 module_rules.entry(ext.into()).or_insert({
-                    let rule = rules.get(ext.into()).ok_or_else(|| {
+                    let rule = rules.get(ext).ok_or_else(|| {
                         anyhow!(
                             "no rule found for \"{}\" of module \"{}\" (from {})",
                             source,
@@ -697,9 +697,9 @@ fn configure_build(
                 // 2. find ninja rule by lookup of the source file's extension
                 let ext = srcpath.extension().and_then(OsStr::to_str).unwrap();
 
-                let rule = rules.get(ext.into()).unwrap();
+                let rule = rules.get(ext).unwrap();
 
-                let ninja_rule = module_rules.get(ext.into()).unwrap();
+                let ninja_rule = module_rules.get(ext).unwrap();
                 let rule_hash = ninja_rule.get_hash(None);
 
                 // 3. determine output path (e.g., name of C object file)
@@ -746,7 +746,7 @@ fn configure_build(
 
     // NinjaBuildBuilder expects a Vec<&Path>, but the loop above creates a Vec<PathBuf>.
     // thus, convert.
-    let objects: Vec<_> = objects.iter().map(|pathbuf| Cow::from(pathbuf)).collect();
+    let objects: Vec<_> = objects.iter().map(Cow::from).collect();
 
     // linking
     {
@@ -782,7 +782,7 @@ fn configure_build(
     global_env_flattened.insert(&out_string, String::from(outfile.to_str().unwrap()));
     let tasks = build
         .build_context
-        .collect_tasks(&contexts, &global_env_flattened);
+        .collect_tasks(contexts, &global_env_flattened);
 
     Ok(Some((
         BuildInfo {

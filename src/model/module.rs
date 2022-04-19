@@ -168,7 +168,7 @@ impl Module {
         let mut build_dep_modules = None;
 
         /* from each (recursive) import ... */
-        let deps = self.get_imports_recursive(&modules, None);
+        let deps = self.get_imports_recursive(modules, None);
 
         for dep in &deps {
             /* merge that dependency's exported env */
@@ -188,12 +188,10 @@ impl Module {
             }
 
             // collect all imported file build dependencies
-            if dep != &self {
-                if dep.is_build_dep {
-                    build_dep_modules
-                        .get_or_insert_with(|| IndexSet::new())
-                        .insert(*dep);
-                }
+            if dep != &self && dep.is_build_dep {
+                build_dep_modules
+                    .get_or_insert_with(IndexSet::new)
+                    .insert(*dep);
             }
         }
 

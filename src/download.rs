@@ -144,7 +144,7 @@ impl Download {
             .collect_vec();
 
         let download_dep = std::iter::once(&tagfile_download)
-            .map(|x| Cow::from(x))
+            .map(Cow::from)
             .collect_vec();
 
         let ninja_patch_build = NinjaBuildBuilder::default()
