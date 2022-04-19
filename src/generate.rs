@@ -90,9 +90,7 @@ impl Generator {
                 println!("laze: reading cache took {:?}.", start.elapsed());
                 return Ok(cached);
             }
-            Err(x) => match x {
-                _ => println!("laze: reading cache: {}", x),
-            },
+            Err(x) => println!("laze: reading cache: {}", x),
         }
 
         let (contexts, treestate) = load(&self.project_file, &self.build_dir)?;
