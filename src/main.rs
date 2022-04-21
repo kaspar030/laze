@@ -130,12 +130,18 @@ impl<'a: 'b, 'b> Build<'b> {
         module: &'m Module,
         module_set: &mut IndexMap<&'m String, &'m Module>,
         if_then_deps: &mut IndexMap<String, Vec<Dependency<String>>>,
-        disabled_modules: &HashSet<String>,
+        disabled_modules: &mut IndexSet<String>,
     ) -> Result<(), Error> {
         let prev_len = module_set.len();
         let if_then_deps_prev_len = if_then_deps.len();
+        let disabled_modules_prev_len = disabled_modules.len();
+
+        println!("{} {:#?}", &module.name, disabled_modules);
 
         module_set.insert(&module.name, module);
+        if let Some(disables) = &module.disable {
+            disabled_modules.extend(disables.iter().cloned())
+        }
 
         let mut late_if_then_deps = Vec::new();
         if let Some(deps) = if_then_deps.get(&module.name) {
@@ -179,6 +185,7 @@ impl<'a: 'b, 'b> Build<'b> {
                 if !optional {
                     module_set.truncate(prev_len);
                     if_then_deps.truncate(if_then_deps_prev_len);
+                    disabled_modules.truncate(disabled_modules_prev_len);
 
                     bail!(
                         "binary {} for builder {}: {} depends on disabled module {}",
@@ -200,6 +207,7 @@ impl<'a: 'b, 'b> Build<'b> {
                     } else {
                         module_set.truncate(prev_len);
                         if_then_deps.truncate(if_then_deps_prev_len);
+                        disabled_modules.truncate(disabled_modules_prev_len);
                         bail!(
                             "binary {} for builder {}: {} depends on unavailable module {}",
                             self.binary.name,
@@ -217,6 +225,7 @@ impl<'a: 'b, 'b> Build<'b> {
                 if !optional {
                     module_set.truncate(prev_len);
                     if_then_deps.truncate(if_then_deps_prev_len);
+                    disabled_modules.truncate(disabled_modules_prev_len);
                     return Err(x);
                 }
             }
@@ -226,7 +235,7 @@ impl<'a: 'b, 'b> Build<'b> {
 
     fn resolve_selects(
         &self,
-        disabled_modules: &HashSet<String>,
+        disabled_modules: &mut IndexSet<String>,
     ) -> Result<IndexMap<&String, &Module>, Error> {
         let mut modules = IndexMap::new();
         let mut if_then_deps = IndexMap::new();
@@ -569,14 +578,18 @@ fn try_main() -> Result<i32> {
             let build_dir = PathBuf::from(build_matches.value_of("build-dir").unwrap());
 
             // collect builder names from args
-            let builders = match build_matches.values_of_lossy("builders") {
-                Some(mut values) => Selector::Some(values.drain(..).collect::<IndexSet<String>>()),
+            let builders = match build_matches.values_of("builders") {
+                Some(values) => {
+                    Selector::Some(values.map(String::from).collect::<IndexSet<String>>())
+                }
                 None => Selector::All,
             };
 
             // collect app names from args
-            let apps = match build_matches.values_of_lossy("apps") {
-                Some(mut values) => Selector::Some(values.drain(..).collect::<IndexSet<String>>()),
+            let apps = match build_matches.values_of("apps") {
+                Some(values) => {
+                    Selector::Some(values.map(String::from).collect::<IndexSet<String>>())
+                }
                 None => Selector::All,
             };
 
