@@ -315,22 +315,15 @@ fn configure_build(
 
     // collect disabled modules from app and build context
     let mut disabled_modules = build.build_context.collect_disabled_modules(contexts);
-    if let Some(disable) = &binary.disable {
-        for entry in disable {
-            disabled_modules.insert(entry.clone());
-        }
-    }
 
     // collect modules disabled on CLI
     if let Some(disable) = disable {
-        for entry in disable {
-            disabled_modules.insert(entry.clone());
-        }
+        disabled_modules.extend(disable.iter().cloned());
     }
 
     /* resolve all dependency names to specific modules.
      * this also determines if all dependencies are met */
-    let modules = match build.resolve_selects(&disabled_modules) {
+    let modules = match build.resolve_selects(&mut disabled_modules) {
         Err(e) => {
             println!("error: {}", e);
             return Ok(None);

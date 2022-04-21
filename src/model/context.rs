@@ -1,5 +1,5 @@
-use indexmap::IndexMap;
-use std::collections::{HashMap, HashSet};
+use indexmap::{IndexMap, IndexSet};
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 
@@ -161,8 +161,8 @@ impl Context {
         result
     }
 
-    pub fn collect_disabled_modules(&self, contexts: &ContextBag) -> HashSet<String> {
-        let mut result = HashSet::new();
+    pub fn collect_disabled_modules(&self, contexts: &ContextBag) -> IndexSet<String> {
+        let mut result = IndexSet::new();
         let mut parents = Vec::new();
         self.get_parents(contexts, &mut parents);
         for parent in parents {

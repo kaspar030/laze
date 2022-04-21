@@ -506,22 +506,13 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                 }
             }
         }
+
         if let Some(disable) = &module.disable {
-            if m.is_binary {
-                if m.disable.is_none() {
-                    m.disable = Some(Vec::new());
-                }
-                // println!("disables:");
-                for dep_name in disable {
-                    // println!("- {}", dep_name);
-                    m.disable.as_mut().unwrap().push(dep_name.clone());
-                }
-            } else {
-                return Err(anyhow!(
-                    "{:?}: module {}: \"disable\" not allowed on regular (non-app) modules!",
-                    m.defined_in.unwrap(),
-                    m.name
-                ));
+            if m.disable.is_none() {
+                m.disable = Some(Vec::new());
+            }
+            for dep_name in disable {
+                m.disable.as_mut().unwrap().push(dep_name.clone());
             }
         }
 
