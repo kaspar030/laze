@@ -95,7 +95,8 @@ struct YamlModule {
     depends: Option<Vec<StringOrMapString>>,
     selects: Option<Vec<String>>,
     uses: Option<Vec<String>>,
-    disable: Option<Vec<String>>,
+    #[serde(alias = "disable")]
+    conflicts: Option<Vec<String>>,
     #[serde(default = "default_as_false")]
     notify_all: bool,
     sources: Option<Vec<StringOrMapString>>,
@@ -119,7 +120,7 @@ impl YamlModule {
             depends: None,
             selects: None,
             uses: None,
-            disable: None,
+            conflicts: None,
             notify_all: false,
             sources: None,
             srcdir: None,
@@ -467,8 +468,9 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         // "depends" means both select and use a module
         // a build configuration fails if a selected or depended on module is not
         // available.
-        // "disable" is only valid for binaries ("apps"), and will make any module
-        // with the specified name unavailable in the binary's build context
+        // "conflicts" will make any module with the specified name unavailable
+        // in the binary's build context, if the module specifying a conflict
+        // is part of the dependency tree
         //
         if let Some(selects) = &module.selects {
             // println!("selects:");
@@ -507,12 +509,12 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             }
         }
 
-        if let Some(disable) = &module.disable {
-            if m.disable.is_none() {
-                m.disable = Some(Vec::new());
+        if let Some(conflicts) = &module.conflicts {
+            if m.conflicts.is_none() {
+                m.conflicts = Some(Vec::new());
             }
-            for dep_name in disable {
-                m.disable.as_mut().unwrap().push(dep_name.clone());
+            for dep_name in conflicts {
+                m.conflicts.as_mut().unwrap().push(dep_name.clone());
             }
         }
 
