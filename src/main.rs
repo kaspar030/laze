@@ -264,14 +264,21 @@ fn ninja_run(
     ninja_buildfile: &Path,
     verbose: bool,
     targets: Option<Vec<PathBuf>>,
+    jobs: Option<usize>,
 ) -> Result<i32, Error> {
-    let ninja_exit = NinjaCmdBuilder::default()
+    let mut ninja_cmd = NinjaCmdBuilder::default();
+
+    ninja_cmd
         .verbose(verbose)
         .build_file(ninja_buildfile.to_str().unwrap())
-        .targets(targets)
-        .build()
-        .unwrap()
-        .run()?;
+        .targets(targets);
+
+    if let Some(jobs) = jobs {
+        ninja_cmd.jobs(jobs);
+    }
+
+    let ninja_exit = ninja_cmd.build().unwrap().run()?;
+
     match ninja_exit.code() {
         Some(code) => match code {
             0 => Ok(code),
@@ -368,6 +375,14 @@ fn clap() -> clap::Command<'static> {
                         .multiple_occurrences(true),
                 )
                 .arg(
+                    Arg::new("jobs")
+                        .short('j')
+                        .long("jobs")
+                        .help("how many compile jobs to run in parallel")
+                        .takes_value(true)
+                        .validator(|val| val.parse::<usize>()),
+                )
+                .arg(
                     Arg::new("select")
                         .short('s')
                         .long("select")
@@ -425,6 +440,14 @@ fn clap() -> clap::Command<'static> {
                         .long("verbose")
                         .help("be verbose (e.g., show command lines)")
                         .multiple_occurrences(true),
+                )
+                .arg(
+                    Arg::new("jobs")
+                        .short('j')
+                        .long("jobs")
+                        .help("how many compile jobs to run in parallel")
+                        .takes_value(true)
+                        .validator(|val| val.parse::<usize>()),
                 )
                 .arg(
                     Arg::new("builder")
@@ -557,6 +580,10 @@ fn try_main() -> Result<i32> {
                 None => Selector::All,
             };
 
+            let jobs = build_matches
+                .value_of("jobs")
+                .map_or(None, |val| Some(val.parse::<usize>().unwrap()));
+
             println!("building {} for {}", &apps, &builders);
 
             // collect CLI selected modules
@@ -634,7 +661,7 @@ fn try_main() -> Result<i32> {
             };
 
             let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
-            ninja_run(ninja_build_file.as_path(), verbose > 0, targets)?;
+            ninja_run(ninja_build_file.as_path(), verbose > 0, targets, jobs)?;
         }
         Some(("task", task_matches)) => {
             let verbose = task_matches.occurrences_of("verbose");
@@ -642,6 +669,10 @@ fn try_main() -> Result<i32> {
 
             let builder = task_matches.value_of("builder");
             let app = task_matches.value_of("app");
+
+            let jobs = task_matches
+                .value_of("jobs")
+                .map_or(None, |val| Some(val.parse::<usize>().unwrap()));
 
             // collect CLI selected modules
             let select = task_matches.values_of_lossy("select");
@@ -744,7 +775,7 @@ fn try_main() -> Result<i32> {
 
             if task.build_app() {
                 let ninja_build_file = get_ninja_build_file(build_dir, &mode);
-                if ninja_run(ninja_build_file.as_path(), verbose > 0, targets)? != 0 {
+                if ninja_run(ninja_build_file.as_path(), verbose > 0, targets, jobs)? != 0 {
                     return Err(anyhow!("build error"));
                 };
             }
@@ -770,7 +801,7 @@ fn try_main() -> Result<i32> {
                 false => "clean",
             };
             let clean_target: Option<Vec<PathBuf>> = Some(vec!["-t".into(), tool.into()]);
-            ninja_run(ninja_build_file.as_path(), verbose > 0, clean_target)?;
+            ninja_run(ninja_build_file.as_path(), verbose > 0, clean_target, None)?;
         }
         _ => {}
     };

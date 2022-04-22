@@ -256,6 +256,9 @@ pub struct NinjaCmd<'a> {
 
     #[builder(default = "None")]
     targets: Option<Vec<PathBuf>>,
+
+    #[builder(default = "None")]
+    jobs: Option<usize>,
 }
 
 impl<'a> NinjaCmd<'a> {
@@ -265,6 +268,11 @@ impl<'a> NinjaCmd<'a> {
 
         if self.verbose {
             cmd.arg("-v");
+        }
+
+        if let Some(jobs) = self.jobs {
+            cmd.arg("-j");
+            cmd.arg(jobs.to_string());
         }
 
         if let Some(targets) = &self.targets {
