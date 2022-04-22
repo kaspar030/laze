@@ -43,11 +43,21 @@ pub enum GenerateMode {
     Local(PathBuf),
 }
 
+impl GenerateMode {
+    pub fn is_local(&self) -> bool {
+        match self {
+            GenerateMode::Global => false,
+            _ => true,
+        }
+    }
+}
+
 /// returns the used ninja build file
 pub fn get_ninja_build_file(build_dir: &Path, mode: &GenerateMode) -> PathBuf {
-    match mode {
-        GenerateMode::Global => build_dir.join("build-global.ninja"),
-        GenerateMode::Local(_) => build_dir.join("build-local.ninja"),
+    if mode.is_local() {
+        build_dir.join("build-local.ninja")
+    } else {
+        build_dir.join("build-global.ninja")
     }
 }
 
