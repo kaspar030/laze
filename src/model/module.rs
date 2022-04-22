@@ -17,7 +17,7 @@ pub struct Module {
 
     pub selects: Vec<Dependency<String>>,
     pub imports: Vec<Dependency<String>>,
-    pub disable: Option<Vec<String>>,
+    pub conflicts: Option<Vec<String>>,
     pub notify_all: bool,
 
     pub blocklist: Option<Vec<String>>,
@@ -50,7 +50,7 @@ impl Module {
             context_name: context_name.unwrap_or_else(|| "default".to_string()),
             selects: Vec::new(),
             imports: Vec::new(),
-            disable: None,
+            conflicts: None,
             notify_all: false,
             // exports: Vec::new(),
             sources: Vec::new(),
@@ -79,7 +79,7 @@ impl Module {
             context_name: context_name.unwrap_or_else(|| defaults.context_name.clone()),
             selects: defaults.selects.clone(),
             imports: defaults.imports.clone(),
-            disable: defaults.disable.clone(),
+            conflicts: defaults.conflicts.clone(),
             notify_all: defaults.notify_all,
             // exports: Vec::new(),
             sources: defaults.sources.clone(),

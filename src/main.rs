@@ -139,8 +139,8 @@ impl<'a: 'b, 'b> Build<'b> {
         println!("{} {:#?}", &module.name, disabled_modules);
 
         module_set.insert(&module.name, module);
-        if let Some(disables) = &module.disable {
-            disabled_modules.extend(disables.iter().cloned())
+        if let Some(conflicts) = &module.conflicts {
+            disabled_modules.extend(conflicts.iter().cloned())
         }
 
         let mut late_if_then_deps = Vec::new();
@@ -188,7 +188,7 @@ impl<'a: 'b, 'b> Build<'b> {
                     disabled_modules.truncate(disabled_modules_prev_len);
 
                     bail!(
-                        "binary {} for builder {}: {} depends on disabled module {}",
+                        "binary {} for builder {}: {} depends on disabled/conflicted module {}",
                         self.binary.name,
                         self.builder.name,
                         module.name,
