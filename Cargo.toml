@@ -14,7 +14,7 @@ readme = "README.md"
 anyhow = "1.0.56"
 bincode = "1.3.3"
 clap = { version = "3.1.12", features = ["cargo", "env" ] }
-derive_builder = "0.11.1"
+derive_builder = "0.11.2"
 indexmap = { version = "1.8.1", features = ["serde-1"] }
 itertools = "0.10.3"
 pathdiff = "0.2.1"
