@@ -136,8 +136,6 @@ impl<'a: 'b, 'b> Build<'b> {
         let if_then_deps_prev_len = if_then_deps.len();
         let disabled_modules_prev_len = disabled_modules.len();
 
-        println!("{} {:#?}", &module.name, disabled_modules);
-
         module_set.insert(&module.name, module);
         if let Some(conflicts) = &module.conflicts {
             disabled_modules.extend(conflicts.iter().cloned())
