@@ -1,0 +1,6 @@
+[book]
+authors = ["Kaspar Schleiser"]
+language = "en"
+multilingual = false
+src = "src"
+title = "laze Manual"
