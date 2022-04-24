@@ -1,0 +1,31 @@
+name: Deploy Book
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Install mdbook
+      run: |
+        mkdir mdbook
+        curl -Lf https://github.com/rust-lang/mdBook/releases/download/v0.4.18/mdbook-v0.4.18-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
+        echo `pwd`/mdbook >> $GITHUB_PATH
+    - name: Deploy docs
+      run: |
+        cd book
+        mdbook build
+        git worktree add gh-pages gh-pages
+        git config user.name "Deploy from CI"
+        git config user.email ""
+        cd gh-pages
+        git rm -rf dev
+        mv ../book dev
+        git add dev
+        git commit -m "Deploy $GITHUB_SHA to gh-pages"
+        git push --force
