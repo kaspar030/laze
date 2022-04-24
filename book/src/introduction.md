@@ -28,18 +28,10 @@ its build description format.
 
 Consider a simple application consisting of a single `hello.c` source file.
 
-This laze file would build it:
+This laze file, saved to `laze-project.yml` next to `hello.c`, would build it:
 
 ```yaml
-# import default context and host builder
-import:
-  - laze: defaults
-
-# define an application named "hello"
-app:
-  - name: hello
-    sources:
-      - hello.c
+{{#include ../../examples/hello-world/laze-project.yml}}
 ```
 
 The application can now be built:
