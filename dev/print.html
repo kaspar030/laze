@@ -304,8 +304,64 @@ exported environment will be imported.</p>
 <p>This chapter contains the referencs of laze's YAML build files.</p>
 <p>TODO: it is currently incomplete ...</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="context"><a class="header" href="#context">context</a></h1>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="rule"><a class="header" href="#rule">rule</a></h1>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="tasks"><a class="header" href="#tasks">tasks</a></h1>
+<p><code>context</code> contains a <em>list</em> of context entries.
+Each context <em>must</em> have a <code>name</code> field, all other fields are optional.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">context:
+ - name: name_of_this_context.
+   # ... possible other fields
+ - name: name_of_other_context
+   # ... possible other fields
+</code></pre>
+<h2 id="context-fields"><a class="header" href="#context-fields">context fields</a></h2>
+<h3 id="parent"><a class="header" href="#parent"><code>parent</code></a></h3>
+<p>The parent of this context. If unset, defaults to <code>default</code>.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">context:
+ - name: some_name
+   parent: other_context_name
+</code></pre>
+<h3 id="env"><a class="header" href="#env"><code>env</code></a></h3>
+<p>A <em>map</em> of variables.
+Each map key correspondents to the variable name.
+Each value must be either a single value or a list of values.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">context:
+ - name: some_name
+   env:
+     CFLAGS:
+       - -D_this_is_a_list
+       - -D_of_multiple_values
+     LINKFLAGS: -Ithis_is_a_single_value
+</code></pre>
+<h3 id="selects"><a class="header" href="#selects"><code>selects</code></a></h3>
+<p>List of modules that are always selected for builds in this context or any of
+its children.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">context:
+ - name: birthday_party
+   selects:
+     - cake
+     - music
+</code></pre>
+<h3 id="disable"><a class="header" href="#disable"><code>disable</code></a></h3>
+<p>List of modules that are disabled for builds in this context or any of
+its children.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">context:
+ - name: kids_birthday_party
+   parent: birthday_party
+   disables:
+     - beer
+</code></pre>
+<h3 id="rule"><a class="header" href="#rule"><code>rule</code></a></h3>
+<p>TODO</p>
+<h3 id="var_options"><a class="header" href="#var_options"><code>var_options</code></a></h3>
+<p>TODO</p>
+<h3 id="tasks"><a class="header" href="#tasks"><code>tasks</code></a></h3>
+<p>TODO</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="rule-1"><a class="header" href="#rule-1">rule</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="tasks-1"><a class="header" href="#tasks-1">tasks</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="builder"><a class="header" href="#builder">builder</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="module"><a class="header" href="#module">module</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="app"><a class="header" href="#app">app</a></h1>
