@@ -12,6 +12,16 @@ jobs:
   container:
     name: container
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # here, "rust" means debian, as that's what the official "rust" images
+        # are based on
+        os: [ ubuntu, rust ]
+        codename: [ latest ]
+        include:
+          - os: ubuntu
+            codename: jammy
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -25,10 +35,14 @@ jobs:
           # generate Docker tags based on the following events/attributes
           tags: |
             type=ref,event=branch
-            type=semver,pattern={{version}}
+            type=semver,pattern={{version}},latest=true
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=sha
+          flavor: |
+            latest=auto
+            prefix=
+            suffix=${{ matrix.os }}-${{ matrix.codename }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -45,3 +59,5 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            DEBIAN_FROM=${{ matrix.os }}:${{ matrix.codename }}
