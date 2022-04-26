@@ -24,14 +24,15 @@ jobs:
 
     steps:
       - name: fixup variables
+        id: var-fixup
         run: |
-          if "${{ matrix.os }}" = "debian"; then
+          if test "${{ matrix.os }}" = "debian"; then
             echo "CONTAINER=rust" >> $GITHUB_ENV
           else
             echo "CONTAINER=${{ matrix.os }}" >> $GITHUB_ENV
           fi || true
 
-          if "${{ matrix.codename }}" = "latest"; then
+          if test "${{ matrix.codename }}" = "latest"; then
             echo "TAG_SUFFIX=-${{ matrix.os }}" >> $GITHUB_ENV
           else
             echo "TAG_SUFFIX=${{ matrix.codename }}" >> $GITHUB_ENV
