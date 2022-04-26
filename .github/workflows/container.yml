@@ -75,4 +75,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             DEBIAN_FROM=${{ env.CONTAINER }}:${{ matrix.codename }}
-            LAZE_SOURCE=\"--git ${{ github.repositoryUrl }} --rev ${{ github.sha }}\"
+            LAZE_SOURCE=--git ${{ github.repositoryUrl }} --rev ${{ github.sha }}
