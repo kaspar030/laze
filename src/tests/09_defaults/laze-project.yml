@@ -1,6 +1,6 @@
-builder:
+builders:
   - name: single_builder
-    rule:
+    rules:
         - name: CC
           in: 'c'
           out: 'o'
@@ -20,7 +20,7 @@ defaults:
         DEFAULT_VAR:
           - DEFAULT_VAR_laze-project.yml
 
-module:
+modules:
   - name: simple_module
     depends:
       - another_simple_module
@@ -41,7 +41,7 @@ subdirs:
 
 # note the yaml document marker here:
 ---
-app:
+apps:
   - name: first_app
     sources:
       - first_app.c

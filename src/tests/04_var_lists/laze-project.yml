@@ -1,6 +1,6 @@
-builder:
+builders:
   - name: single_builder
-    rule:
+    rules:
         - name: CC
           in: 'c'
           out: 'o'
@@ -21,7 +21,7 @@ builder:
       GLOBAL_VAR1:
         - global1_0
 
-app:
+apps:
   - name: single_app
     sources:
       - single_app.c

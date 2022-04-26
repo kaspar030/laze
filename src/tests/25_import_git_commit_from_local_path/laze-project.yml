@@ -1,6 +1,6 @@
-builder:
+builders:
   - name: single_builder
-    rule:
+    rules:
         - name: CC
           in: 'c'
           out: 'o'
@@ -14,7 +14,7 @@ builder:
     env:
       bindir: build/${builder}/${app}
 
-import:
+imports:
   - git:
        url: ./testrepo
        commit: HEAD

@@ -1,4 +1,4 @@
-app:
+apps:
   - name: single_app
     sources:
       - single_app.c

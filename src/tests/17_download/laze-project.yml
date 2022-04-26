@@ -1,6 +1,6 @@
-builder:
+builders:
   - name: default
-    rule:
+    rules:
       - name: CC
         in: "c"
         out: "o"
@@ -21,7 +21,7 @@ builder:
     env:
       bindir: build/${builder}/${app}
 
-app:
+apps:
   - name: app
     download:
       git:

@@ -1,6 +1,6 @@
-context:
+contexts:
   - name: default
-    rule:
+    rules:
       - name: CC
         in: "c"
         out: "o"
@@ -13,12 +13,12 @@ context:
     env:
       bindir: build/${builder}/${app}
 
-builder:
+builders:
   - name: builder0
   - name: builder1
   - name: builder2
 
-module:
+modules:
   - name: shared_module
     context:
       - builder0
@@ -54,7 +54,7 @@ module:
       export:
         VARIABLE: VARIABLE_from_builder2
 
-app:
+apps:
   - name: single_app
     depends:
       - shared_module

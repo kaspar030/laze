@@ -1,6 +1,6 @@
-builder:
+builders:
   - name: default
-    rule:
+    rules:
         - name: CC
           in: 'c'
           out: 'o'
@@ -14,10 +14,10 @@ builder:
       bindir: build/${builder}/${app}
 
   - name: builder_disabling_third_module
-    disable:
+    disables:
       - third_module
 
-module:
+modules:
   - name: first_module
     sources:
       - module.c
@@ -41,7 +41,7 @@ module:
         EXPORT_VAR:
           - export_from_third_module
 
-app:
+apps:
   - name: app
     sources:
       - app.c
@@ -49,7 +49,7 @@ app:
       - first_module
 
   - name: app_depend_disabled_subdepend_second
-    disable:
+    disables:
       - second_module
     sources:
       - app.c
@@ -57,7 +57,7 @@ app:
       - ?first_module
 
   - name: app_depend_disabled_subdepend_third
-    disable:
+    disables:
       - third_module
     sources:
       - app.c

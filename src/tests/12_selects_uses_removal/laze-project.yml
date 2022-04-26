@@ -1,6 +1,6 @@
-builder:
+builders:
   - name: single_builder
-    rule:
+    rules:
         - name: CC
           in: 'c'
           out: 'o'
@@ -13,7 +13,7 @@ builder:
     env:
       bindir: build/${builder}/${app}
 
-module:
+modules:
   - name: simple_module
     depends:
       - another_simple_module
@@ -28,7 +28,7 @@ module:
         EXPORT_VAR:
           - export_from_another_simple_module
 
-app:
+apps:
   - name: single_app_removing_depends
     sources:
       - single_app.c

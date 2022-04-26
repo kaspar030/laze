@@ -1,6 +1,6 @@
-builder:
+builders:
   - name: single_builder
-    rule:
+    rules:
         - name: CC
           in: 'c'
           out: 'o'
@@ -11,7 +11,7 @@ builder:
               combine: true
           cmd: 'cat ${in} > ${out}'
 
-context:
+contexts:
   - name: default
     env:
       bindir: build/${builder}/${app}

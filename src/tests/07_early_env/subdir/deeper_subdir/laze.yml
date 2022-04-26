@@ -1,4 +1,4 @@
-app:
+apps:
   - name: second_app
     sources:
       - second_app.c

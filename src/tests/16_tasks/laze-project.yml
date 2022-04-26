@@ -1,6 +1,6 @@
-builder:
+builders:
   - name: default
-    rule:
+    rules:
         - name: LINK
           in: 'o'
           options:
@@ -27,7 +27,7 @@ builder:
             out=${out}
             builder=${builder}
 
-app:
+apps:
   - name: app
 
 subdirs:

@@ -1,6 +1,6 @@
-builder:
+builders:
   - name: single_builder
-    rule:
+    rules:
       - name: CC
         in: "c"
         out: "o"
@@ -16,7 +16,7 @@ builder:
     env:
       bindir: build/${builder}/${app}
 
-module:
+modules:
   - name: A
     depends:
       - B
@@ -31,7 +31,7 @@ module:
       - notify_all.c
     notify_all: true
 
-app:
+apps:
   - name: single_app_using
     sources:
       - single_app.c

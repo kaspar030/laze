@@ -1,7 +1,7 @@
 import:
   - laze: defaults
 
-app:
+apps:
   - name: hello_laze
     sources:
       - main.c

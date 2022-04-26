@@ -1,6 +1,6 @@
-builder:
+builders:
   - name: single_builder
-    rule:
+    rules:
         - name: CC
           in: 'c'
           out: 'o'
@@ -15,7 +15,7 @@ builder:
       LOCAL_VAR: will-be-overridden
       GLOBAL_VAR: will-be-overridden
       bindir: build/${builder}/${app}
-app:
+apps:
   - name: single_app
     sources:
       - single_app.c

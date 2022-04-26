@@ -1,6 +1,6 @@
-builder:
+builders:
   - name: default
-    rule:
+    rules:
         - name: CC
           in: 'c'
           out: 'o'
@@ -19,7 +19,7 @@ builder:
   - name: level4b
     parent: level3b
 
-context:
+contexts:
   - name: level2a
     parent: default
   - name: level2b
@@ -29,7 +29,7 @@ context:
   - name: level3b
     parent: level2b
 
-app:
+apps:
   - name: app1
     sources:
       - app.c

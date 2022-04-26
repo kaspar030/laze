@@ -1,7 +1,7 @@
-builder:
+builders:
   - name: single_builder
     parent: other_context
-    rule:
+    rules:
         - name: CC
           in: 'c'
           out: 'o'
@@ -12,7 +12,7 @@ builder:
               combine: true
           cmd: 'cat ${in} > ${out}'
 
-context:
+contexts:
   - name: default
     env:
       bindir: build/${builder}/${app}
@@ -34,7 +34,7 @@ defaults:
         GLOBAL_VAR2:
           - global_var_from_module_default
 
-app:
+apps:
   - name: single_app
     context: other_context
     sources:
@@ -43,7 +43,7 @@ app:
     depends:
       - module
 
-module:
+modules:
   - name: module
     env:
       local:

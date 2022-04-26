@@ -41,13 +41,13 @@ where
 
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlFile {
-    context: Option<Vec<YamlContext>>,
-    builder: Option<Vec<YamlContext>>,
+    contexts: Option<Vec<YamlContext>>,
+    builders: Option<Vec<YamlContext>>,
     #[serde(default, deserialize_with = "deserialize_some")]
-    module: Option<Option<Vec<YamlModule>>>,
+    modules: Option<Option<Vec<YamlModule>>>,
     #[serde(default, deserialize_with = "deserialize_some")]
-    app: Option<Option<Vec<YamlModule>>>,
-    import: Option<Vec<Import>>,
+    apps: Option<Option<Vec<YamlModule>>>,
+    imports: Option<Vec<Import>>,
     subdirs: Option<Vec<String>>,
     defaults: Option<HashMap<String, YamlModule>>,
     #[serde(skip)]
@@ -65,9 +65,9 @@ struct YamlContext {
     name: String,
     parent: Option<String>,
     env: Option<Env>,
-    select: Option<Vec<String>>,
-    disable: Option<Vec<String>>,
-    rule: Option<Vec<Rule>>,
+    selects: Option<Vec<String>>,
+    disables: Option<Vec<String>>,
+    rules: Option<Vec<Rule>>,
     var_options: Option<im::HashMap<String, MergeOption>>,
     tasks: Option<HashMap<String, Task>>,
     #[serde(skip)]
@@ -95,7 +95,7 @@ struct YamlModule {
     depends: Option<Vec<StringOrMapString>>,
     selects: Option<Vec<String>>,
     uses: Option<Vec<String>>,
-    #[serde(alias = "disable")]
+    #[serde(alias = "disables")]
     conflicts: Option<Vec<String>>,
     #[serde(default = "default_as_false")]
     notify_all: bool,
@@ -289,7 +289,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                     ));
                 }
             }
-            if let Some(imports) = &new.import {
+            if let Some(imports) = &new.imports {
                 for import in imports {
                     // TODO: `import.handle()` does the actual git checkout (or whatever
                     // import action), so probably better handling of any errors is
@@ -337,7 +337,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             )
             .with_context(|| format!("{:?}: adding context \"{}\"", &filename, &context_name))?;
         context_.env = context.env.clone();
-        if let Some(rules) = &context.rule {
+        if let Some(rules) = &context.rules {
             context_.rules = Some(IndexMap::new());
             for rule in rules {
                 let mut rule = rule.clone();
@@ -388,10 +388,10 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
 
         context_.defined_in = Some(filename.clone());
 
-        context_.disable = context.disable.clone();
+        context_.disable = context.disables.clone();
 
         // collect context level "select:"
-        if let Some(select) = &context.select {
+        if let Some(select) = &context.selects {
             context_.select = Some(
                 select
                     .iter()
@@ -648,7 +648,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
     // this needs to be done before collecting modules, as that requires
     // contexts to be finalized.
     for data in &yaml_datas {
-        for (list, is_builder) in [(&data.context, false), (&data.builder, true)].iter() {
+        for (list, is_builder) in [(&data.contexts, false), (&data.builders, true)].iter() {
             if let Some(context_list) = list {
                 for context in context_list {
                     convert_context(
@@ -750,7 +750,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             }
         }
 
-        for (list, is_binary) in [(&data.module, false), (&data.app, true)].iter() {
+        for (list, is_binary) in [(&data.modules, false), (&data.apps, true)].iter() {
             if let Some(module_list) = list {
                 if let Some(module_list) = module_list {
                     for module in module_list {
