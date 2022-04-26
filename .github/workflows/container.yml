@@ -14,13 +14,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # here, "rust" means debian, as that's what the official "rust" images
-        # are based on
         os: [ ubuntu, debian ]
         codename: [ latest ]
         include:
           - os: ubuntu
             codename: jammy
+          - os: ubuntu
+            codename: focal
+          - os: debian
+            codename: bullseye
+          - os: debian
+            codename: buster
 
     steps:
       - name: fixup variables
