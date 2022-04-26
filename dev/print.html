@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">User Guide</li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li class="chapter-item expanded "><a href="execution.html"><strong aria-hidden="true">3.</strong> Running Laze</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="concepts/lazefiles.html"><strong aria-hidden="true">4.</strong> Build Files</a></li><li class="chapter-item expanded "><a href="concepts/types.html"><strong aria-hidden="true">5.</strong> Apps, Builders, Contexts, Modules</a></li><li class="chapter-item expanded "><a href="concepts/dependencies.html"><strong aria-hidden="true">6.</strong> Module Dependencies</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="reference/overview.html"><strong aria-hidden="true">7.</strong> Overview</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="reference/context.html"><strong aria-hidden="true">7.1.</strong> context</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="reference/rule.html"><strong aria-hidden="true">7.1.1.</strong> rule</a></li><li class="chapter-item expanded "><a href="reference/tasks.html"><strong aria-hidden="true">7.1.2.</strong> tasks</a></li></ol></li><li class="chapter-item expanded "><a href="reference/builder.html"><strong aria-hidden="true">7.2.</strong> builder</a></li><li class="chapter-item expanded "><a href="reference/module.html"><strong aria-hidden="true">7.3.</strong> module</a></li><li class="chapter-item expanded "><a href="reference/app.html"><strong aria-hidden="true">7.4.</strong> app</a></li><li class="chapter-item expanded "><a href="reference/subdirs.html"><strong aria-hidden="true">7.5.</strong> subdirs</a></li><li class="chapter-item expanded "><a href="reference/import.html"><strong aria-hidden="true">7.6.</strong> import</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">User Guide</li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li class="chapter-item expanded "><a href="execution.html"><strong aria-hidden="true">3.</strong> Running Laze</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="concepts/lazefiles.html"><strong aria-hidden="true">4.</strong> Build Files</a></li><li class="chapter-item expanded "><a href="concepts/types.html"><strong aria-hidden="true">5.</strong> Apps, Builders, Contexts, Modules</a></li><li class="chapter-item expanded "><a href="concepts/dependencies.html"><strong aria-hidden="true">6.</strong> Module Dependencies</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="reference/overview.html"><strong aria-hidden="true">7.</strong> Overview</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="reference/contexts.html"><strong aria-hidden="true">7.1.</strong> contexts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="reference/contexts/name.html"><strong aria-hidden="true">7.1.1.</strong> name</a></li><li class="chapter-item expanded "><a href="reference/contexts/parent.html"><strong aria-hidden="true">7.1.2.</strong> parent</a></li><li class="chapter-item expanded "><a href="reference/contexts/env.html"><strong aria-hidden="true">7.1.3.</strong> env</a></li><li class="chapter-item expanded "><a href="reference/contexts/selects.html"><strong aria-hidden="true">7.1.4.</strong> selects</a></li><li class="chapter-item expanded "><a href="reference/contexts/disables.html"><strong aria-hidden="true">7.1.5.</strong> disables</a></li><li class="chapter-item expanded "><a href="reference/contexts/rules.html"><strong aria-hidden="true">7.1.6.</strong> rules</a></li><li class="chapter-item expanded "><a href="reference/contexts/tasks.html"><strong aria-hidden="true">7.1.7.</strong> tasks</a></li><li class="chapter-item expanded "><a href="reference/contexts/var_options.html"><strong aria-hidden="true">7.1.8.</strong> var_options</a></li></ol></li><li class="chapter-item expanded "><a href="reference/builders.html"><strong aria-hidden="true">7.2.</strong> builders</a></li><li class="chapter-item expanded "><a href="reference/modules.html"><strong aria-hidden="true">7.3.</strong> modules</a></li><li class="chapter-item expanded "><a href="reference/apps.html"><strong aria-hidden="true">7.4.</strong> apps</a></li><li class="chapter-item expanded "><a href="reference/subdirs.html"><strong aria-hidden="true">7.5.</strong> subdirs</a></li><li class="chapter-item expanded "><a href="reference/imports.html"><strong aria-hidden="true">7.6.</strong> imports</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -303,9 +303,8 @@ exported environment will be imported.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="laze-file-reference"><a class="header" href="#laze-file-reference">Laze File Reference</a></h1>
 <p>This chapter contains the referencs of laze's YAML build files.</p>
 <p>TODO: it is currently incomplete ...</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="context"><a class="header" href="#context">context</a></h1>
-<p><code>context</code> contains a <em>list</em> of context entries.
-Each context <em>must</em> have a <code>name</code> field, all other fields are optional.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="contexts"><a class="header" href="#contexts">contexts</a></h1>
+<p><code>context</code> contains a <em>list</em> of context entries.</p>
 <p>Example:</p>
 <pre><code class="language-yaml">context:
  - name: name_of_this_context.
@@ -314,14 +313,29 @@ Each context <em>must</em> have a <code>name</code> field, all other fields are 
    # ... possible other fields
 </code></pre>
 <h2 id="context-fields"><a class="header" href="#context-fields">context fields</a></h2>
-<h3 id="parent"><a class="header" href="#parent"><code>parent</code></a></h3>
+<ul>
+<li><a href="reference/./contexts/name.html"><code>name</code></a></li>
+<li><a href="reference/./contexts/parent.html"><code>parent</code></a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h3 id="name"><a class="header" href="#name"><code>name</code></a></h3>
+<p>Name of this context. Any UTF8 string is valid. This <em>will</em> be used as part of
+file- and foldernames, so better keep it simple.</p>
+<p>Each context <em>must</em> have a <code>name</code> field, all other fields are optional.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">contexts:
+ - name: name_of_this_context.
+   # ... possible other fields
+ - name: name_of_other_context
+   # ... possible other fields
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h3 id="parent"><a class="header" href="#parent"><code>parent</code></a></h3>
 <p>The parent of this context. If unset, defaults to <code>default</code>.</p>
 <p>Example:</p>
 <pre><code class="language-yaml">context:
  - name: some_name
    parent: other_context_name
 </code></pre>
-<h3 id="env"><a class="header" href="#env"><code>env</code></a></h3>
+<div style="break-before: page; page-break-before: always;"></div><h3 id="env"><a class="header" href="#env"><code>env</code></a></h3>
 <p>A <em>map</em> of variables.
 Each map key correspondents to the variable name.
 Each value must be either a single value or a list of values.</p>
@@ -334,7 +348,7 @@ Each value must be either a single value or a list of values.</p>
        - -D_of_multiple_values
      LINKFLAGS: -Ithis_is_a_single_value
 </code></pre>
-<h3 id="selects"><a class="header" href="#selects"><code>selects</code></a></h3>
+<div style="break-before: page; page-break-before: always;"></div><h3 id="selects"><a class="header" href="#selects"><code>selects</code></a></h3>
 <p>List of modules that are always selected for builds in this context or any of
 its children.</p>
 <p>Example:</p>
@@ -344,7 +358,7 @@ its children.</p>
      - cake
      - music
 </code></pre>
-<h3 id="disable"><a class="header" href="#disable"><code>disable</code></a></h3>
+<div style="break-before: page; page-break-before: always;"></div><h3 id="disable"><a class="header" href="#disable"><code>disable</code></a></h3>
 <p>List of modules that are disabled for builds in this context or any of
 its children.</p>
 <p>Example:</p>
@@ -354,19 +368,14 @@ its children.</p>
    disables:
      - beer
 </code></pre>
-<h3 id="rule"><a class="header" href="#rule"><code>rule</code></a></h3>
-<p>TODO</p>
-<h3 id="var_options"><a class="header" href="#var_options"><code>var_options</code></a></h3>
-<p>TODO</p>
-<h3 id="tasks"><a class="header" href="#tasks"><code>tasks</code></a></h3>
-<p>TODO</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="rule-1"><a class="header" href="#rule-1">rule</a></h1>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="tasks-1"><a class="header" href="#tasks-1">tasks</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="rules"><a class="header" href="#rules">rules</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="tasks"><a class="header" href="#tasks">tasks</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="var_options"><a class="header" href="#var_options">var_options</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="builder"><a class="header" href="#builder">builder</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="module"><a class="header" href="#module">module</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="app"><a class="header" href="#app">app</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="subdirs"><a class="header" href="#subdirs">subdirs</a></h1>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="import"><a class="header" href="#import">import</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="imports"><a class="header" href="#imports">imports</a></h1>
 
                     </main>
 
