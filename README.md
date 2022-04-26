@@ -23,8 +23,9 @@ laze using cargo:
 
 # Documentation
 
-TODO.
-
+Please take a look at the
+[manual](https://kaspar030.github.io/laze/dev/index.html). It is still
+incomplete, but being worked on.
 
 # License
 
