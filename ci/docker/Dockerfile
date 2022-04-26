@@ -20,14 +20,13 @@ ENV DEBIAN_FRONTEND noninteractive
 # install rust if not available.
 RUN if test -z "$(command -v cargo)"; then apt-get update && apt-get -y install cargo ; fi
 
-RUN command -v cargo
-
+# override this to e.g., "--git https://github.com/kaspar030/laze --rev foo"
 ARG LAZE_SOURCE=laze
 RUN cargo install ${LAZE_SOURCE}
 
-RUN for location in /usr/local/bin/laze /root/.cargo/bin/laze; do \
-        test -f $${location} && cp $${location}; \
-    done
+# this works on both debian and ubuntu
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN cp $(command -v laze) /
 
 FROM scratch
 
