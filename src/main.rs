@@ -11,7 +11,7 @@ extern crate derive_builder;
 extern crate pathdiff;
 
 use core::sync::atomic::AtomicBool;
-use std::collections::HashSet;
+
 use std::env;
 use std::iter;
 use std::path::{Path, PathBuf};
@@ -593,7 +593,7 @@ fn try_main() -> Result<i32> {
 
             let jobs = build_matches
                 .value_of("jobs")
-                .map_or(None, |val| Some(val.parse::<usize>().unwrap()));
+                .map(|val| val.parse::<usize>().unwrap());
 
             println!("building {} for {}", &apps, &builders);
 
@@ -683,7 +683,7 @@ fn try_main() -> Result<i32> {
 
             let jobs = task_matches
                 .value_of("jobs")
-                .map_or(None, |val| Some(val.parse::<usize>().unwrap()));
+                .map(|val| val.parse::<usize>().unwrap());
 
             // collect CLI selected modules
             let select = task_matches.values_of_lossy("select");
