@@ -16,10 +16,16 @@ jobs:
         mkdir mdbook
         curl -Lf https://github.com/rust-lang/mdBook/releases/download/v0.4.18/mdbook-v0.4.18-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
         echo `pwd`/mdbook >> $GITHUB_PATH
-    - name: Deploy docs
+    - name: Build docs
       run: |
         cd book
         mdbook build
+    - name: Update gh-pages branch
+      # This has no reason to fail, only the commit step fails if there are no
+      # changes.
+      continue-on-error: true
+      run: |
+        cd book/gh-pages
         git worktree add gh-pages gh-pages
         git config user.name "Deploy from CI"
         git config user.email ""
@@ -28,4 +34,9 @@ jobs:
         mv ../book dev
         git add dev
         git commit -m "Deploy $GITHUB_SHA to gh-pages"
+    - name: Deploy changed book
+      # only deploy if there were changes
+      if: success()
+      run: |
+        cd book/gh-pages
         git push --force
