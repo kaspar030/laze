@@ -95,6 +95,7 @@ struct YamlModule {
     depends: Option<Vec<StringOrMapString>>,
     selects: Option<Vec<String>>,
     uses: Option<Vec<String>>,
+    provides: Option<Vec<String>>,
     #[serde(alias = "disables")]
     conflicts: Option<Vec<String>>,
     #[serde(default = "default_as_false")]
@@ -120,6 +121,7 @@ impl YamlModule {
             depends: None,
             selects: None,
             uses: None,
+            provides: None,
             conflicts: None,
             notify_all: false,
             sources: None,

@@ -17,6 +17,7 @@ pub struct Module {
 
     pub selects: Vec<Dependency<String>>,
     pub imports: Vec<Dependency<String>>,
+    pub provides: Option<Vec<String>>,
     pub conflicts: Option<Vec<String>>,
     pub notify_all: bool,
 
@@ -50,6 +51,7 @@ impl Module {
             context_name: context_name.unwrap_or_else(|| "default".to_string()),
             selects: Vec::new(),
             imports: Vec::new(),
+            provides: None,
             conflicts: None,
             notify_all: false,
             // exports: Vec::new(),
@@ -79,6 +81,7 @@ impl Module {
             context_name: context_name.unwrap_or_else(|| defaults.context_name.clone()),
             selects: defaults.selects.clone(),
             imports: defaults.imports.clone(),
+            provides: defaults.provides.clone(),
             conflicts: defaults.conflicts.clone(),
             notify_all: defaults.notify_all,
             // exports: Vec::new(),
