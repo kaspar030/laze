@@ -68,7 +68,7 @@ struct YamlContext {
     selects: Option<Vec<String>>,
     disables: Option<Vec<String>>,
     rules: Option<Vec<Rule>>,
-    var_options: Option<im::HashMap<String, MergeOption>>,
+    var_options: Option<imbl::HashMap<String, MergeOption>>,
     tasks: Option<HashMap<String, Task>>,
     #[serde(skip)]
     is_builder: bool,

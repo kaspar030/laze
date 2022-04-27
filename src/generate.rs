@@ -118,7 +118,7 @@ impl Generator {
 
         let start = Instant::now();
 
-        let mut laze_env = im::HashMap::new();
+        let mut laze_env = imbl::HashMap::new();
         laze_env.insert(
             "in".to_string(),
             nested_env::EnvKey::Single("\\${in}".to_string()),

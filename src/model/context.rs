@@ -20,7 +20,7 @@ pub struct Context {
     pub select: Option<Vec<Dependency<String>>>,
     pub disable: Option<Vec<String>>,
 
-    pub var_options: Option<im::HashMap<String, MergeOption>>,
+    pub var_options: Option<imbl::HashMap<String, MergeOption>>,
 
     pub tasks: Option<HashMap<String, Task>>,
     pub env_early: Env,
@@ -146,7 +146,7 @@ impl Context {
     pub fn collect_tasks(
         &self,
         contexts: &ContextBag,
-        env: &im::HashMap<&String, String>,
+        env: &imbl::HashMap<&String, String>,
     ) -> IndexMap<String, Task> {
         let mut result = IndexMap::new();
         let mut parents = Vec::new();

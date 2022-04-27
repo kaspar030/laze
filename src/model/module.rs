@@ -179,7 +179,7 @@ impl Module {
             if !self.notify_all {
                 let notify_list = module_env
                     .entry("notify".into())
-                    .or_insert_with(|| nested_env::EnvKey::List(im::vector![]));
+                    .or_insert_with(|| nested_env::EnvKey::List(imbl::vector![]));
 
                 match notify_list {
                     nested_env::EnvKey::Single(_) => panic!("unexpected notify value"),
@@ -200,7 +200,7 @@ impl Module {
             let all_modules = modules
                 .iter()
                 .map(|(_, dep)| dep.create_module_define())
-                .collect::<im::Vector<_>>();
+                .collect::<imbl::Vector<_>>();
             module_env.insert("notify".into(), nested_env::EnvKey::List(all_modules));
         }
 
