@@ -1,4 +1,4 @@
-import:
+imports:
   - laze: defaults
 
 apps:
