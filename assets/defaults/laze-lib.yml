@@ -1,4 +1,4 @@
-context:
+contexts:
   - name: default
     env:
       bindir: "${build-dir}/out/${builder}/${app}"
@@ -24,7 +24,7 @@ context:
         cmd:
           - "${SIZE} ${out}"
 
-    rule:
+    rules:
       - name: CC
         description: CC ${out}
         in: "c"
@@ -68,7 +68,7 @@ context:
       - name: GIT_PATCH
         cmd: 'D=$$(dirname ${out}); PATCHES="$$(realpath --relative-to $$D ${in})"; git -C $$D --git-dir=.git --work-tree=. reset --hard $$(cat $${D}/.laze-downloaded) && git -C $$D am --ignore-whitespace $$PATCHES || (git -C $$D am --abort; false; ) && touch ${out}'
 
-builder:
+builders:
   - name: host
     tasks:
       run:
