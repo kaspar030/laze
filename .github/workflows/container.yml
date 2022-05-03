@@ -37,9 +37,15 @@ jobs:
           fi || true
 
           if test "${{ matrix.codename }}" = "latest"; then
-            echo "TAG_SUFFIX=-${{ matrix.os }}" >> $GITHUB_ENV
+            echo "TAG_SUFFIX=${{ matrix.os }}" >> $GITHUB_ENV
           else
             echo "TAG_SUFFIX=${{ matrix.codename }}" >> $GITHUB_ENV
+          fi || true
+
+          if test "${{ matrix.os }}" = "debian" -a "${{ matrix.codename }}" = "latest"; then
+            echo "LATEST=true" >> $GITHUB_ENV
+          else
+            echo "LATEST=false" >> $GITHUB_ENV
           fi || true
 
       - name: Checkout
@@ -54,7 +60,7 @@ jobs:
           # generate Docker tags based on the following events/attributes
           tags: |
             type=ref,event=branch
-            type=semver,pattern={{version}},latest=true
+            type=semver,pattern={{version}},latest={{ env.LATEST }}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=sha
