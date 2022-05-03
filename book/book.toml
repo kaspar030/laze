@@ -4,5 +4,7 @@ language = "en"
 multilingual = false
 src = "src"
 title = "laze Manual"
+
+[output.html]
 git-repository-url = "https://github.com/kaspar030/laze"
 edit-url-template = "https://github.com/kaspar030/laze/edit/master/book/{path}"
