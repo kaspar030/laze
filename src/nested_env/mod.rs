@@ -1,4 +1,4 @@
-use imbl::{vector, HashMap, Vector};
+use im::{vector, HashMap, Vector};
 use itertools::join;
 
 mod expand;
@@ -185,7 +185,7 @@ pub fn assign_from_string(env: Env, assignment: &str) -> Result<Env, anyhow::Err
 #[cfg(test)]
 mod tests {
     use super::*;
-    use imbl::vector;
+    use im::vector;
 
     #[test]
     fn test_merge_nonexisting_single() {

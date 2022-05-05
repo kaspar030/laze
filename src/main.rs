@@ -398,6 +398,7 @@ fn clap() -> clap::Command<'static> {
                         .required(false)
                         .takes_value(true)
                         .multiple_values(true)
+                        .multiple_occurrences(true)
                         .use_value_delimiter(true)
                         .require_value_delimiter(true)
                         .env("LAZE_SELECT"),
@@ -410,6 +411,7 @@ fn clap() -> clap::Command<'static> {
                         .required(false)
                         .takes_value(true)
                         .multiple_values(true)
+                        .multiple_occurrences(true)
                         .use_value_delimiter(true)
                         .require_value_delimiter(true)
                         .env("LAZE_DISABLE"),
@@ -483,6 +485,7 @@ fn clap() -> clap::Command<'static> {
                         .required(false)
                         .takes_value(true)
                         .multiple_values(true)
+                        .multiple_occurrences(true)
                         .use_value_delimiter(true)
                         .require_value_delimiter(true)
                         .env("LAZE_SELECT"),
@@ -495,6 +498,7 @@ fn clap() -> clap::Command<'static> {
                         .required(false)
                         .takes_value(true)
                         .multiple_values(true)
+                        .multiple_occurrences(true)
                         .use_value_delimiter(true)
                         .require_value_delimiter(true)
                         .env("LAZE_DISABLE"),

@@ -55,7 +55,7 @@ impl Task {
         Ok(())
     }
 
-    pub fn with_env(&self, env: &imbl::HashMap<&String, String>) -> Task {
+    pub fn with_env(&self, env: &im::HashMap<&String, String>) -> Task {
         Task {
             build: self.build,
             cmd: self

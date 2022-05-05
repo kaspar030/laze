@@ -1,6 +1,6 @@
 /* this is based on "far" (https://forge.typ3.tech/charles/far) */
 
-use imbl::HashMap;
+use im::HashMap;
 use std::error;
 use std::fmt;
 
