@@ -3,7 +3,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus};
+use std::process::{Command, ExitStatus, Stdio};
 
 use indexmap::IndexMap;
 
@@ -241,6 +241,55 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
 //         self.file.write_all(format!("{}", build).as_bytes())
 //     }
 // }
+
+#[derive(Default, Builder, Debug, Clone)]
+#[builder(setter(into))]
+pub struct NinjaToolBase<'a> {
+    #[builder(setter(into), default = "\"ninja\"")]
+    binary: &'a str,
+
+    #[builder(setter(into), default = "\"build.ninja\"")]
+    build_file: &'a str,
+
+    args: Vec<String>,
+}
+
+impl<'a> NinjaToolBaseBuilder<'a> {
+    pub fn arg(&mut self, arg: String) -> &mut Self {
+        if let Some(args) = self.args.as_mut() {
+            args.push(arg);
+        } else {
+            self.args = Some(vec![arg]);
+        }
+        self
+    }
+}
+
+impl<'a> NinjaToolBase<'a> {
+    pub fn get_command(&self) -> Command {
+        let mut cmd = Command::new(self.binary);
+        cmd.arg("-f").arg(self.build_file);
+        cmd.args(&self.args);
+        cmd
+    }
+}
+
+pub fn generate_compile_commands(
+    build_file: &Path,
+    target: &Path,
+) -> Result<ExitStatus, std::io::Error> {
+    let mut cmd = NinjaToolBaseBuilder::default()
+        .build_file(build_file.to_str().unwrap())
+        .arg("-t".into())
+        .arg("compdb".into())
+        .build()
+        .unwrap()
+        .get_command();
+
+    let target = std::fs::File::create(target)?;
+    cmd.stdout(Stdio::from(target));
+    cmd.spawn()?.wait()
+}
 
 #[derive(Default, Builder, Debug, Clone)]
 #[builder(setter(into))]

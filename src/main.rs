@@ -351,6 +351,13 @@ fn clap() -> clap::Command<'static> {
                         .required(false),
                 )
                 .arg(
+                    Arg::new("compile-commands")
+                        .short('c')
+                        .long("compile-commands")
+                        .help("generate compile_commands.json in project root")
+                        .required(false),
+                )
+                .arg(
                     Arg::new("builders")
                         .short('b')
                         .long("builders")
@@ -631,7 +638,7 @@ fn try_main() -> Result<i32> {
             };
 
             let generator = GeneratorBuilder::default()
-                .project_root(project_root)
+                .project_root(project_root.clone())
                 .project_file(project_file)
                 .build_dir(build_dir.clone())
                 .mode(mode.clone())
@@ -645,6 +652,18 @@ fn try_main() -> Result<i32> {
 
             // arguments parsed, launch generation of ninja file(s)
             let builds = generator.execute()?;
+
+            let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
+
+            if build_matches.is_present("compile-commands") {
+                let mut compile_commands = project_root;
+                compile_commands.push("compile_commands.json");
+                println!("generating {}", &compile_commands.to_string_lossy());
+                ninja::generate_compile_commands(
+                    ninja_build_file.as_path(),
+                    compile_commands.as_path(),
+                )?;
+            }
 
             // generation of ninja build file complete.
             // exit here if requested.
@@ -675,7 +694,6 @@ fn try_main() -> Result<i32> {
                 )
             };
 
-            let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
             ninja_run(ninja_build_file.as_path(), verbose > 0, targets, jobs)?;
         }
         Some(("task", task_matches)) => {
