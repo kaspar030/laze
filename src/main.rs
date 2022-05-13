@@ -329,6 +329,7 @@ fn clap() -> clap::Command<'static> {
                 .long("global")
                 .help("global mode")
                 .global(true)
+                .env("LAZE_GLOBAL")
                 .required(false),
         )
         .subcommand(
@@ -354,6 +355,7 @@ fn clap() -> clap::Command<'static> {
                     Arg::new("compile-commands")
                         .short('c')
                         .long("compile-commands")
+                        .env("LAZE_COMPILE_COMMANDS")
                         .help("generate compile_commands.json in project root")
                         .required(false),
                 )
@@ -394,7 +396,8 @@ fn clap() -> clap::Command<'static> {
                         .long("jobs")
                         .help("how many compile jobs to run in parallel")
                         .takes_value(true)
-                        .validator(|val| val.parse::<usize>()),
+                        .validator(|val| val.parse::<usize>())
+                        .env("LAZE_JOBS"),
                 )
                 .arg(
                     Arg::new("select")
@@ -448,7 +451,8 @@ fn clap() -> clap::Command<'static> {
                         .takes_value(true)
                         .value_name("DIR")
                         .default_value("build")
-                        .help("specify build dir (relative to project root)"),
+                        .help("specify build dir (relative to project root)")
+                        .env("LAZE_BUILD_DIR"),
                 )
                 .arg(
                     Arg::new("verbose")
@@ -463,7 +467,8 @@ fn clap() -> clap::Command<'static> {
                         .long("jobs")
                         .help("how many compile jobs to run in parallel")
                         .takes_value(true)
-                        .validator(|val| val.parse::<usize>()),
+                        .validator(|val| val.parse::<usize>())
+                        .env("LAZE_JOBS"),
                 )
                 .arg(
                     Arg::new("builder")
@@ -531,6 +536,7 @@ fn clap() -> clap::Command<'static> {
                         .takes_value(true)
                         .value_name("DIR")
                         .default_value("build")
+                        .env("LAZE_BUILD_DIR")
                         .help("specify build dir (relative to project root)"),
                 )
                 .arg(
