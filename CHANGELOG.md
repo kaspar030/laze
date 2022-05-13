@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Added
+
+- allow `--build-dir`, `--jobs`, `--compile-commands`, `--global`
+  to be set via environment
+- wire up creation of compile_commands.json
+
 ## [0.1.8]
+
 ### Changed
 
 - "app:" -> "apps:"
