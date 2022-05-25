@@ -49,24 +49,9 @@ impl Context {
     }
 
     pub fn new_build_context(name: String, builder: &Context) -> Context {
-        let builder_index = builder.index.unwrap();
-
-        Context {
-            name,
-            parent_name: Some(builder.name.clone()),
-            index: None,
-            parent_index: Some(builder_index),
-            modules: IndexMap::new(),
-            select: None,
-            disable: None,
-            env: None,
-            env_early: Env::new(),
-            rules: None,
-            var_options: None,
-            tasks: None,
-            is_builder: false,
-            defined_in: None,
-        }
+        let mut context = Context::new(name, Some(builder.name.clone()));
+        context.parent_index = Some(builder.index.unwrap());
+        context
     }
 
     pub fn get_parent<'a>(&self, bag: &'a ContextBag) -> Option<&'a Context> {
