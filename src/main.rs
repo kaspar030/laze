@@ -141,6 +141,11 @@ impl<'a: 'b, 'b> Build<'b> {
             disabled_modules.extend(conflicts.iter().cloned())
         }
 
+        // late if_then_deps are dependencies that are induced by if_then_deps of
+        // other modules.
+        // e.g., A -> if (B) then C
+        // if_then_deps contains "A: B -> C"
+        // Now if B gets resolved, C is now also a dependency.
         let mut late_if_then_deps = Vec::new();
         if let Some(deps) = if_then_deps.get(&module.name) {
             late_if_then_deps.extend(deps.iter().cloned());
