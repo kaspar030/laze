@@ -314,7 +314,7 @@ fn configure_build(
 
     println!("configuring {} for {}", binary.name, builder.name);
 
-    /* create build instance (binary A for builder X) */
+    // create build instance (binary A for builder X)
     let build = Build::new(binary, builder, contexts, select);
 
     // get build dir from laze_env
@@ -331,8 +331,8 @@ fn configure_build(
         disabled_modules.extend(disable.iter().cloned());
     }
 
-    /* resolve all dependency names to specific modules.
-     * this also determines if all dependencies are met */
+    // resolve all dependency names to specific modules.
+    // this also determines if all dependencies are met
     let modules = match build.resolve_selects(&mut disabled_modules) {
         Err(e) => {
             println!("error: {}", e);
@@ -341,7 +341,7 @@ fn configure_build(
         Ok(val) => val,
     };
 
-    /* collect build context rules */
+    // collect build context rules
     let mut rules = IndexMap::new();
     let rules = build.build_context.collect_rules(contexts, &mut rules);
     let merge_opts = &builder.var_options;
@@ -387,7 +387,7 @@ fn configure_build(
     let out_string = String::from("out");
     let mut global_env_flattened = nested_env::flatten_with_opts_option(&tmp, merge_opts.as_ref());
 
-    /* build application file name */
+    // build application file name
     let outfile = PathBuf::from(
         nested_env::expand("${outfile}", &global_env_flattened, IfMissing::Empty).unwrap(),
     );
@@ -398,11 +398,11 @@ fn configure_build(
     // vector collecting objects, later used as linking inputs
     let mut objects = Vec::new();
 
-    /* set containing ninja build or rule blocks */
+    // set containing ninja build or rule blocks
     let mut ninja_entries = IndexSet::new();
 
-    /* iterate modules once, building both the module's env including imports,
-     * and the list of imports that are build dependencies */
+    // iterate modules once, building both the module's env including imports,
+    // and the list of imports that are build dependencies
     let modules: IndexMap<&String, _> = modules
         .iter()
         .map(|(module_name, module)| {
@@ -447,7 +447,7 @@ fn configure_build(
 
     let mut module_build_dep_files: IndexMap<&String, IndexSet<PathBuf>> = IndexMap::new();
 
-    /* now handle each module */
+    // now handle each module
     for (module, module_env, module_build_deps) in modules_in_build_order.iter() {
         // handle possible remote sources
         let download_rules = download::handle_module(module, &build_dir, rules)?;
@@ -636,7 +636,7 @@ fn configure_build(
             // map extension -> rule for this module
             let mut module_rules: IndexMap<String, NinjaRule> = IndexMap::new();
 
-            /* apply rules to sources */
+            // apply rules to sources
             // BUG01: ext is taken *before* variable substitution
             for source in module.sources.iter().chain(optional_sources.iter()) {
                 let ext = Path::new(&source)

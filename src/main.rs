@@ -97,11 +97,11 @@ impl<'a: 'b, 'b> Build<'b> {
             build_context: Context::new_build_context(builder.name.clone(), builder),
         };
 
-        /* fixup name to "$builder_name:$binary_name" */
+        // fixup name to "$builder_name:$binary_name"
         build.build_context.name.push(':');
         build.build_context.name.push_str(&build.binary.name);
 
-        /* collect environment from builder */
+        // collect environment from builder
         let mut build_env;
         if let Some(builder_env) = &builder.env {
             build_env = builder_env.clone();
