@@ -94,7 +94,7 @@ impl<'a: 'b, 'b> Build<'b> {
             bag: contexts,
             binary,
             builder,
-            build_context: Context::new_build_context(builder.name.clone(), builder),
+            build_context,
         };
 
         // fixup name to "$builder_name:$binary_name"
