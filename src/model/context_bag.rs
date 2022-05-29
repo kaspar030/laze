@@ -190,6 +190,15 @@ impl ContextBag {
                 ))
             }
             indexmap::map::Entry::Vacant(entry) => {
+                if let Some(provides) = &module.provides {
+                    let context_provides = context.provides.get_or_insert_with(im::HashMap::new);
+                    for provided in provides {
+                        context_provides
+                            .entry(provided.clone())
+                            .or_default()
+                            .insert(module.name.clone());
+                    }
+                }
                 entry.insert(module);
             }
         }
@@ -294,6 +303,50 @@ impl ContextBag {
         }
 
         BlockAllow::Allowed
+    }
+
+    pub fn merge_provides(&mut self) {
+        // if "other" has parent "default",
+        // and if there's a module "foo" providing "bar" in context "default",
+        // and "foobar" providing "bar" in context "other",
+        // then "other"'s "provides" map will be "bar: [ foobar, foo]"
+        // and "default"'s "provides" map will be "bar: [ foo ]"
+        for (n, m) in self.contexts_topo_sorted.as_ref().unwrap() {
+            let (n, m) = (*n, *m);
+            if m == 0 {
+                // no parents, nothing to join
+                continue;
+            }
+            let context = &self.contexts[n];
+            let provides = &context.provides;
+            let parent_provides = &self.contexts[context.parent_index.unwrap()].provides;
+            let combined_provides = {
+                if let Some(provides) = provides {
+                    if let Some(parent_provides) = parent_provides {
+                        Some(provides.clone().union_with_key(
+                            parent_provides.clone(),
+                            |provided, context_set, parent_set| {
+                                context_set
+                                    .union(&parent_set)
+                                    .cloned()
+                                    .collect::<IndexSet<_>>()
+                            },
+                        ))
+                    } else {
+                        Some(provides.clone())
+                    }
+                } else {
+                    if let Some(parent_provides) = parent_provides {
+                        Some(parent_provides.clone())
+                    } else {
+                        None
+                    }
+                }
+            };
+
+            let context = &mut self.contexts[n];
+            context.provides = combined_provides;
+        }
     }
 
     // pub fn get_by_name_mut(&mut self, name: &String) -> Option<&mut Context> {
