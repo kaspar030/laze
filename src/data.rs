@@ -520,6 +520,17 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             }
         }
 
+        if let Some(provides) = &module.provides {
+            if let Some(default_provides) = m.provides {
+                let mut provides = provides.clone();
+                let mut res = default_provides.clone();
+                res.append(&mut provides);
+                m.provides = Some(res);
+            } else {
+                m.provides = Some(provides.clone());
+            }
+        }
+
         if module.notify_all {
             m.notify_all = true;
         }
@@ -791,6 +802,8 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             }
         }
     }
+
+    contexts.merge_provides();
 
     println!(
         "laze: reading {} files took {:?}",
