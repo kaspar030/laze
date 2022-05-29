@@ -10,6 +10,7 @@ use crate::nested_env;
 pub struct ContextBag {
     pub contexts: Vec<Context>,
     pub context_map: HashMap<String, usize>,
+    contexts_topo_sorted: Option<Vec<(usize, usize)>>,
 }
 
 pub enum IsAncestor {
@@ -22,6 +23,7 @@ impl ContextBag {
         ContextBag {
             contexts: Vec::new(),
             context_map: HashMap::new(),
+            contexts_topo_sorted: None,
             //module_map: HashMap::new(),
         }
     }
@@ -75,8 +77,7 @@ impl ContextBag {
 
         /* 2. merge ordered by number of parents (ascending) */
         for (n, m) in &sorted_by_numparents {
-            let n = *n;
-            let m = *m;
+            let (n, m) = (*n, *m);
             if m == 0 {
                 continue;
             }
@@ -97,7 +98,8 @@ impl ContextBag {
             }
         }
 
-        for (n, m) in sorted_by_numparents {
+        for (n, m) in &sorted_by_numparents {
+            let (n, m) = (*n, *m);
             if m == 0 {
                 continue;
             }
@@ -131,6 +133,8 @@ impl ContextBag {
                 context.var_options = combined_var_opts;
             }
         }
+
+        self.contexts_topo_sorted = Some(sorted_by_numparents);
 
         Ok(())
     }
