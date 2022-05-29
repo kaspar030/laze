@@ -70,12 +70,14 @@ struct Resolver<'a> {
     module_set: IndexMap<&'a String, &'a Module>,
     if_then_deps: IndexMap<String, Vec<Dependency<String>>>,
     disabled_modules: IndexSet<String>,
+    provided_set: IndexSet<String>,
 }
 
 struct ResolverState {
     module_set_prev_len: usize,
     if_then_deps_prev_len: usize,
     disabled_modules_prev_len: usize,
+    provided_set_prev_len: usize,
 }
 
 impl<'a> Resolver<'a> {
@@ -84,6 +86,7 @@ impl<'a> Resolver<'a> {
             build,
             module_set: IndexMap::new(),
             if_then_deps: IndexMap::new(),
+            provided_set: IndexSet::new(),
             disabled_modules,
         }
     }
@@ -93,6 +96,7 @@ impl<'a> Resolver<'a> {
             module_set_prev_len: self.module_set.len(),
             if_then_deps_prev_len: self.if_then_deps.len(),
             disabled_modules_prev_len: self.if_then_deps.len(),
+            provided_set_prev_len: self.provided_set.len(),
         }
     }
 
@@ -101,6 +105,7 @@ impl<'a> Resolver<'a> {
         self.if_then_deps.truncate(state.if_then_deps_prev_len);
         self.disabled_modules
             .truncate(state.disabled_modules_prev_len);
+        self.provided_set.truncate(state.provided_set_prev_len)
     }
 
     fn result(self) -> IndexMap<&'a String, &'a Module> {
@@ -125,7 +130,7 @@ impl<'a> Resolver<'a> {
         }
 
         for dep in module.selects.iter().chain(late_if_then_deps.iter()) {
-            let (dep_name, optional) = match dep {
+            let (dep_name, mut optional) = match dep {
                 Dependency::Hard(name) => (name, false),
                 Dependency::Soft(name) => (name, true),
                 Dependency::IfThenHard(other, name) => {
@@ -157,6 +162,10 @@ impl<'a> Resolver<'a> {
                 continue;
             }
 
+            if self.provided_set.contains(dep_name) {
+                continue;
+            }
+
             if self.disabled_modules.contains(dep_name) {
                 if !optional {
                     self.reset(state);
@@ -169,6 +178,16 @@ impl<'a> Resolver<'a> {
                     );
                 } else {
                     continue;
+                }
+            }
+
+            if let Some(provides) = &self.build.build_context.provides {
+                if let Some(providing_modules) = provides.get(dep_name) {
+                    if self.resolve_module_list(providing_modules, dep_name) > 0 {
+                        if !optional {
+                            optional = true;
+                        }
+                    }
                 }
             }
 
@@ -202,6 +221,64 @@ impl<'a> Resolver<'a> {
             }
         }
         Ok(())
+    }
+
+    fn resolve_module_list(
+        &mut self,
+        providing_modules: &IndexSet<String>,
+        provided_name: &String,
+    ) -> usize {
+        let mut count = 0usize;
+        for module_name in providing_modules {
+            if self.module_set.contains_key(module_name) {
+                count += 1;
+                continue;
+            }
+
+            if self.disabled_modules.contains(provided_name) {
+                continue;
+            }
+
+            if self.disabled_modules.contains(module_name) {
+                continue;
+            }
+
+            // get module object from module name.
+            // we added the module name the provides set, so unwrap()
+            // always succeeds.
+            let module = self
+                .build
+                .build_context
+                .resolve_module(module_name, self.build.bag)
+                .unwrap()
+                .1;
+
+            // the module might conflict what it provides itself, indicating it
+            // cannot coexist with another module providing the same.
+            let mut module_conflicts = false;
+            if let Some(conflicts) = &module.conflicts {
+                if conflicts.contains(provided_name) {
+                    // If that is the case and there was already a provider selected,
+                    // skip this module, and make sure it can't be selected later.
+                    if count > 0 {
+                        self.disabled_modules.insert(module_name.clone());
+                        continue;
+                    }
+                    module_conflicts = true;
+                }
+            }
+
+            if self.resolve_module_deep(module).is_ok() {
+                count += 1;
+                // so we know this module conflicts and that there was no previous
+                // provider. In that case, no other provider can be chosen.
+                if module_conflicts {
+                    self.disabled_modules.insert(provided_name.clone());
+                    break;
+                }
+            }
+        }
+        count
     }
 }
 
