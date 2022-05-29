@@ -181,6 +181,8 @@ impl<'a> Resolver<'a> {
                 }
             }
 
+            // TODO: (consistency): this should be handled *after* modules
+            // which match the exact name
             if let Some(provides) = &self.build.build_context.provides {
                 if let Some(providing_modules) = provides.get(dep_name) {
                     if self.resolve_module_list(providing_modules, dep_name) > 0 {
