@@ -1,0 +1,80 @@
+builders:
+  - name: default
+    rules:
+      - name: CC
+        in: "c"
+        out: "o"
+        cmd: "echo ${VAR} ${in} > ${out}"
+      - name: LINK
+        in: "o"
+        options:
+          combine: true
+        cmd: "cat ${in} > ${out}"
+    env:
+      bindir: build/${builder}/${app}
+
+  - name: upper
+    parent: default
+
+  - name: upper2
+    parent: default
+
+modules:
+  - name: first_module
+    provides:
+      - provided
+    sources:
+      - module.c
+    env:
+      local:
+        VAR:
+          - first_module
+
+  - name: second_module
+    provides:
+      - provided
+    conflicts:
+      - provided
+    sources:
+      - module.c
+    env:
+      local:
+        VAR:
+          - second_module
+
+  - name: third_module
+    provides:
+      - provided
+    sources:
+      - module.c
+    env:
+      local:
+        VAR:
+          - third_module
+
+  - name: second_module
+    context: upper
+
+    sources:
+      - module.c
+    env:
+      local:
+        VAR:
+          - second_module_from_upper
+
+  - name: provided
+    context: upper2
+
+    sources:
+      - module.c
+    env:
+      local:
+        VAR:
+          - provided_module_from_upper2
+
+apps:
+  - name: app1
+    sources:
+      - app.c
+    selects:
+      - provided

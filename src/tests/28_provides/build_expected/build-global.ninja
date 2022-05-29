@@ -1,0 +1,57 @@
+builddir = build
+build ALWAYS: phony
+rule CC_6858609285403819907
+  command = echo  ${in} > ${out}
+  description = CC
+
+build build/objects/app.12070292612711521013.o: $
+    CC_6858609285403819907 $
+    app.c
+
+rule CC_17575315763249594616
+  command = echo first_module ${in} > ${out}
+  description = CC
+
+build build/objects/module.5640092437665481209.o: $
+    CC_17575315763249594616 $
+    module.c
+
+rule CC_12872681097928792378
+  command = echo third_module ${in} > ${out}
+  description = CC
+
+build build/objects/module.11691236658213220858.o: $
+    CC_12872681097928792378 $
+    module.c
+
+rule LINK_5506617845631750009
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build/default/app1/app1.elf: $
+    LINK_5506617845631750009 $
+    build/objects/app.12070292612711521013.o $
+    build/objects/module.5640092437665481209.o $
+    build/objects/module.11691236658213220858.o
+
+build build/upper/app1/app1.elf: $
+    LINK_5506617845631750009 $
+    build/objects/app.12070292612711521013.o $
+    build/objects/module.5640092437665481209.o $
+    build/objects/module.11691236658213220858.o
+
+rule CC_7812121546031868258
+  command = echo provided_module_from_upper2 ${in} > ${out}
+  description = CC
+
+build build/objects/module.17680204663769875419.o: $
+    CC_7812121546031868258 $
+    module.c
+
+build build/upper2/app1/app1.elf: $
+    LINK_5506617845631750009 $
+    build/objects/app.12070292612711521013.o $
+    build/objects/module.5640092437665481209.o $
+    build/objects/module.11691236658213220858.o $
+    build/objects/module.17680204663769875419.o
+
