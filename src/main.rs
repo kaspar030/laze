@@ -65,6 +65,146 @@ struct Build<'a> {
     //modules: IndexMap<&'a String, &'a Module>,
 }
 
+struct Resolver<'a> {
+    build: &'a Build<'a>,
+    module_set: IndexMap<&'a String, &'a Module>,
+    if_then_deps: IndexMap<String, Vec<Dependency<String>>>,
+    disabled_modules: IndexSet<String>,
+}
+
+struct ResolverState {
+    module_set_prev_len: usize,
+    if_then_deps_prev_len: usize,
+    disabled_modules_prev_len: usize,
+}
+
+impl<'a> Resolver<'a> {
+    fn new(build: &'a Build<'a>, disabled_modules: IndexSet<String>) -> Resolver<'a> {
+        Self {
+            build,
+            module_set: IndexMap::new(),
+            if_then_deps: IndexMap::new(),
+            disabled_modules,
+        }
+    }
+
+    fn state(&self) -> ResolverState {
+        ResolverState {
+            module_set_prev_len: self.module_set.len(),
+            if_then_deps_prev_len: self.if_then_deps.len(),
+            disabled_modules_prev_len: self.if_then_deps.len(),
+        }
+    }
+
+    fn reset(&mut self, state: ResolverState) {
+        self.module_set.truncate(state.module_set_prev_len);
+        self.if_then_deps.truncate(state.if_then_deps_prev_len);
+        self.disabled_modules
+            .truncate(state.disabled_modules_prev_len);
+    }
+
+    fn result(self) -> IndexMap<&'a String, &'a Module> {
+        self.module_set
+    }
+
+    fn resolve_module_deep(&mut self, module: &'a Module) -> Result<(), Error> {
+        let state = self.state();
+        self.module_set.insert(&module.name, module);
+        if let Some(conflicts) = &module.conflicts {
+            self.disabled_modules.extend(conflicts.iter().cloned())
+        }
+
+        // late if_then_deps are dependencies that are induced by if_then_deps of
+        // other modules.
+        // e.g., A -> if (B) then C
+        // if_then_deps contains "A: B -> C"
+        // Now if B gets resolved, C is now also a dependency.
+        let mut late_if_then_deps = Vec::new();
+        if let Some(deps) = self.if_then_deps.get(&module.name) {
+            late_if_then_deps.extend(deps.iter().cloned());
+        }
+
+        for dep in module.selects.iter().chain(late_if_then_deps.iter()) {
+            let (dep_name, optional) = match dep {
+                Dependency::Hard(name) => (name, false),
+                Dependency::Soft(name) => (name, true),
+                Dependency::IfThenHard(other, name) => {
+                    if self.module_set.contains_key(other) {
+                        (name, false)
+                    } else {
+                        self.if_then_deps
+                            .entry(other.clone())
+                            .or_insert_with(Vec::new)
+                            .push(Dependency::Hard(name.clone()));
+                        continue;
+                    }
+                }
+                Dependency::IfThenSoft(other, name) => {
+                    if self.module_set.contains_key(other) {
+                        (name, true)
+                    } else {
+                        self.if_then_deps
+                            .entry(other.clone())
+                            .or_insert_with(Vec::new)
+                            .push(Dependency::Soft(name.clone()));
+
+                        continue;
+                    }
+                }
+            };
+
+            if self.module_set.contains_key(dep_name) {
+                continue;
+            }
+
+            if self.disabled_modules.contains(dep_name) {
+                if !optional {
+                    self.reset(state);
+                    bail!(
+                        "binary {} for builder {}: {} depends on disabled/conflicted module {}",
+                        self.build.binary.name,
+                        self.build.builder.name,
+                        module.name,
+                        dep_name
+                    );
+                } else {
+                    continue;
+                }
+            }
+
+            let (_context, module) = match self
+                .build
+                .build_context
+                .resolve_module(dep_name, self.build.bag)
+            {
+                Some(x) => x,
+                None => {
+                    if optional {
+                        continue;
+                    } else {
+                        self.reset(state);
+                        bail!(
+                            "binary {} for builder {}: {} depends on unavailable module {}",
+                            self.build.binary.name,
+                            self.build.builder.name,
+                            module.name,
+                            dep_name
+                        );
+                    }
+                }
+            };
+
+            if let Err(x) = self.resolve_module_deep(module) {
+                if !optional {
+                    self.reset(state);
+                    return Err(x);
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl<'a: 'b, 'b> Build<'b> {
     fn new(
         binary: &'a Module,
@@ -72,7 +212,11 @@ impl<'a: 'b, 'b> Build<'b> {
         contexts: &'a ContextBag,
         cli_selects: Option<&Vec<Dependency<String>>>,
     ) -> Build<'b> {
-        let build_context = Context::new_build_context(builder.name.clone(), builder);
+        let mut build_context = Context::new_build_context(builder.name.clone(), builder);
+
+        if let Some(parent) = build_context.get_parent(contexts) {
+            build_context.provides = parent.provides.clone();
+        }
 
         // TODO: opt: see if Cow improves performance
         let mut binary = binary.clone();
@@ -125,134 +269,116 @@ impl<'a: 'b, 'b> Build<'b> {
         build
     }
 
-    fn resolve_module_deep<'m, 's: 'm>(
-        &'s self,
-        module: &'m Module,
-        module_set: &mut IndexMap<&'m String, &'m Module>,
-        if_then_deps: &mut IndexMap<String, Vec<Dependency<String>>>,
-        disabled_modules: &mut IndexSet<String>,
-    ) -> Result<(), Error> {
-        let prev_len = module_set.len();
-        let if_then_deps_prev_len = if_then_deps.len();
-        let disabled_modules_prev_len = disabled_modules.len();
+    // fn resolve_module_deep<'m, 's: 'm>(
+    //     &'s self,
+    //     module: &'m Module,
+    //     resolver: &'a mut Resolver<'m>,
+    // ) -> Result<(), Error> {
+    //     let state = resolver.state();
+    //     resolver.module_set.insert(&module.name, module);
+    //     if let Some(conflicts) = &module.conflicts {
+    //         resolver.disabled_modules.extend(conflicts.iter().cloned())
+    //     }
 
-        module_set.insert(&module.name, module);
-        if let Some(conflicts) = &module.conflicts {
-            disabled_modules.extend(conflicts.iter().cloned())
-        }
+    //     // late if_then_deps are dependencies that are induced by if_then_deps of
+    //     // other modules.
+    //     // e.g., A -> if (B) then C
+    //     // if_then_deps contains "A: B -> C"
+    //     // Now if B gets resolved, C is now also a dependency.
+    //     let mut late_if_then_deps = Vec::new();
+    //     if let Some(deps) = resolver.if_then_deps.get(&module.name) {
+    //         late_if_then_deps.extend(deps.iter().cloned());
+    //     }
 
-        // late if_then_deps are dependencies that are induced by if_then_deps of
-        // other modules.
-        // e.g., A -> if (B) then C
-        // if_then_deps contains "A: B -> C"
-        // Now if B gets resolved, C is now also a dependency.
-        let mut late_if_then_deps = Vec::new();
-        if let Some(deps) = if_then_deps.get(&module.name) {
-            late_if_then_deps.extend(deps.iter().cloned());
-        }
+    //     for dep in module.selects.iter().chain(late_if_then_deps.iter()) {
+    //         let (dep_name, optional) = match dep {
+    //             Dependency::Hard(name) => (name, false),
+    //             Dependency::Soft(name) => (name, true),
+    //             Dependency::IfThenHard(other, name) => {
+    //                 if resolver.module_set.contains_key(other) {
+    //                     (name, false)
+    //                 } else {
+    //                     resolver
+    //                         .if_then_deps
+    //                         .entry(other.clone())
+    //                         .or_insert_with(Vec::new)
+    //                         .push(Dependency::Hard(name.clone()));
+    //                     continue;
+    //                 }
+    //             }
+    //             Dependency::IfThenSoft(other, name) => {
+    //                 if resolver.module_set.contains_key(other) {
+    //                     (name, true)
+    //                 } else {
+    //                     resolver
+    //                         .if_then_deps
+    //                         .entry(other.clone())
+    //                         .or_insert_with(Vec::new)
+    //                         .push(Dependency::Soft(name.clone()));
 
-        for dep in module.selects.iter().chain(late_if_then_deps.iter()) {
-            let (dep_name, optional) = match dep {
-                Dependency::Hard(name) => (name, false),
-                Dependency::Soft(name) => (name, true),
-                Dependency::IfThenHard(other, name) => {
-                    if module_set.contains_key(other) {
-                        (name, false)
-                    } else {
-                        if_then_deps
-                            .entry(other.clone())
-                            .or_insert_with(Vec::new)
-                            .push(Dependency::Hard(name.clone()));
-                        continue;
-                    }
-                }
-                Dependency::IfThenSoft(other, name) => {
-                    if module_set.contains_key(other) {
-                        (name, true)
-                    } else {
-                        if_then_deps
-                            .entry(other.clone())
-                            .or_insert_with(Vec::new)
-                            .push(Dependency::Soft(name.clone()));
+    //                     continue;
+    //                 }
+    //             }
+    //         };
 
-                        continue;
-                    }
-                }
-            };
+    //         if resolver.module_set.contains_key(dep_name) {
+    //             continue;
+    //         }
 
-            if module_set.contains_key(dep_name) {
-                continue;
-            }
+    //         if resolver.disabled_modules.contains(dep_name) {
+    //             if !optional {
+    //                 resolver.reset(state);
+    //                 bail!(
+    //                     "binary {} for builder {}: {} depends on disabled/conflicted module {}",
+    //                     self.binary.name,
+    //                     self.builder.name,
+    //                     module.name,
+    //                     dep_name
+    //                 );
+    //             } else {
+    //                 continue;
+    //             }
+    //         }
 
-            if disabled_modules.contains(dep_name) {
-                if !optional {
-                    module_set.truncate(prev_len);
-                    if_then_deps.truncate(if_then_deps_prev_len);
-                    disabled_modules.truncate(disabled_modules_prev_len);
+    //         let (_context, module) = match self.build_context.resolve_module(dep_name, self.bag) {
+    //             Some(x) => x,
+    //             None => {
+    //                 if optional {
+    //                     continue;
+    //                 } else {
+    //                     resolver.reset(state);
+    //                     bail!(
+    //                         "binary {} for builder {}: {} depends on unavailable module {}",
+    //                         self.binary.name,
+    //                         self.builder.name,
+    //                         module.name,
+    //                         dep_name
+    //                     );
+    //                 }
+    //             }
+    //         };
 
-                    bail!(
-                        "binary {} for builder {}: {} depends on disabled/conflicted module {}",
-                        self.binary.name,
-                        self.builder.name,
-                        module.name,
-                        dep_name
-                    );
-                } else {
-                    continue;
-                }
-            }
+    //         if let Err(x) = self.resolve_module_deep(module, &mut resolver) {
+    //             if !optional {
+    //                 resolver.reset(state);
+    //                 return Err(x);
+    //             }
+    //         }
+    //     }
+    //     Ok(())
+    // }
 
-            let (_context, module) = match self.build_context.resolve_module(dep_name, self.bag) {
-                Some(x) => x,
-                None => {
-                    if optional {
-                        continue;
-                    } else {
-                        module_set.truncate(prev_len);
-                        if_then_deps.truncate(if_then_deps_prev_len);
-                        disabled_modules.truncate(disabled_modules_prev_len);
-                        bail!(
-                            "binary {} for builder {}: {} depends on unavailable module {}",
-                            self.binary.name,
-                            self.builder.name,
-                            module.name,
-                            dep_name
-                        );
-                    }
-                }
-            };
-
-            if let Err(x) =
-                self.resolve_module_deep(module, module_set, if_then_deps, disabled_modules)
-            {
-                if !optional {
-                    module_set.truncate(prev_len);
-                    if_then_deps.truncate(if_then_deps_prev_len);
-                    disabled_modules.truncate(disabled_modules_prev_len);
-                    return Err(x);
-                }
-            }
-        }
-        Ok(())
-    }
-
-    fn resolve_selects(
-        &self,
-        disabled_modules: &mut IndexSet<String>,
+    fn resolve_selects<'c>(
+        &'c self,
+        disabled_modules: IndexSet<String>,
     ) -> Result<IndexMap<&String, &Module>, Error> {
-        let mut modules = IndexMap::new();
-        let mut if_then_deps = IndexMap::new();
+        let mut resolver = Resolver::new(self, disabled_modules);
 
-        if let Err(x) = self.resolve_module_deep(
-            &self.binary,
-            &mut modules,
-            &mut if_then_deps,
-            disabled_modules,
-        ) {
+        if let Err(x) = resolver.resolve_module_deep(&self.binary) {
             return Err(x);
         }
 
-        Ok(modules)
+        Ok(resolver.result())
     }
 }
 

@@ -333,7 +333,7 @@ fn configure_build(
 
     // resolve all dependency names to specific modules.
     // this also determines if all dependencies are met
-    let modules = match build.resolve_selects(&mut disabled_modules) {
+    let modules = match build.resolve_selects(disabled_modules) {
         Err(e) => {
             println!("error: {}", e);
             return Ok(None);
