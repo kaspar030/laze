@@ -344,6 +344,31 @@ impl ContextBag {
                 }
             };
 
+            // it is possible after merging that a parent registered "bar provided by foo",
+            // but a child context has its own "foo" which does not provide bar.
+            // thus, filter out those cases.
+            // TODO: (opt) this looks inefficient
+            let context_modules = &self.contexts[n].modules;
+            let combined_provides = combined_provides.map(|mut provides| {
+                provides
+                    .iter_mut()
+                    .map(|(provided, provider)| {
+                        provider.retain(|providing_name| {
+                            if let Some(module) = context_modules.get(providing_name) {
+                                if let Some(provides) = &module.provides {
+                                    if provides.contains(provided) {
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            }
+                            true
+                        });
+                        (provided.clone(), provider.clone())
+                    })
+                    .collect()
+            });
+
             let context = &mut self.contexts[n];
             context.provides = combined_provides;
         }
