@@ -37,13 +37,13 @@ impl ContextBag {
     }
 
     pub fn finalize(&mut self) -> Result<(), Error> {
-        /* ensure there's a "default" context */
+        // ensure there's a "default" context
         if self.get_by_name(&"default".to_string()).is_none() {
             self.add_context(Context::new("default".to_string(), None))
                 .unwrap();
         }
 
-        /* set the "parent" index of each context that sets a "parent_name" */
+        // set the "parent" index of each context that sets a "parent_name"
         for context in &mut self.contexts {
             if let Some(parent_name) = &context.parent_name {
                 let parent = self.context_map.get(&parent_name.clone()).ok_or_else(|| {
@@ -58,14 +58,14 @@ impl ContextBag {
             }
         }
 
-        /* merge environments of parent context, recursively. to do that,
-         * we need to ensure that we process the contexts in an order so that each context is
-         * processed after all its parents have been processed.
-         * This can be done by topologically sorting them by the total numbers of parents.
-         * Also, collect var_options for each builder.
-         */
+        // merge environments of parent context, recursively. to do that,
+        // we need to ensure that we process the contexts in an order so that each context is
+        // processed after all its parents have been processed.
+        // This can be done by topologically sorting them by the total numbers of parents.
+        // Also, collect var_options for each builder.
+        //
 
-        /* 1. sort by number of parents (ascending) */
+        // 1. sort by number of parents (ascending)
         let mut sorted_by_numparents: Vec<_> = self
             .contexts
             .iter()
@@ -75,7 +75,7 @@ impl ContextBag {
 
         sorted_by_numparents.sort_by(|a, b| a.1.cmp(&b.1));
 
-        /* 2. merge ordered by number of parents (ascending) */
+        // 2. merge ordered by number of parents (ascending)
         for (n, m) in &sorted_by_numparents {
             let (n, m) = (*n, *m);
             if m == 0 {
