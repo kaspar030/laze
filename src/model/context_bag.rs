@@ -325,7 +325,7 @@ impl ContextBag {
                     if let Some(parent_provides) = parent_provides {
                         Some(provides.clone().union_with_key(
                             parent_provides.clone(),
-                            |provided, context_set, parent_set| {
+                            |_provided, context_set, parent_set| {
                                 context_set
                                     .union(&parent_set)
                                     .cloned()
