@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- allow `--build-dir`, `--jobs`, `--compile-commands`, `--global`
+- modules: add "provides"
+- cli: allow `--build-dir`, `--jobs`, `--compile-commands`, `--global`
   to be set via environment
-- wire up creation of compile_commands.json
+- cli: wire up creation of compile_commands.json
 
 ## [0.1.8]
 
