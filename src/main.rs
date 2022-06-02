@@ -300,18 +300,18 @@ impl<'a: 'b, 'b> Build<'b> {
         // TODO: opt: see if Cow improves performance
         let mut binary = binary.clone();
 
-        // add all "select:" from contexts to this build's binary.
-        // the selects will be appended, making it possible to override contexts)
-        // selects from the binary.
-        let context_selects = build_context.collect_selected_modules(contexts);
-        if !context_selects.is_empty() {
-            binary.selects.extend(context_selects);
-        }
-
-        // add all selects from CLI
-        if let Some(selects) = cli_selects {
-            binary.selects.extend(selects.iter().cloned());
-        }
+        // collect all selects for this build.
+        // the order (and thus precedence) is:
+        // 1. cli
+        // 2. app
+        // 3. context
+        binary.selects = cli_selects
+            .iter()
+            .flat_map(|x| x.iter())
+            .cloned()
+            .chain(binary.selects.drain(..))
+            .chain(build_context.collect_selected_modules(contexts).drain(..))
+            .collect();
 
         let mut build = Build {
             bag: contexts,
