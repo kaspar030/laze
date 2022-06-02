@@ -95,7 +95,7 @@ impl<'a> Resolver<'a> {
         ResolverState {
             module_set_prev_len: self.module_set.len(),
             if_then_deps_prev_len: self.if_then_deps.len(),
-            disabled_modules_prev_len: self.if_then_deps.len(),
+            disabled_modules_prev_len: self.disabled_modules.len(),
             provided_set_prev_len: self.provided_set.len(),
         }
     }
