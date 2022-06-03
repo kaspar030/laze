@@ -73,6 +73,7 @@ struct Resolver<'a> {
     provided_set: IndexSet<String>,
 }
 
+#[derive(Debug)]
 struct ResolverState {
     module_set_prev_len: usize,
     if_then_deps_prev_len: usize,
@@ -115,8 +116,30 @@ impl<'a> Resolver<'a> {
     fn resolve_module_deep(&mut self, module: &'a Module) -> Result<(), Error> {
         let state = self.state();
         self.module_set.insert(&module.name, module);
+
+        // handle "provides" of this module.
+        // all provided modules get added to the "provided set", so later
+        // dependees of one of those get informed.
+        // also, bail out if any of the provided modules has been conflicted
+        // before, which implicitly conflicts this module.
+        if let Some(provides) = &module.provides {
+            for provided in provides {
+                if self.disabled_modules.contains(provided) {
+                    self.reset(state);
+                    bail!(
+                        "binary {} for builder {}: {} provides disabled/conflicted module {}",
+                        self.build.binary.name,
+                        self.build.builder.name,
+                        module.name,
+                        provided
+                    );
+                }
+                self.provided_set.insert(provided.clone());
+            }
+        }
+
         if let Some(conflicts) = &module.conflicts {
-            self.disabled_modules.extend(conflicts.iter().cloned())
+            self.disabled_modules.extend(conflicts.iter().cloned());
         }
 
         // late if_then_deps are dependencies that are induced by if_then_deps of
@@ -163,7 +186,7 @@ impl<'a> Resolver<'a> {
             }
 
             if self.provided_set.contains(dep_name) {
-                continue;
+                optional = true;
             }
 
             if self.disabled_modules.contains(dep_name) {
@@ -186,8 +209,13 @@ impl<'a> Resolver<'a> {
             if let Some(provides) = &self.build.build_context.provides {
                 if let Some(providing_modules) = provides.get(dep_name) {
                     if self.resolve_module_list(providing_modules, dep_name) > 0 {
-                        if !optional {
-                            optional = true;
+                        optional = true;
+                        self.provided_set.insert(dep_name.clone());
+                        if self.disabled_modules.contains(dep_name) {
+                            // one provider conflicted the dependency name,
+                            // we'll need to skip the possible exact matching
+                            // module.
+                            continue;
                         }
                     }
                 }
