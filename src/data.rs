@@ -636,7 +636,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
 
         // populate "early env"
         m.env_early
-            .insert("relpath".into(), EnvKey::Single(relpath));
+            .insert("relpath".into(), EnvKey::Single(relpath.clone()));
         if let Some(import_root) = import_root {
             m.env_early.insert(
                 "root".into(),
@@ -653,6 +653,11 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
 
         m.env_local = crate::nested_env::merge(m.env_local, m.env_early.clone());
         m.apply_early_env();
+
+        if is_binary {
+            m.env_global
+                .insert("appdir".into(), EnvKey::Single(relpath.clone()));
+        }
 
         Ok(m)
     }
