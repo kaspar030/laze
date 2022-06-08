@@ -378,6 +378,12 @@ fn configure_build(
         ),
     );
 
+    // insert list of actually used modules
+    global_env.insert(
+        "modules".into(),
+        EnvKey::List(modules.keys().cloned().cloned().sorted().collect::<_>()),
+    );
+
     // if provided, merge CLI env overrides
     if let Some(cli_env) = *cli_env {
         global_env = nested_env::merge(global_env, cli_env.clone());
