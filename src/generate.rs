@@ -20,13 +20,14 @@ use rayon::prelude::*;
 use solvent::DepGraph;
 
 use super::{
+    build::Build,
     data::{load, FileTreeState},
     download,
     model::BlockAllow,
     nested_env,
     nested_env::{Env, EnvKey, IfMissing},
     ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder},
-    utils, Build, Context, ContextBag, Dependency, Module, Task,
+    utils, Context, ContextBag, Dependency, Module, Task,
 };
 
 #[derive(Deserialize, Serialize)]
