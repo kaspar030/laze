@@ -1,4 +1,4 @@
-use anyhow::{Error, Result};
+use anyhow::{Context as _, Error, Result};
 use indexmap::{IndexMap, IndexSet};
 
 use crate::model::{Context, ContextBag, Dependency, Module};
@@ -60,8 +60,42 @@ impl<'a> Resolver<'a> {
         self.module_set
     }
 
+    fn resolve_module_name_deep(&mut self, module_name: &String) -> Result<(), Error> {
+        let (_context, module) = match self
+            .build
+            .build_context
+            .resolve_module(module_name, self.build.bag)
+        {
+            Some(x) => x,
+            None => return Err(anyhow!("module \"{}\" not found", module_name)),
+        };
+
+        self.resolve_module_deep(module)
+    }
+
     fn resolve_module_deep(&mut self, module: &'a Module) -> Result<(), Error> {
         let state = self.state();
+        if self.module_set.contains_key(&module.name) {
+            return Ok(());
+        }
+
+        if self.disabled_modules.contains(&module.name) {
+            return Err(anyhow!("\"{}\" is disabled/conflicted", module.name));
+        }
+
+        if let Some(conflicts) = &module.conflicts {
+            for conflicted in conflicts {
+                if self.module_set.contains_key(&conflicted) {
+                    return Err(anyhow!("\"{}\" conflicts \"{}\"", module.name, conflicted));
+                }
+            }
+            self.disabled_modules.extend(conflicts.iter().cloned());
+        }
+
+        // if self.provided_set.contains(dep_name) {
+        //     optional = true;
+        // }
+
         self.module_set.insert(&module.name, module);
 
         // handle "provides" of this module.
@@ -73,20 +107,10 @@ impl<'a> Resolver<'a> {
             for provided in provides {
                 if self.disabled_modules.contains(provided) {
                     self.reset(state);
-                    bail!(
-                        "binary {} for builder {}: {} provides disabled/conflicted module {}",
-                        self.build.binary.name,
-                        self.build.builder.name,
-                        module.name,
-                        provided
-                    );
+                    bail!("provides disabled/conflicted module \"{}\"", provided);
                 }
                 self.provided_set.insert(provided.clone());
             }
-        }
-
-        if let Some(conflicts) = &module.conflicts {
-            self.disabled_modules.extend(conflicts.iter().cloned());
         }
 
         // late if_then_deps are dependencies that are induced by if_then_deps of
@@ -128,29 +152,6 @@ impl<'a> Resolver<'a> {
                 }
             };
 
-            if self.module_set.contains_key(dep_name) {
-                continue;
-            }
-
-            if self.provided_set.contains(dep_name) {
-                optional = true;
-            }
-
-            if self.disabled_modules.contains(dep_name) {
-                if !optional {
-                    self.reset(state);
-                    bail!(
-                        "binary {} for builder {}: {} depends on disabled/conflicted module {}",
-                        self.build.binary.name,
-                        self.build.builder.name,
-                        module.name,
-                        dep_name
-                    );
-                } else {
-                    continue;
-                }
-            }
-
             // TODO: (consistency): this should be handled *after* modules
             // which match the exact name
             if let Some(provides) = &self.build.build_context.provides {
@@ -168,32 +169,17 @@ impl<'a> Resolver<'a> {
                 }
             }
 
-            let (_context, module) = match self
-                .build
-                .build_context
-                .resolve_module(dep_name, self.build.bag)
-            {
-                Some(x) => x,
-                None => {
-                    if optional {
-                        continue;
-                    } else {
-                        self.reset(state);
-                        bail!(
-                            "binary {} for builder {}: {} depends on unavailable module {}",
-                            self.build.binary.name,
-                            self.build.builder.name,
-                            module.name,
-                            dep_name
-                        );
-                    }
-                }
-            };
-
-            if let Err(x) = self.resolve_module_deep(module) {
-                if !optional {
+            if let Err(err) = self.resolve_module_name_deep(dep_name).with_context(|| {
+                format!(
+                    "\"{}\" depends on unavailable module \"{}\"",
+                    module.name, dep_name
+                )
+            }) {
+                if optional {
+                    continue;
+                } else {
                     self.reset(state);
-                    return Err(x);
+                    return Err(err);
                 }
             }
         }
@@ -208,51 +194,18 @@ impl<'a> Resolver<'a> {
         let mut count = 0usize;
         for module_name in providing_modules {
             if self.module_set.contains_key(module_name) {
+                // this module is already selected. up the count and try next
                 count += 1;
                 continue;
             }
 
             if self.disabled_modules.contains(provided_name) {
-                continue;
+                // something conflicted this "provides", bail out.
+                break;
             }
 
-            if self.disabled_modules.contains(module_name) {
-                continue;
-            }
-
-            // get module object from module name.
-            // we added the module name the provides set, so unwrap()
-            // always succeeds.
-            let module = self
-                .build
-                .build_context
-                .resolve_module(module_name, self.build.bag)
-                .unwrap()
-                .1;
-
-            // the module might conflict what it provides itself, indicating it
-            // cannot coexist with another module providing the same.
-            let mut module_conflicts = false;
-            if let Some(conflicts) = &module.conflicts {
-                if conflicts.contains(provided_name) {
-                    // If that is the case and there was already a provider selected,
-                    // skip this module, and make sure it can't be selected later.
-                    if count > 0 {
-                        self.disabled_modules.insert(module_name.clone());
-                        continue;
-                    }
-                    module_conflicts = true;
-                }
-            }
-
-            if self.resolve_module_deep(module).is_ok() {
+            if self.resolve_module_name_deep(module_name).is_ok() {
                 count += 1;
-                // so we know this module conflicts and that there was no previous
-                // provider. In that case, no other provider can be chosen.
-                if module_conflicts {
-                    self.disabled_modules.insert(provided_name.clone());
-                    break;
-                }
             }
         }
         count
@@ -329,9 +282,14 @@ impl<'a: 'b, 'b> Build<'b> {
     ) -> Result<IndexMap<&String, &Module>, Error> {
         let mut resolver = Resolver::new(self, disabled_modules);
 
-        if let Err(x) = resolver.resolve_module_deep(&self.binary) {
-            return Err(x);
-        }
+        resolver
+            .resolve_module_deep(&self.binary)
+            .with_context(|| {
+                format!(
+                    "binary \"{}\" for builder \"{}\"",
+                    self.binary.name, self.builder.name
+                )
+            })?;
 
         Ok(resolver.result())
     }

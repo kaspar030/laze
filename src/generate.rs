@@ -336,7 +336,7 @@ fn configure_build(
     // this also determines if all dependencies are met
     let modules = match build.resolve_selects(disabled_modules) {
         Err(e) => {
-            println!("error: {}", e);
+            println!("laze: not building {:?}", e);
             return Ok(None);
         }
         Ok(val) => val,
