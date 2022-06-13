@@ -83,21 +83,6 @@ impl<'a> Resolver<'a> {
             return Err(anyhow!("\"{}\" is disabled/conflicted", module.name));
         }
 
-        if let Some(conflicts) = &module.conflicts {
-            for conflicted in conflicts {
-                if self.module_set.contains_key(&conflicted) {
-                    return Err(anyhow!("\"{}\" conflicts \"{}\"", module.name, conflicted));
-                }
-            }
-            self.disabled_modules.extend(conflicts.iter().cloned());
-        }
-
-        // if self.provided_set.contains(dep_name) {
-        //     optional = true;
-        // }
-
-        self.module_set.insert(&module.name, module);
-
         // handle "provides" of this module.
         // all provided modules get added to the "provided set", so later
         // dependees of one of those get informed.
@@ -112,6 +97,22 @@ impl<'a> Resolver<'a> {
                 self.provided_set.insert(provided.clone());
             }
         }
+
+        if let Some(conflicts) = &module.conflicts {
+            for conflicted in conflicts {
+                if self.module_set.contains_key(&conflicted) {
+                    self.reset(state);
+                    return Err(anyhow!("\"{}\" conflicts \"{}\"", module.name, conflicted));
+                }
+            }
+            self.disabled_modules.extend(conflicts.iter().cloned());
+        }
+
+        // if self.provided_set.contains(dep_name) {
+        //     optional = true;
+        // }
+
+        self.module_set.insert(&module.name, module);
 
         // late if_then_deps are dependencies that are induced by if_then_deps of
         // other modules.
@@ -200,8 +201,16 @@ impl<'a> Resolver<'a> {
             }
 
             if self.disabled_modules.contains(provided_name) {
-                // something conflicted this "provides", bail out.
-                break;
+                // this "provides" is conflicted, so no other provider can
+                // be chosen. if we already have one hit, we're done.
+                // otherwise, we continue to see if a possible later candidate
+                // is already in the modules set, in which case the dependency
+                // is met.
+                if count > 0 {
+                    break;
+                } else {
+                    continue;
+                }
             }
 
             if self.resolve_module_name_deep(module_name).is_ok() {
