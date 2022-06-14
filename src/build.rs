@@ -83,9 +83,24 @@ impl<'a> Resolver<'a> {
             return Err(anyhow!("\"{}\" is disabled/conflicted", module.name));
         }
 
+        if let Some(conflicts) = &module.conflicts {
+            for conflicted in conflicts {
+                if self.module_set.contains_key(conflicted) {
+                    self.reset(state);
+                    return Err(anyhow!("\"{}\" conflicts \"{}\"", module.name, conflicted));
+                }
+                if self.provided_set.contains(conflicted) {
+                    self.reset(state);
+                    return Err(anyhow!(
+                        "\"{}\" conflicts already provided \"{}\"",
+                        module.name,
+                        conflicted
+                    ));
+                }
+            }
+        }
+
         // handle "provides" of this module.
-        // all provided modules get added to the "provided set", so later
-        // dependees of one of those get informed.
         // also, bail out if any of the provided modules has been conflicted
         // before, which implicitly conflicts this module.
         if let Some(provides) = &module.provides {
@@ -94,18 +109,18 @@ impl<'a> Resolver<'a> {
                     self.reset(state);
                     bail!("provides disabled/conflicted module \"{}\"", provided);
                 }
-                self.provided_set.insert(provided.clone());
             }
         }
 
+        // register this module's conflicts
         if let Some(conflicts) = &module.conflicts {
-            for conflicted in conflicts {
-                if self.module_set.contains_key(&conflicted) {
-                    self.reset(state);
-                    return Err(anyhow!("\"{}\" conflicts \"{}\"", module.name, conflicted));
-                }
-            }
             self.disabled_modules.extend(conflicts.iter().cloned());
+        }
+
+        // all provided modules get added to the "provided set", so later
+        // dependees of one of those get informed.
+        if let Some(provides) = &module.provides {
+            self.provided_set.extend(provides.iter().cloned());
         }
 
         // if self.provided_set.contains(dep_name) {
