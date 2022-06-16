@@ -185,12 +185,10 @@ impl<'a> Resolver<'a> {
                 }
             }
 
-            if let Err(err) = self.resolve_module_name_deep(dep_name).with_context(|| {
-                format!(
-                    "\"{}\" depends on unavailable module \"{}\"",
-                    module.name, dep_name
-                )
-            }) {
+            if let Err(err) = self
+                .resolve_module_name_deep(dep_name)
+                .with_context(|| format!("\"{}\" cannot resolve \"{}\"", module.name, dep_name))
+            {
                 if optional {
                     continue;
                 } else {
