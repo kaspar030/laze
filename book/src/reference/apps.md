@@ -16,11 +16,12 @@ apps:
 
 As an app is just a special kind of module, they share all fields.
 
-- [`name`](./context/name.md)
-- [`parent`](./context/parent.md)
-- [`env`](./context/env.md)
-- [`selects`](./context/selects.md)
-- [`disables`](./context/disables.md)
-- [`rules`](./context/rules.md)
-- [`var_options`](./context/var_options.md)
-- [`tasks`](./context/tasks.md)
+- [`name`](./module/name.md)
+- [`sources`](./module/sources.md)
+- [`env`](./module/env.md)
+- [`depends`](./module/depends.md)
+- [`selects`](./module/selects.md)
+- [`uses`](./module/uses.md)
+- [`conflicts`](./module/conflicts.md)
+- [`provides`](./module/provides.md)
+- [`build`](./module/build.md)

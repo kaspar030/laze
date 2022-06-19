@@ -1,11 +1,11 @@
 # contexts
 
-`context` contains a _list_ of context entries.
+`contexts` contains a _list_ of context entries.
 
 Example:
 
 ```yaml
-context:
+contexts:
  - name: name_of_this_context.
    # ... possible other fields
  - name: name_of_other_context
