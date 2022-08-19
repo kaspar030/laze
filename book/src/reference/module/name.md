@@ -5,7 +5,8 @@ file- and foldernames, so better keep it simple.
 
 Within each context, module names *must* be unique.
 
-Each module *must* have a `name` field, all other fields are optional.
+Each module *must* have a `name`. If the field is ommitted, [`${relpath}`](../variables.md#relpath)
+is used.
 
 Example:
 

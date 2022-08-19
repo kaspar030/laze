@@ -14,6 +14,7 @@
 - [Apps, Builders, Contexts, Modules](./concepts/types.md)
 - [Tasks]()
 - [Module Dependencies](./concepts/dependencies.md)
+- [Object Sharing](./concepts/object_sharing.md)
 
 # Reference
 
@@ -59,3 +60,4 @@
     - [git](./reference/import/git.md)
     - [laze](./reference/import/laze.md)
   - [defaults]()
+  - [variables](./reference/variables.md)

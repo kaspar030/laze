@@ -1,7 +1,7 @@
 # `imports`
 
 `imports` contains a _list_ of import entries, each representing a local or
-remote source for additional laze files.
+remote source for additional laze projects.
 
 Example:
 
@@ -16,4 +16,3 @@ imports:
 
 - [`git`](./import/git.md)
 - [`laze`](./import/laze.md)
-
