@@ -33,7 +33,7 @@ To make it easier to run, put the path to the binary into your `PATH`.
 
 ## Build from source using Rust
 
-To build the `mdbook` executable from source, you will first need to install Rust and Cargo.
+To build the `laze` executable from source, you will first need to install Rust and Cargo.
 Follow the instructions on the [Rust installation page].
 laze currently requires at least Rust version 1.54.
 
