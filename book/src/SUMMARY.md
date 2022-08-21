@@ -12,7 +12,7 @@
 
 - [Build Files](./concepts/lazefiles.md)
 - [Apps, Builders, Contexts, Modules](./concepts/types.md)
-- [Tasks]()
+- [Tasks](./concepts/tasks.md)
 - [Module Dependencies](./concepts/dependencies.md)
 - [Object Sharing](./concepts/object_sharing.md)
 
