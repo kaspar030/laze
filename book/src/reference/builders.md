@@ -2,6 +2,9 @@
 
 `builders` contains a _list_ of builder entries.
 
+A `builder` represents a configuration and set of available modules that an
+[`app`](./apps.md) can be built for.
+
 Example:
 
 ```yaml

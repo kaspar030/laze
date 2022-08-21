@@ -2,6 +2,8 @@
 
 `apps` contains a _list_ of app entries.
 
+An `app` represents a binary that can be built for [`builders`](./builders.md).
+
 Example:
 
 ```yaml
