@@ -1,4 +1,4 @@
-### Builds, Apps, Builders, Contexts, Modules
+### Builds, Apps, Builders, Contexts, Modules, Tasks
 
 Conceptionally laze builds **apps** for **builders**.
 Each app/builder combination that laze configures is called a **build**.
@@ -19,3 +19,9 @@ Technically, an app is just a special kind of module that can be built for a
 builder.
 
 Apps and modules consist of zero or more source files.
+
+**Tasks** are operations that can be run on binaries of a build configuration.
+They can be used to execute a compiled binary, run it through a debugger,
+install some files, update/reset an embedded target, ...
+
+**Tasks** are executed by laze (not ninja), after building possible dependencies.
