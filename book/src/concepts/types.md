@@ -14,6 +14,8 @@ A context could be "linux", or "ubuntu" with parent context "linux". A builder
 could then be "amd64" with parent context "ubuntu". Builders can have other
 builders as parent context.
 
+Contexts (and thus builders) _inherit_ modules and variables from their parents.
+
 Apps can depend on **modules**, which can have dependencies themselves.
 Technically, an app is just a special kind of module that can be built for a
 builder.
