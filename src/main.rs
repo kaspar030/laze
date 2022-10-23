@@ -388,22 +388,14 @@ fn try_main() -> Result<i32> {
             let build_dir = build_matches.get_one::<PathBuf>("build-dir").unwrap();
 
             // collect builder names from args
-            let builders = match build_matches.get_many::<&str>("builders") {
-                Some(values) => Selector::Some(
-                    values
-                        .map(|v| String::from(*v))
-                        .collect::<IndexSet<String>>(),
-                ),
+            let builders = match build_matches.get_many::<String>("builders") {
+                Some(values) => Selector::Some(values.cloned().collect::<IndexSet<String>>()),
                 None => Selector::All,
             };
 
             // collect app names from args
-            let apps = match build_matches.get_many::<&str>("apps") {
-                Some(values) => Selector::Some(
-                    values
-                        .map(|v| String::from(*v))
-                        .collect::<IndexSet<String>>(),
-                ),
+            let apps = match build_matches.get_many::<String>("apps") {
+                Some(values) => Selector::Some(values.cloned().collect::<IndexSet<String>>()),
                 None => Selector::All,
             };
 
