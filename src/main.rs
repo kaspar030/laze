@@ -14,14 +14,16 @@ use core::sync::atomic::AtomicBool;
 
 use std::env;
 use std::iter;
+use std::os::unix::prelude::OsStrExt;
 use std::path::{Path, PathBuf};
+use std::str;
 use std::thread;
 
 #[macro_use]
 extern crate serde_derive;
 
 use anyhow::{Context as _, Error, Result};
-use clap::{crate_version, Arg, Command};
+use clap::{crate_version, Arg, ArgAction, Command};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use signal_hook::{consts::SIGINT, iterator::Signals};
@@ -115,7 +117,7 @@ fn main() {
 
 pub static IGNORE_SIGINT: AtomicBool = AtomicBool::new(false);
 
-fn clap() -> clap::Command<'static> {
+fn clap() -> clap::Command {
     Command::new("laze in rust")
         .version(crate_version!())
         .author("Kaspar Schleiser <kaspar@schleiser.de>")
@@ -128,7 +130,7 @@ fn clap() -> clap::Command<'static> {
                 .help("change working directory before doing anything else")
                 .global(true)
                 .required(false)
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("global")
@@ -137,26 +139,34 @@ fn clap() -> clap::Command<'static> {
                 .help("global mode")
                 .global(true)
                 .env("LAZE_GLOBAL")
-                .required(false),
+                .action(ArgAction::SetTrue),
         )
         .subcommand(
             Command::new("build")
+                .arg(
+                    Arg::new("verbose")
+                        .help("be verbose (e.g., show command lines)")
+                        .short('v')
+                        .long("verbose")
+                        .action(ArgAction::Count),
+                )
                 .about("generate build files and build")
                 .arg(
                     Arg::new("build-dir")
+                        .help("specify build dir (relative to project root)")
                         .short('B')
                         .long("build-dir")
-                        .takes_value(true)
+                        .num_args(1)
                         .value_name("DIR")
                         .default_value("build")
-                        .help("specify build dir (relative to project root)"),
+                        .value_parser(clap::value_parser!(PathBuf)),
                 )
                 .arg(
                     Arg::new("generate-only")
                         .short('G')
                         .long("generate-only")
                         .help("generate build files only, don't start build")
-                        .required(false),
+                        .action(ArgAction::SetTrue),
                 )
                 .arg(
                     Arg::new("compile-commands")
@@ -164,85 +174,67 @@ fn clap() -> clap::Command<'static> {
                         .long("compile-commands")
                         .env("LAZE_COMPILE_COMMANDS")
                         .help("generate compile_commands.json in project root")
-                        .required(false),
+                        .action(ArgAction::SetTrue),
                 )
                 .arg(
                     Arg::new("builders")
                         .short('b')
                         .long("builders")
                         .help("builders to configure")
-                        .required(false)
-                        .takes_value(true)
-                        .multiple_values(true)
-                        .use_value_delimiter(true)
-                        .require_value_delimiter(true)
-                        .env("LAZE_BUILDERS"),
+                        .env("LAZE_BUILDERS")
+                        .num_args(1..)
+                        .action(ArgAction::Append)
+                        .value_delimiter(','),
                 )
                 .arg(
                     Arg::new("apps")
                         .short('a')
                         .long("apps")
                         .help("apps to configure")
-                        .required(false)
-                        .takes_value(true)
-                        .multiple_values(true)
-                        .use_value_delimiter(true)
-                        .require_value_delimiter(true)
-                        .env("LAZE_APPS"),
-                )
-                .arg(
-                    Arg::new("verbose")
-                        .short('v')
-                        .long("verbose")
-                        .help("be verbose (e.g., show command lines)")
-                        .multiple_occurrences(true),
+                        .env("LAZE_APPS")
+                        .num_args(1..)
+                        .action(ArgAction::Append)
+                        .value_delimiter(','),
                 )
                 .arg(
                     Arg::new("jobs")
+                        .help("how many compile jobs to run in parallel")
                         .short('j')
                         .long("jobs")
-                        .help("how many compile jobs to run in parallel")
-                        .takes_value(true)
-                        .validator(|val| val.parse::<usize>())
-                        .env("LAZE_JOBS"),
+                        .env("LAZE_JOBS")
+                        .num_args(1)
+                        .value_parser(clap::value_parser!(usize)),
                 )
                 .arg(
                     Arg::new("select")
+                        .help("extra modules to select/enable")
                         .short('s')
                         .long("select")
                         .alias("enable")
-                        .help("extra modules to select/enable")
-                        .required(false)
-                        .takes_value(true)
-                        .multiple_values(true)
-                        .multiple_occurrences(true)
-                        .use_value_delimiter(true)
-                        .require_value_delimiter(true)
-                        .env("LAZE_SELECT"),
+                        .env("LAZE_SELECT")
+                        .num_args(1..)
+                        .action(ArgAction::Append)
+                        .value_delimiter(','),
                 )
                 .arg(
                     Arg::new("disable")
+                        .help("disable modules")
                         .short('d')
                         .long("disable")
-                        .help("disable modules")
-                        .required(false)
-                        .takes_value(true)
-                        .multiple_values(true)
-                        .multiple_occurrences(true)
-                        .use_value_delimiter(true)
-                        .require_value_delimiter(true)
-                        .env("LAZE_DISABLE"),
+                        .env("LAZE_DISABLE")
+                        .num_args(1..)
+                        .action(ArgAction::Append)
+                        .value_delimiter(','),
                 )
                 .arg(
                     Arg::new("define")
+                        .help("set/override variable")
                         .short('D')
                         .long("define")
-                        .help("set/override variable")
-                        .required(false)
-                        .takes_value(true)
-                        .multiple_occurrences(true)
-                        //                        .number_of_values(1)
-                        .env("LAZE_DEFINE"),
+                        .env("LAZE_DEFINE")
+                        .num_args(1..)
+                        .action(ArgAction::Append)
+                        .value_delimiter(','),
                 ),
         )
         .subcommand(
@@ -253,28 +245,29 @@ fn clap() -> clap::Command<'static> {
                 .subcommand_required(true)
                 .arg(
                     Arg::new("build-dir")
+                        .help("specify build dir (relative to project root)")
                         .short('B')
                         .long("build-dir")
-                        .takes_value(true)
+                        .env("LAZE_BUILD_DIR")
+                        .num_args(1)
                         .value_name("DIR")
                         .default_value("build")
-                        .help("specify build dir (relative to project root)")
-                        .env("LAZE_BUILD_DIR"),
+                        .value_parser(clap::value_parser!(PathBuf)),
                 )
                 .arg(
                     Arg::new("verbose")
                         .short('v')
                         .long("verbose")
                         .help("be verbose (e.g., show command lines)")
-                        .multiple_occurrences(true),
+                        .action(ArgAction::Count),
                 )
                 .arg(
                     Arg::new("jobs")
                         .short('j')
                         .long("jobs")
                         .help("how many compile jobs to run in parallel")
-                        .takes_value(true)
-                        .validator(|val| val.parse::<usize>())
+                        .num_args(1)
+                        .value_parser(clap::value_parser!(usize))
                         .env("LAZE_JOBS"),
                 )
                 .arg(
@@ -283,7 +276,7 @@ fn clap() -> clap::Command<'static> {
                         .long("builder")
                         .help("builder to run task for")
                         .required(false)
-                        .takes_value(true)
+                        .num_args(1)
                         .env("LAZE_BUILDERS"),
                 )
                 .arg(
@@ -292,45 +285,39 @@ fn clap() -> clap::Command<'static> {
                         .long("app")
                         .help("application target to run task for")
                         .required(false)
-                        .takes_value(true)
+                        .num_args(1)
                         .env("LAZE_APPS"),
                 )
                 .arg(
                     Arg::new("select")
+                        .help("extra modules to select/enable")
                         .short('s')
                         .long("select")
                         .alias("enable")
-                        .help("extra modules to select/enable")
-                        .required(false)
-                        .takes_value(true)
-                        .multiple_values(true)
-                        .multiple_occurrences(true)
-                        .use_value_delimiter(true)
-                        .require_value_delimiter(true)
-                        .env("LAZE_SELECT"),
+                        .env("LAZE_SELECT")
+                        .num_args(1..)
+                        .action(ArgAction::Append)
+                        .value_delimiter(','),
                 )
                 .arg(
                     Arg::new("disable")
+                        .help("disable modules")
                         .short('d')
                         .long("disable")
-                        .help("disable modules")
-                        .required(false)
-                        .takes_value(true)
-                        .multiple_values(true)
-                        .multiple_occurrences(true)
-                        .use_value_delimiter(true)
-                        .require_value_delimiter(true)
-                        .env("LAZE_DISABLE"),
+                        .env("LAZE_DISABLE")
+                        .num_args(1..)
+                        .action(ArgAction::Append)
+                        .value_delimiter(','),
                 )
                 .arg(
                     Arg::new("define")
+                        .help("set/override variable")
                         .short('D')
                         .long("define")
-                        .help("set/override variable")
-                        .required(false)
-                        .takes_value(true)
-                        .multiple_occurrences(true)
-                        .env("LAZE_DEFINE"),
+                        .env("LAZE_DEFINE")
+                        .num_args(1..)
+                        .action(ArgAction::Append)
+                        .value_delimiter(','),
                 ),
         )
         .subcommand(
@@ -340,7 +327,7 @@ fn clap() -> clap::Command<'static> {
                     Arg::new("build-dir")
                         .short('B')
                         .long("build-dir")
-                        .takes_value(true)
+                        .num_args(1)
                         .value_name("DIR")
                         .default_value("build")
                         .env("LAZE_BUILD_DIR")
@@ -351,7 +338,7 @@ fn clap() -> clap::Command<'static> {
                         .short('v')
                         .long("verbose")
                         .help("be verbose (e.g., show command lines)")
-                        .multiple_occurrences(true),
+                        .action(ArgAction::Count),
                 )
                 .arg(
                     Arg::new("unused").short('u').long("unused").help(
@@ -374,8 +361,9 @@ fn try_main() -> Result<i32> {
 
     let matches = clap().get_matches();
 
-    if let Some(dir) = matches.value_of("chdir") {
-        env::set_current_dir(dir).context(format!("cannot change to directory \"{}\"", dir))?;
+    if let Some(dir) = matches.get_one::<PathBuf>("chdir") {
+        env::set_current_dir(dir)
+            .context(format!("cannot change to directory \"{}\"", dir.display()))?;
     }
 
     let cwd = env::current_dir()?;
@@ -390,60 +378,45 @@ fn try_main() -> Result<i32> {
         project_file.display()
     );
 
-    let global = matches.is_present("global");
+    let global = matches.get_flag("global");
     env::set_current_dir(&project_root)
         .context(format!("cannot change to \"{}\"", &project_root.display()))?;
 
     match matches.subcommand() {
         Some(("build", build_matches)) => {
-            let verbose = build_matches.occurrences_of("verbose");
-            let build_dir = PathBuf::from(build_matches.value_of("build-dir").unwrap());
+            let verbose = build_matches.get_count("verbose");
+            let build_dir = build_matches.get_one::<PathBuf>("build-dir").unwrap();
 
             // collect builder names from args
-            let builders = match build_matches.values_of("builders") {
-                Some(values) => {
-                    Selector::Some(values.map(String::from).collect::<IndexSet<String>>())
-                }
+            let builders = match build_matches.get_many::<&str>("builders") {
+                Some(values) => Selector::Some(
+                    values
+                        .map(|v| String::from(*v))
+                        .collect::<IndexSet<String>>(),
+                ),
                 None => Selector::All,
             };
 
             // collect app names from args
-            let apps = match build_matches.values_of("apps") {
-                Some(values) => {
-                    Selector::Some(values.map(String::from).collect::<IndexSet<String>>())
-                }
+            let apps = match build_matches.get_many::<&str>("apps") {
+                Some(values) => Selector::Some(
+                    values
+                        .map(|v| String::from(*v))
+                        .collect::<IndexSet<String>>(),
+                ),
                 None => Selector::All,
             };
 
-            let jobs = build_matches
-                .value_of("jobs")
-                .map(|val| val.parse::<usize>().unwrap());
+            let jobs = build_matches.get_one::<usize>("jobs").copied();
 
             println!("building {} for {}", &apps, &builders);
 
-            // collect CLI selected modules
-            let select = build_matches.values_of_lossy("select");
-            // convert CLI --select strings to Vec<Dependency>
-            let select = select.map(|mut vec| {
-                vec.drain(..)
-                    .map(|dep_name| crate::data::dependency_from_string(&dep_name))
-                    .collect_vec()
-            });
-
-            let disable = build_matches.values_of_lossy("disable");
+            // collect CLI selected/disabled modules
+            let select = get_selects(build_matches);
+            let disable = get_disables(build_matches);
 
             // collect CLI env overrides
-            let cli_env = if build_matches.occurrences_of("define") > 0 {
-                let mut env = Env::new();
-
-                for assignment in build_matches.values_of("define").unwrap() {
-                    env = nested_env::assign_from_string(env, assignment)?;
-                }
-
-                Some(env)
-            } else {
-                None
-            };
+            let cli_env = get_cli_vars(build_matches)?;
 
             let mode = match global {
                 true => GenerateMode::Global,
@@ -468,7 +441,7 @@ fn try_main() -> Result<i32> {
 
             let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
 
-            if build_matches.is_present("compile-commands") {
+            if build_matches.get_flag("compile-commands") {
                 let mut compile_commands = project_root;
                 compile_commands.push("compile_commands.json");
                 println!("generating {}", &compile_commands.to_string_lossy());
@@ -480,7 +453,7 @@ fn try_main() -> Result<i32> {
 
             // generation of ninja build file complete.
             // exit here if requested.
-            if build_matches.is_present("generate-only") {
+            if build_matches.get_flag("generate-only") {
                 return Ok(0);
             }
 
@@ -510,31 +483,30 @@ fn try_main() -> Result<i32> {
             ninja_run(ninja_build_file.as_path(), verbose > 0, targets, jobs)?;
         }
         Some(("task", task_matches)) => {
-            let verbose = task_matches.occurrences_of("verbose");
-            let build_dir = Path::new(task_matches.value_of("build-dir").unwrap());
+            let verbose = task_matches.get_count("verbose");
+            let build_dir = task_matches.get_one::<PathBuf>("build-dir").unwrap();
 
-            let builder = task_matches.value_of("builder");
-            let app = task_matches.value_of("app");
+            let builder = task_matches.get_one::<String>("builder");
+            let app = task_matches.get_one::<String>("app");
 
-            let jobs = task_matches
-                .value_of("jobs")
-                .map(|val| val.parse::<usize>().unwrap());
+            let jobs = task_matches.get_one("jobs").copied();
 
-            // collect CLI selected modules
-            let select = task_matches.values_of_lossy("select");
-            // convert CLI --select strings to Vec<Dependency>
-            let select = select.map(|mut vec| {
-                vec.drain(..)
-                    .map(|dep_name| crate::data::dependency_from_string(&dep_name))
-                    .collect_vec()
-            });
+            // collect CLI selected/disabled modules
+            let select = get_selects(task_matches);
+            let disable = get_disables(task_matches);
 
-            let disable = task_matches.values_of_lossy("disable");
+            // collect CLI env overrides
+            let cli_env = get_cli_vars(task_matches)?;
 
             let (task, args) = match task_matches.subcommand() {
                 Some((name, matches)) => {
-                    let args = matches.values_of("").map(|v| v.collect());
-                    (name, args)
+                    let args = matches
+                        .get_many::<std::ffi::OsString>("")
+                        .into_iter()
+                        .flatten()
+                        .map(|v| str::from_utf8(v.as_bytes()).expect("task arg is invalid UTF8"))
+                        .collect::<Vec<_>>();
+                    (name, Some(args))
                 }
                 _ => unreachable!(),
             };
@@ -556,19 +528,6 @@ fn try_main() -> Result<i32> {
             let mode = match global {
                 true => GenerateMode::Global,
                 false => GenerateMode::Local(start_relpath),
-            };
-
-            // collect CLI env overrides
-            let cli_env = if task_matches.occurrences_of("define") > 0 {
-                let mut env = Env::new();
-
-                for assignment in task_matches.values_of("define").unwrap() {
-                    env = nested_env::assign_from_string(env, assignment)?;
-                }
-
-                Some(env)
-            } else {
-                None
             };
 
             println!("building {} for {}", &apps, &builders);
@@ -634,9 +593,9 @@ fn try_main() -> Result<i32> {
             task.execute(project_root.as_ref(), args, verbose)?;
         }
         Some(("clean", clean_matches)) => {
-            let verbose = clean_matches.occurrences_of("verbose");
-            let unused = clean_matches.is_present("unused");
-            let build_dir = PathBuf::from(clean_matches.value_of("build-dir").unwrap());
+            let verbose = clean_matches.get_count("verbose");
+            let unused = clean_matches.get_flag("unused");
+            let build_dir = clean_matches.get_one::<PathBuf>("build-dir").unwrap();
             let mode = match global {
                 true => GenerateMode::Global,
                 false => GenerateMode::Local(start_relpath),
@@ -653,6 +612,42 @@ fn try_main() -> Result<i32> {
     };
 
     Ok(0)
+}
+
+fn get_cli_vars(
+    build_matches: &clap::ArgMatches,
+) -> Result<Option<im::HashMap<String, nested_env::EnvKey>>, Error> {
+    let cli_env = if let Some(entries) = build_matches.get_many::<String>("define") {
+        let mut env = Env::new();
+
+        for assignment in entries {
+            env = nested_env::assign_from_string(env, assignment)?;
+        }
+
+        Some(env)
+    } else {
+        None
+    };
+    Ok(cli_env)
+}
+
+fn get_disables(build_matches: &clap::ArgMatches) -> Option<Vec<String>> {
+    let disable = build_matches
+        .get_many::<String>("disable")
+        .map_or(None, |vr| Some(vr.cloned().collect_vec()));
+    disable
+}
+
+fn get_selects(build_matches: &clap::ArgMatches) -> Option<Vec<Dependency<String>>> {
+    let select = build_matches.get_many::<String>("select");
+    // convert CLI --select strings to Vec<Dependency>
+    let select = select.map_or(None, |vr| {
+        Some(
+            vr.map(|dep_name| crate::data::dependency_from_string(&dep_name))
+                .collect_vec(),
+        )
+    });
+    select
 }
 
 #[cfg(test)]

@@ -24,7 +24,7 @@ impl Task {
         &self,
         start_dir: &Path,
         args: Option<Vec<&str>>,
-        verbose: u64,
+        verbose: u8,
     ) -> Result<(), Error> {
         for cmd in &self.cmd {
             use shell_words::join;
