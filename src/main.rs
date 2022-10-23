@@ -331,7 +331,8 @@ fn clap() -> clap::Command {
                         .value_name("DIR")
                         .default_value("build")
                         .env("LAZE_BUILD_DIR")
-                        .help("specify build dir (relative to project root)"),
+                        .help("specify build dir (relative to project root)")
+                        .value_parser(clap::value_parser!(PathBuf)),
                 )
                 .arg(
                     Arg::new("verbose")
@@ -341,9 +342,13 @@ fn clap() -> clap::Command {
                         .action(ArgAction::Count),
                 )
                 .arg(
-                    Arg::new("unused").short('u').long("unused").help(
-                        "clean built files that are not produced by the current configuration",
-                    ),
+                    Arg::new("unused")
+                        .short('u')
+                        .long("unused")
+                        .help(
+                            "clean built files that are not produced by the current configuration",
+                        )
+                        .action(ArgAction::SetTrue),
                 ),
         )
 }
