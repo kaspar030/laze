@@ -142,8 +142,8 @@ impl Import {
                 let prefix = format!("{}/", name);
 
                 if Asset::iter().any(|x| x.starts_with(&prefix)) {
-                    let build_id_hash = calculate_hash(&build_id::get());
-                    Some(format!("laze/{}-{}", name, build_id_hash))
+                    let build_uuid_hash = calculate_hash(&build_uuid::get());
+                    Some(format!("laze/{}-{}", name, build_uuid_hash))
                 } else {
                     None
                 }

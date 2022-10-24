@@ -843,7 +843,7 @@ pub struct GenerateResult {
     pub apps: Selector,
     pub build_infos: Vec<(String, String, BuildInfo)>,
 
-    build_id: uuid::Uuid,
+    build_uuid: uuid::Uuid,
     select: Option<Vec<Dependency<String>>>,
     disable: Option<Vec<String>>,
     cli_env_hash: u64,
@@ -857,7 +857,7 @@ impl GenerateResult {
         treestate: FileTreeState,
     ) -> GenerateResult {
         GenerateResult {
-            build_id: build_id::get(),
+            build_uuid: build_uuid::get(),
             mode: generator.mode,
             builders: generator.builders,
             apps: generator.apps,
@@ -893,7 +893,7 @@ impl TryFrom<&Generator> for GenerateResult {
         let file = Self::cache_file(&generator.build_dir, &generator.mode);
         let file = File::open(file)?;
         let res: GenerateResult = bincode::deserialize_from(file)?;
-        if res.build_id != build_id::get() {
+        if res.build_uuid != build_uuid::get() {
             return Err(anyhow!("cache from different laze version"));
         }
         if !res.builders.is_superset(&generator.builders) {
