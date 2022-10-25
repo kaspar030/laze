@@ -47,19 +47,6 @@ use generate::{get_ninja_build_file, BuildInfo, GenerateMode, GeneratorBuilder, 
 use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
 
-// impl fmt::Display for Context {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         for context in &self.contexts {
-//             let parent_name = match context.parent {
-//                 Some(index) => self.contexts[index].name.clone(),
-//                 None => "none".to_string(),
-//             };
-
-//             println!("context: {} parent: {}", context.name, parent_name);
-//         }
-//     }
-// }
-
 fn determine_project_root(start: &PathBuf) -> Result<(PathBuf, PathBuf)> {
     let mut cwd = start.clone();
 
