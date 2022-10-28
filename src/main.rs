@@ -393,7 +393,7 @@ fn try_main() -> Result<i32> {
 
             let jobs = build_matches.get_one::<usize>("jobs").copied();
 
-            println!("building {} for {}", &apps, &builders);
+            println!("laze: building {} for {}", &apps, &builders);
 
             // collect CLI selected/disabled modules
             let select = get_selects(build_matches);
