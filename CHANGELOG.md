@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to be set via environment
 - cli: wire up creation of compile_commands.json
 
+### Fixed
+
+- make CLI selects have precedence over app/context selects
+
 ## [0.1.8]
 
 ### Changed
