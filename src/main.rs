@@ -105,7 +105,7 @@ fn main() {
 pub static IGNORE_SIGINT: AtomicBool = AtomicBool::new(false);
 
 fn clap() -> clap::Command {
-    Command::new("laze in rust")
+    Command::new("laze")
         .version(crate_version!())
         .author("Kaspar Schleiser <kaspar@schleiser.de>")
         .about("Build a lot, fast")
