@@ -117,6 +117,7 @@ fn clap() -> clap::Command {
                 .help("change working directory before doing anything else")
                 .global(true)
                 .required(false)
+                .value_parser(clap::value_parser!(PathBuf))
                 .num_args(1),
         )
         .arg(
