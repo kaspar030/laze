@@ -90,10 +90,14 @@ pub struct Generator {
     select: Option<Vec<Dependency<String>>>,
     disable: Option<Vec<String>>,
     cli_env: Option<Env>,
+    partitioner: Option<String>,
 }
 
 impl Generator {
-    pub fn execute(self) -> Result<GenerateResult> {
+    pub fn execute(
+        self,
+        partitioner: Option<Box<dyn task_partitioner::Partitioner>>,
+    ) -> Result<GenerateResult> {
         let start = Instant::now();
 
         match GenerateResult::try_from(&self) {
@@ -202,9 +206,19 @@ impl Generator {
         // create (builder, bin) tuples
         let builder_bin_tuples = selected_builders.iter().cartesian_product(bins);
 
+        // optionally apply partitioner
+        let builder_bin_tuples = if let Some(mut partitioner) = partitioner {
+            builder_bin_tuples
+                .filter(|(builder, bin)| {
+                    partitioner.task_matches(&format!("{}{}", builder.name, bin.0))
+                })
+                .collect_vec()
+        } else {
+            builder_bin_tuples.collect_vec()
+        };
+
         // actually configure builds
         let mut builds = builder_bin_tuples
-            .collect::<Vec<_>>()
             .par_iter()
             // `.par_bridge()` instead of `collect()+par_iter()` yields slight (1%) configure time
             // speedup, at the price of changing the order of build rules. not worth losing
@@ -848,6 +862,7 @@ pub struct GenerateResult {
     disable: Option<Vec<String>>,
     cli_env_hash: u64,
     treestate: FileTreeState,
+    partitioner: Option<String>,
 }
 
 impl GenerateResult {
@@ -866,6 +881,7 @@ impl GenerateResult {
             cli_env_hash: generator.cli_env.as_ref().map_or(0, utils::calculate_hash),
             build_infos,
             treestate,
+            partitioner: generator.partitioner,
         }
     }
 
@@ -895,6 +911,9 @@ impl TryFrom<&Generator> for GenerateResult {
         let res: GenerateResult = bincode::deserialize_from(file)?;
         if res.build_uuid != build_uuid::get() {
             return Err(anyhow!("cache from different laze version"));
+        }
+        if generator.partitioner != res.partitioner {
+            return Err(anyhow!("partition values don't match"));
         }
         if !res.builders.is_superset(&generator.builders) {
             return Err(anyhow!("builders don't match"));

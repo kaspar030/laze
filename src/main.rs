@@ -105,6 +105,18 @@ fn main() {
 pub static IGNORE_SIGINT: AtomicBool = AtomicBool::new(false);
 
 fn clap() -> clap::Command {
+    fn partition() -> Arg {
+        use std::str::FromStr;
+        use task_partitioner::PartitionerBuilder;
+        Arg::new("partition")
+            .help("build only M/N subset (try \"count:1/2\")")
+            .short('P')
+            .long("partition")
+            .num_args(1)
+            .value_name("PARTITION")
+            .value_parser(PartitionerBuilder::from_str)
+    }
+
     Command::new("laze")
         .version(crate_version!())
         .author("Kaspar Schleiser <kaspar@schleiser.de>")
@@ -223,7 +235,8 @@ fn clap() -> clap::Command {
                         .num_args(1..)
                         .action(ArgAction::Append)
                         .value_delimiter(','),
-                ),
+                )
+                .arg(partition()),
         )
         .subcommand(
             Command::new("task")
@@ -394,6 +407,10 @@ fn try_main() -> Result<i32> {
 
             let jobs = build_matches.get_one::<usize>("jobs").copied();
 
+            let partitioner = build_matches
+                .get_one::<task_partitioner::PartitionerBuilder>("partition")
+                .map_or(None, |v| Some(v.build()));
+
             println!("laze: building {} for {}", &apps, &builders);
 
             // collect CLI selected/disabled modules
@@ -418,11 +435,16 @@ fn try_main() -> Result<i32> {
                 .select(select)
                 .disable(disable)
                 .cli_env(cli_env)
+                .partitioner(
+                    partitioner
+                        .as_ref()
+                        .map_or(None, |x| Some(format!("{:?}", x))),
+                )
                 .build()
                 .unwrap();
 
             // arguments parsed, launch generation of ninja file(s)
-            let builds = generator.execute()?;
+            let builds = generator.execute(partitioner)?;
 
             let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
 
@@ -528,10 +550,11 @@ fn try_main() -> Result<i32> {
                 .select(select)
                 .disable(disable)
                 .cli_env(cli_env)
+                .partitioner(None)
                 .build()
                 .unwrap();
 
-            let builds = generator.execute()?;
+            let builds = generator.execute(None)?;
 
             let builds: Vec<&(String, String, BuildInfo)> = builds
                 .build_infos
