@@ -105,6 +105,69 @@ fn main() {
 pub static IGNORE_SIGINT: AtomicBool = AtomicBool::new(false);
 
 fn clap() -> clap::Command {
+    fn build_dir() -> Arg {
+        Arg::new("build-dir")
+            .help("specify build dir (relative to project root)")
+            .short('B')
+            .long("build-dir")
+            .num_args(1)
+            .value_name("DIR")
+            .default_value("build")
+            .value_parser(clap::value_parser!(PathBuf))
+    }
+
+    fn jobs() -> Arg {
+        Arg::new("jobs")
+            .help("how many compile jobs to run in parallel")
+            .short('j')
+            .long("jobs")
+            .env("LAZE_JOBS")
+            .num_args(1)
+            .value_parser(clap::value_parser!(usize))
+    }
+
+    fn select() -> Arg {
+        Arg::new("select")
+            .help("extra modules to select/enable")
+            .short('s')
+            .long("select")
+            .alias("enable")
+            .env("LAZE_SELECT")
+            .num_args(1..)
+            .action(ArgAction::Append)
+            .value_delimiter(',')
+    }
+
+    fn disable() -> Arg {
+        Arg::new("disable")
+            .help("disable modules")
+            .short('d')
+            .long("disable")
+            .env("LAZE_DISABLE")
+            .num_args(1..)
+            .action(ArgAction::Append)
+            .value_delimiter(',')
+    }
+
+    fn define() -> Arg {
+        Arg::new("define")
+            .help("set/override variable")
+            .short('D')
+            .long("define")
+            .env("LAZE_DEFINE")
+            .num_args(1..)
+            .action(ArgAction::Append)
+            .value_delimiter(',')
+    }
+
+    fn verbose() -> Arg {
+        Arg::new("verbose")
+            .help("be verbose (e.g., show command lines)")
+            .short('v')
+            .long("verbose")
+            .action(ArgAction::Count)
+    }
+
     fn partition() -> Arg {
         use std::str::FromStr;
         use task_partitioner::PartitionerBuilder;
@@ -143,24 +206,9 @@ fn clap() -> clap::Command {
         )
         .subcommand(
             Command::new("build")
-                .arg(
-                    Arg::new("verbose")
-                        .help("be verbose (e.g., show command lines)")
-                        .short('v')
-                        .long("verbose")
-                        .action(ArgAction::Count),
-                )
                 .about("generate build files and build")
-                .arg(
-                    Arg::new("build-dir")
-                        .help("specify build dir (relative to project root)")
-                        .short('B')
-                        .long("build-dir")
-                        .num_args(1)
-                        .value_name("DIR")
-                        .default_value("build")
-                        .value_parser(clap::value_parser!(PathBuf)),
-                )
+                .arg(verbose())
+                .arg(build_dir())
                 .arg(
                     Arg::new("generate-only")
                         .short('G')
@@ -176,6 +224,7 @@ fn clap() -> clap::Command {
                         .help("generate compile_commands.json in project root")
                         .action(ArgAction::SetTrue),
                 )
+                .arg(jobs())
                 .arg(
                     Arg::new("builders")
                         .short('b')
@@ -196,46 +245,9 @@ fn clap() -> clap::Command {
                         .action(ArgAction::Append)
                         .value_delimiter(','),
                 )
-                .arg(
-                    Arg::new("jobs")
-                        .help("how many compile jobs to run in parallel")
-                        .short('j')
-                        .long("jobs")
-                        .env("LAZE_JOBS")
-                        .num_args(1)
-                        .value_parser(clap::value_parser!(usize)),
-                )
-                .arg(
-                    Arg::new("select")
-                        .help("extra modules to select/enable")
-                        .short('s')
-                        .long("select")
-                        .alias("enable")
-                        .env("LAZE_SELECT")
-                        .num_args(1..)
-                        .action(ArgAction::Append)
-                        .value_delimiter(','),
-                )
-                .arg(
-                    Arg::new("disable")
-                        .help("disable modules")
-                        .short('d')
-                        .long("disable")
-                        .env("LAZE_DISABLE")
-                        .num_args(1..)
-                        .action(ArgAction::Append)
-                        .value_delimiter(','),
-                )
-                .arg(
-                    Arg::new("define")
-                        .help("set/override variable")
-                        .short('D')
-                        .long("define")
-                        .env("LAZE_DEFINE")
-                        .num_args(1..)
-                        .action(ArgAction::Append)
-                        .value_delimiter(','),
-                )
+                .arg(select())
+                .arg(disable())
+                .arg(define())
                 .arg(partition()),
         )
         .subcommand(
@@ -244,33 +256,9 @@ fn clap() -> clap::Command {
                 .override_usage("laze task [FLAGS] [OPTIONS] <TASK> [ARGS]...")
                 .allow_external_subcommands(true)
                 .subcommand_required(true)
-                .arg(
-                    Arg::new("build-dir")
-                        .help("specify build dir (relative to project root)")
-                        .short('B')
-                        .long("build-dir")
-                        .env("LAZE_BUILD_DIR")
-                        .num_args(1)
-                        .value_name("DIR")
-                        .default_value("build")
-                        .value_parser(clap::value_parser!(PathBuf)),
-                )
-                .arg(
-                    Arg::new("verbose")
-                        .short('v')
-                        .long("verbose")
-                        .help("be verbose (e.g., show command lines)")
-                        .action(ArgAction::Count),
-                )
-                .arg(
-                    Arg::new("jobs")
-                        .short('j')
-                        .long("jobs")
-                        .help("how many compile jobs to run in parallel")
-                        .num_args(1)
-                        .value_parser(clap::value_parser!(usize))
-                        .env("LAZE_JOBS"),
-                )
+                .arg(build_dir())
+                .arg(verbose())
+                .arg(jobs())
                 .arg(
                     Arg::new("builder")
                         .short('b')
@@ -289,59 +277,15 @@ fn clap() -> clap::Command {
                         .num_args(1)
                         .env("LAZE_APPS"),
                 )
-                .arg(
-                    Arg::new("select")
-                        .help("extra modules to select/enable")
-                        .short('s')
-                        .long("select")
-                        .alias("enable")
-                        .env("LAZE_SELECT")
-                        .num_args(1..)
-                        .action(ArgAction::Append)
-                        .value_delimiter(','),
-                )
-                .arg(
-                    Arg::new("disable")
-                        .help("disable modules")
-                        .short('d')
-                        .long("disable")
-                        .env("LAZE_DISABLE")
-                        .num_args(1..)
-                        .action(ArgAction::Append)
-                        .value_delimiter(','),
-                )
-                .arg(
-                    Arg::new("define")
-                        .help("set/override variable")
-                        .short('D')
-                        .long("define")
-                        .env("LAZE_DEFINE")
-                        .num_args(1..)
-                        .action(ArgAction::Append)
-                        .value_delimiter(','),
-                ),
+                .arg(select())
+                .arg(disable())
+                .arg(define()),
         )
         .subcommand(
             Command::new("clean")
                 .about("clean current configuration")
-                .arg(
-                    Arg::new("build-dir")
-                        .short('B')
-                        .long("build-dir")
-                        .num_args(1)
-                        .value_name("DIR")
-                        .default_value("build")
-                        .env("LAZE_BUILD_DIR")
-                        .help("specify build dir (relative to project root)")
-                        .value_parser(clap::value_parser!(PathBuf)),
-                )
-                .arg(
-                    Arg::new("verbose")
-                        .short('v')
-                        .long("verbose")
-                        .help("be verbose (e.g., show command lines)")
-                        .action(ArgAction::Count),
-                )
+                .arg(build_dir())
+                .arg(verbose())
                 .arg(
                     Arg::new("unused")
                         .short('u')
