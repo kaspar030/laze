@@ -298,8 +298,8 @@ impl<'a: 'b, 'b> Build<'b> {
         build
     }
 
-    pub fn resolve_selects<'c>(
-        &'c self,
+    pub fn resolve_selects(
+        &self,
         disabled_modules: IndexSet<String>,
     ) -> Result<IndexMap<&String, &Module>, Error> {
         let mut resolver = Resolver::new(self, disabled_modules);

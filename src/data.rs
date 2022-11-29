@@ -71,7 +71,7 @@ struct YamlContext {
     var_options: Option<im::HashMap<String, MergeOption>>,
     tasks: Option<HashMap<String, Task>>,
     #[serde(skip)]
-    is_builder: bool,
+    _is_builder: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -110,7 +110,7 @@ struct YamlModule {
     #[serde(default = "default_as_false")]
     is_build_dep: bool,
     #[serde(skip)]
-    is_binary: bool,
+    _is_binary: bool,
 }
 
 impl YamlModule {
@@ -132,7 +132,7 @@ impl YamlModule {
             allowlist: None,
             download: None,
             is_build_dep: false,
-            is_binary,
+            _is_binary: is_binary,
         }
     }
 
@@ -143,7 +143,7 @@ impl YamlModule {
                 StringOrVecString::List(list) => list.iter().map(Some).collect_vec(),
             }
         } else {
-            return vec![None];
+            vec![None]
         }
     }
 }
@@ -183,14 +183,14 @@ pub fn dependency_from_string(dep_name: &String) -> Dependency<String> {
     }
 }
 
-pub fn dependency_from_string_if(dep_name: &String, other: &String) -> Dependency<String> {
+pub fn dependency_from_string_if(dep_name: &String, other: &str) -> Dependency<String> {
     match dep_name.as_bytes()[0] {
-        b'?' => Dependency::IfThenSoft(other.clone(), dep_name[1..].to_string()),
-        _ => Dependency::IfThenHard(other.clone(), dep_name.clone()),
+        b'?' => Dependency::IfThenSoft(other.to_string(), dep_name[1..].to_string()),
+        _ => Dependency::IfThenHard(other.to_string(), dep_name.clone()),
     }
 }
 
-fn load_all<'a>(file_include: &FileInclude, index_start: usize) -> Result<Vec<YamlFile>> {
+fn load_all(file_include: &FileInclude, index_start: usize) -> Result<Vec<YamlFile>> {
     let filename = &file_include.filename;
     let file = read_to_string(filename).with_context(|| format!("{:?}", filename))?;
 
@@ -276,8 +276,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         let new_index_end = yaml_datas.len();
 
         // iterate over newly added documents
-        for i in new_index_start..new_index_end {
-            let new = &yaml_datas[i];
+        for new in yaml_datas[new_index_start..new_index_end].iter() {
             if let Some(subdirs) = &new.subdirs {
                 let relpath = filename.parent().unwrap().to_path_buf();
 
@@ -409,7 +408,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         name: &Option<String>,
         context: Option<&String>,
         is_binary: bool,
-        filename: &PathBuf,
+        filename: &Path,
         import_root: &Option<ImportRoot>,
         defaults: Option<&Module>,
     ) -> Module {
@@ -438,7 +437,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         };
 
         module.is_binary = is_binary;
-        module.defined_in = Some(filename.clone());
+        module.defined_in = Some(filename.to_path_buf());
         module.relpath = Some(PathBuf::from(&relpath));
 
         module
@@ -448,7 +447,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         module: &YamlModule,
         context: Option<&String>,
         is_binary: bool,
-        filename: &PathBuf,
+        filename: &Path,
         import_root: &Option<ImportRoot>,
         defaults: Option<&Module>,
         build_dir: &Path,
@@ -523,7 +522,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         if let Some(provides) = &module.provides {
             if let Some(default_provides) = m.provides {
                 let mut provides = provides.clone();
-                let mut res = default_provides.clone();
+                let mut res = default_provides;
                 res.append(&mut provides);
                 m.provides = Some(res);
             } else {
@@ -563,7 +562,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                     StringOrMapString::Map(source) => {
                         // collect optional sources into sources_optional
                         for (k, v) in source {
-                            let list = sources_optional.entry(k).or_insert(Vec::new());
+                            let list: &mut Vec<String> = sources_optional.entry(k).or_default();
                             for entry in v {
                                 list.push(entry.clone());
                             }
@@ -580,7 +579,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
                 }
                 let m_sources_optional = m.sources_optional.as_mut().unwrap();
                 for (k, v) in sources_optional {
-                    let list = m_sources_optional.entry(k.clone()).or_insert(Vec::new());
+                    let list = m_sources_optional.entry(k.clone()).or_default();
                     for entry in v {
                         list.push(entry.clone());
                     }
@@ -656,7 +655,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
 
         if is_binary {
             m.env_global
-                .insert("appdir".into(), EnvKey::Single(relpath.clone()));
+                .insert("appdir".into(), EnvKey::Single(relpath));
         }
 
         Ok(m)

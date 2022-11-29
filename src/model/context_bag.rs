@@ -129,7 +129,7 @@ impl ContextBag {
                 None
             };
             let mut context = &mut self.contexts[n];
-            if let None = &context.var_options {
+            if context.var_options.is_none() {
                 context.var_options = combined_var_opts;
             }
         }
@@ -336,11 +336,7 @@ impl ContextBag {
                         Some(provides.clone())
                     }
                 } else {
-                    if let Some(parent_provides) = parent_provides {
-                        Some(parent_provides.clone())
-                    } else {
-                        None
-                    }
+                    parent_provides.as_ref().cloned()
                 }
             };
 

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use indexmap::{indexset, IndexMap, IndexSet};
 
@@ -234,11 +234,11 @@ impl Module {
 
     // adds a Ninja target name as build dependency for this target.
     // gets env expanded on module instantiation.
-    pub fn add_build_dep_file(&mut self, dep: &PathBuf) {
+    pub fn add_build_dep_file(&mut self, dep: &Path) {
         if let Some(build_dep_files) = &mut self.build_dep_files {
-            build_dep_files.insert(dep.clone());
+            build_dep_files.insert(dep.to_owned());
         } else {
-            self.build_dep_files = Some(indexset![dep.clone()]);
+            self.build_dep_files = Some(indexset![dep.to_owned()]);
         }
     }
 

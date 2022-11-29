@@ -46,10 +46,7 @@ pub enum GenerateMode {
 
 impl GenerateMode {
     pub fn is_local(&self) -> bool {
-        match self {
-            GenerateMode::Global => false,
-            _ => true,
-        }
+        !matches!(self, GenerateMode::Global)
     }
 }
 
@@ -314,18 +311,17 @@ fn configure_build(
         return Ok(None);
     }
 
-    match contexts.is_ancestor(binary.context_id.unwrap(), builder.index.unwrap(), 0) {
-        crate::model::IsAncestor::No => {
-            println!(
-                "app {}: builder {} is not an ancestor of {}",
-                binary.name,
-                builder.name,
-                contexts.context_by_id(binary.context_id.unwrap()).name,
-            );
-            return Ok(None);
-        }
-        _ => (),
-    };
+    if let crate::model::IsAncestor::No =
+        contexts.is_ancestor(binary.context_id.unwrap(), builder.index.unwrap(), 0)
+    {
+        println!(
+            "app {}: builder {} is not an ancestor of {}",
+            binary.name,
+            builder.name,
+            contexts.context_by_id(binary.context_id.unwrap()).name,
+        );
+        return Ok(None);
+    }
 
     println!("configuring {} for {}", binary.name, builder.name);
 
@@ -573,8 +569,7 @@ fn configure_build(
             //
             // ... becomes `echo foo && echo bar` as ninja build command.
             let build_cmd = &build.cmd.join(" && ");
-            let expanded =
-                nested_env::expand(&build_cmd, &flattened_env, IfMissing::Empty).unwrap();
+            let expanded = nested_env::expand(build_cmd, &flattened_env, IfMissing::Empty).unwrap();
 
             // create custom build ninja rule
             let rule = NinjaRuleBuilder::default()
@@ -610,7 +605,7 @@ fn configure_build(
                 outs.iter()
                     .map(|out| {
                         let out = Cow::from(PathBuf::from(
-                            nested_env::expand(&out, &flattened_env, IfMissing::Empty).unwrap(),
+                            nested_env::expand(out, &flattened_env, IfMissing::Empty).unwrap(),
                         ));
                         // TODO: check if this hashes the path or a Cow
                         out.hash(&mut hasher);
@@ -806,7 +801,7 @@ fn configure_build(
     )))
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Selector {
     All,
     Some(IndexSet<String>),

@@ -107,7 +107,7 @@ impl Import {
 
                         let embedded_file = Asset::get(&filename).unwrap();
                         let filename = filename.strip_prefix(&prefix).unwrap();
-                        let filename = path.join(&filename);
+                        let filename = path.join(filename);
                         let parent = path.parent().unwrap();
                         std::fs::create_dir_all(path.parent().unwrap())
                             .with_context(|| format!("creating {:?}", &parent))?;
@@ -129,9 +129,9 @@ impl Import {
         {
             Ok(laze_file)
         } else {
-            return Err(anyhow!(
+            Err(anyhow!(
                 "no \"laze-lib.yml\", \"laze.yml\" or \"laze-project.yml\" in import"
-            ));
+            ))
         }
     }
 

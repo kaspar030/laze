@@ -1,3 +1,5 @@
+#![allow(clippy::upper_case_acronyms)]
+
 use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;

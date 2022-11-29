@@ -47,8 +47,8 @@ use generate::{get_ninja_build_file, BuildInfo, GenerateMode, GeneratorBuilder, 
 use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
 
-fn determine_project_root(start: &PathBuf) -> Result<(PathBuf, PathBuf)> {
-    let mut cwd = start.clone();
+fn determine_project_root(start: &Path) -> Result<(PathBuf, PathBuf)> {
+    let mut cwd = start.to_owned();
 
     loop {
         let mut tmp = cwd.clone();
@@ -299,7 +299,7 @@ fn clap() -> clap::Command {
 }
 
 fn try_main() -> Result<i32> {
-    let mut signals = Signals::new(&[SIGINT])?;
+    let mut signals = Signals::new([SIGINT])?;
 
     thread::spawn(move || {
         for sig in signals.forever() {
@@ -353,7 +353,7 @@ fn try_main() -> Result<i32> {
 
             let partitioner = build_matches
                 .get_one::<task_partitioner::PartitionerBuilder>("partition")
-                .map_or(None, |v| Some(v.build()));
+                .map(|v| v.build());
 
             println!("laze: building {} for {}", &apps, &builders);
 
@@ -379,18 +379,14 @@ fn try_main() -> Result<i32> {
                 .select(select)
                 .disable(disable)
                 .cli_env(cli_env)
-                .partitioner(
-                    partitioner
-                        .as_ref()
-                        .map_or(None, |x| Some(format!("{:?}", x))),
-                )
+                .partitioner(partitioner.as_ref().map(|x| format!("{:?}", x)))
                 .build()
                 .unwrap();
 
             // arguments parsed, launch generation of ninja file(s)
             let builds = generator.execute(partitioner)?;
 
-            let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
+            let ninja_build_file = get_ninja_build_file(build_dir, &mode);
 
             if build_matches.get_flag("compile-commands") {
                 let mut compile_commands = project_root;
@@ -552,7 +548,7 @@ fn try_main() -> Result<i32> {
                 true => GenerateMode::Global,
                 false => GenerateMode::Local(start_relpath),
             };
-            let ninja_build_file = get_ninja_build_file(&build_dir, &mode);
+            let ninja_build_file = get_ninja_build_file(build_dir, &mode);
             let tool = match unused {
                 true => "cleandead",
                 false => "clean",
@@ -586,20 +582,14 @@ fn get_cli_vars(
 fn get_disables(build_matches: &clap::ArgMatches) -> Option<Vec<String>> {
     let disable = build_matches
         .get_many::<String>("disable")
-        .map_or(None, |vr| Some(vr.cloned().collect_vec()));
+        .map(|vr| vr.cloned().collect_vec());
     disable
 }
 
 fn get_selects(build_matches: &clap::ArgMatches) -> Option<Vec<Dependency<String>>> {
     let select = build_matches.get_many::<String>("select");
     // convert CLI --select strings to Vec<Dependency>
-    let select = select.map_or(None, |vr| {
-        Some(
-            vr.map(|dep_name| crate::data::dependency_from_string(&dep_name))
-                .collect_vec(),
-        )
-    });
-    select
+    select.map(|vr| vr.map(crate::data::dependency_from_string).collect_vec())
 }
 
 #[cfg(test)]

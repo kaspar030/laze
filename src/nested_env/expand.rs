@@ -4,7 +4,7 @@ use im::HashMap;
 use std::error;
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExpandError {
     Missing(String),
     Unclosed(usize),
@@ -69,7 +69,7 @@ where
 
     let mut escapes = false;
     while cursor < f.len() {
-        if let Some(start) = (&f[cursor..]).find("${") {
+        if let Some(start) = (f[cursor..]).find("${") {
             if start > 0 && (&f[cursor..])[start - 1..start] == *"\\" {
                 cursor += start + 1;
                 escapes = true;
@@ -77,7 +77,7 @@ where
             }
             let start = start + cursor;
             cursor = start;
-            if let Some(end) = (&f[cursor..]).find('}') {
+            if let Some(end) = (f[cursor..]).find('}') {
                 let end = end + cursor;
                 replaces.push((
                     // The extracted key
