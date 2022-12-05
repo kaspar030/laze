@@ -1,0 +1,21 @@
+builders:
+  - name: single_builder
+    rules:
+        - name: CC
+          in: 'c'
+          out: 'o'
+          cmd: 'cat ${in} > ${out}'
+          pool: console
+        - name: LINK
+          in: 'o'
+          rspfile: $out.rsp
+          rspfile_content: $in
+          cmd: 'cat $$(cat ${out}.rsp) > ${out}'
+
+    env:
+      bindir: build/${builder}/${app}
+
+apps:
+  - name: single_app
+    sources:
+      - single_app.c
