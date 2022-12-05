@@ -1,0 +1,21 @@
+builddir = build
+build ALWAYS: phony
+rule CC_7950216292150676175
+  command = cat ${in} > ${out}
+  description = CC
+  pool = console
+
+build build/objects/single_app.8352856137977294963.o: $
+    CC_7950216292150676175 $
+    single_app.c
+
+rule LINK_7531752039969474517
+  command = cat $$(cat ${out}.rsp) > ${out}
+  description = LINK
+  rspfile = $out.rsp
+  rspfile_content = $in
+
+build build/single_builder/single_app/single_app.elf: $
+    LINK_7531752039969474517 $
+    build/objects/single_app.8352856137977294963.o
+
