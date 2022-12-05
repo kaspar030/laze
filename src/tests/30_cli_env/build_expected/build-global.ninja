@@ -1,0 +1,18 @@
+builddir = build
+build ALWAYS: phony
+rule CC_13286071794120857754
+  command = echo ${in} VAR1=var1 VAR2=foo bar VAR3=var3 > ${out}
+  description = CC
+
+build build/objects/single_app.2717376738593431901.o: $
+    CC_13286071794120857754 $
+    single_app.c
+
+rule LINK_5506617845631750009
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build/single_builder/single_app/single_app.elf: $
+    LINK_5506617845631750009 $
+    build/objects/single_app.2717376738593431901.o
+
