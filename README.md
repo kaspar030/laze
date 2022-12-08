@@ -12,7 +12,7 @@ Aspires to be the next goto-alternative to make.
 
 # Installation
 
-Install the ninja build tool using your distro's package manage, then install
+Install the ninja build tool using your distro's package manager, then install
 laze using cargo:
 
     $ cargo install laze
