@@ -4,6 +4,9 @@
 [![Packaging status](https://repology.org/badge/tiny-repos/laze.svg)](https://repology.org/project/laze/versions)
 [![latest packaged version(s)](https://repology.org/badge/latest-versions/laze.svg)](https://repology.org/project/laze/versions)
 
+
+<img src="./book/images/logo_col_bg.svg">
+
 # Introduction
 
 Welcome to laze, a ninja build file generator.
