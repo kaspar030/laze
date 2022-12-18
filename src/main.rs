@@ -115,7 +115,24 @@ fn try_main() -> Result<i32> {
         }
     });
 
-    let matches = clap().get_matches();
+    let matches = cli::clap().get_matches();
+
+    // handle completion subcommand here, so the project specific
+    // stuff is skipped
+    if let Some(("completion", matches)) = matches.subcommand() {
+        fn print_completions<G: clap_complete::Generator>(gen: G, cmd: &mut clap::Command) {
+            clap_complete::generate(gen, cmd, cmd.get_name().to_string(), &mut std::io::stdout());
+        }
+        if let Some(generator) = matches
+            .get_one::<clap_complete::Shell>("generator")
+            .copied()
+        {
+            let mut cmd = cli::clap();
+            eprintln!("Generating completion file for {}...", generator);
+            print_completions(generator, &mut cmd);
+        }
+        return Ok(0);
+    }
 
     if let Some(dir) = matches.get_one::<PathBuf>("chdir") {
         env::set_current_dir(dir)
@@ -402,6 +419,6 @@ fn get_selects(build_matches: &clap::ArgMatches) -> Option<Vec<Dependency<String
 mod test {
     #[test]
     fn test_clap() {
-        crate::clap().debug_assert();
+        crate::cli::clap().debug_assert();
     }
 }
