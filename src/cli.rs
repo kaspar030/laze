@@ -207,4 +207,16 @@ pub fn clap() -> clap::Command {
                 )
                 .hide(true),
         )
+        .subcommand(
+            Command::new("manpages")
+                .about("Generate laze manpages.")
+                .arg(
+                    Arg::new("outdir")
+                        .help("directory in which to create manpage files")
+                        .value_parser(value_parser!(PathBuf))
+                        .value_hint(ValueHint::DirPath)
+                        .required(true),
+                )
+                .hide(true),
+        )
 }

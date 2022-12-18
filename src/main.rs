@@ -119,19 +119,54 @@ fn try_main() -> Result<i32> {
 
     // handle completion subcommand here, so the project specific
     // stuff is skipped
-    if let Some(("completion", matches)) = matches.subcommand() {
-        fn print_completions<G: clap_complete::Generator>(gen: G, cmd: &mut clap::Command) {
-            clap_complete::generate(gen, cmd, cmd.get_name().to_string(), &mut std::io::stdout());
+    match matches.subcommand() {
+        Some(("completion", matches)) => {
+            fn print_completions<G: clap_complete::Generator>(gen: G, cmd: &mut clap::Command) {
+                clap_complete::generate(
+                    gen,
+                    cmd,
+                    cmd.get_name().to_string(),
+                    &mut std::io::stdout(),
+                );
+            }
+            if let Some(generator) = matches
+                .get_one::<clap_complete::Shell>("generator")
+                .copied()
+            {
+                let mut cmd = cli::clap();
+                eprintln!("Generating completion file for {}...", generator);
+                print_completions(generator, &mut cmd);
+            }
+            return Ok(0);
         }
-        if let Some(generator) = matches
-            .get_one::<clap_complete::Shell>("generator")
-            .copied()
-        {
-            let mut cmd = cli::clap();
-            eprintln!("Generating completion file for {}...", generator);
-            print_completions(generator, &mut cmd);
+        Some(("manpages", matches)) => {
+            fn create_manpage(cmd: clap::Command, outfile: &Path) -> Result<(), Error> {
+                let man = clap_mangen::Man::new(cmd);
+                let mut buffer: Vec<u8> = Default::default();
+                man.render(&mut buffer)?;
+
+                std::fs::write(outfile, buffer)?;
+                Ok(())
+            }
+            let mut outpath: PathBuf = matches.get_one::<PathBuf>("outdir").unwrap().clone();
+            let cmd = cli::clap();
+
+            outpath.push("laze.1");
+            create_manpage(cmd.clone(), &outpath)?;
+
+            for subcommand in cmd.get_subcommands() {
+                if subcommand.is_hide_set() {
+                    continue;
+                }
+                let name = subcommand.get_name();
+                outpath.pop();
+                outpath.push(format!("laze-{}.1", name));
+                create_manpage(subcommand.clone(), &outpath)?;
+            }
+
+            return Ok(0);
         }
-        return Ok(0);
+        _ => (),
     }
 
     if let Some(dir) = matches.get_one::<PathBuf>("chdir") {
