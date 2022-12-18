@@ -198,8 +198,10 @@ pub fn clap() -> clap::Command {
         )
         .subcommand(
             Command::new("completion")
+                .about("Generate laze shell completions.")
                 .arg(
                     Arg::new("generator")
+                        .help("shell to generate completions for")
                         .long("generate")
                         .value_parser(value_parser!(clap_complete::Shell)),
                 )
