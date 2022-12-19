@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - cli: implement partitioning
+- cli: experimental: add (hidden) commands to create shell completions and man
+       pages
 
 ## [0.1.10]
 
