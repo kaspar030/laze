@@ -35,7 +35,7 @@ solvent = { version = "0.8.3", features = ["deterministic"] }
 url = "2.3.1"
 rust-embed = "6.4.2"
 task_partitioner = "0.1.1"
-clap_complete = "4.0.6"
+clap_complete = "4.0.7"
 clap_mangen = "0.2.6"
 
 
