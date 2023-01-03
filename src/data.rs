@@ -109,6 +109,8 @@ struct YamlModule {
     srcdir: Option<PathBuf>,
     #[serde(default = "default_as_false")]
     is_build_dep: bool,
+    #[serde(default = "default_as_false")]
+    is_global_build_dep: bool,
     #[serde(skip)]
     _is_binary: bool,
 }
@@ -132,6 +134,7 @@ impl YamlModule {
             allowlist: None,
             download: None,
             is_build_dep: false,
+            is_global_build_dep: false,
             _is_binary: is_binary,
         }
     }
@@ -621,6 +624,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         };
 
         m.build = module.build.clone();
+        m.is_global_build_dep = module.is_global_build_dep;
 
         if m.download.is_none() {
             // if a module has downloaded source, it is already a build dependency

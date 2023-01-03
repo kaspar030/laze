@@ -41,6 +41,7 @@ pub struct Module {
     pub srcdir: Option<PathBuf>,
     pub build_dep_files: Option<IndexSet<PathBuf>>,
     pub is_build_dep: bool,
+    pub is_global_build_dep: bool,
     pub is_binary: bool,
 }
 
@@ -69,6 +70,7 @@ impl Module {
             srcdir: None,
             build_dep_files: None,
             is_build_dep: false,
+            is_global_build_dep: false,
             blocklist: None,
             allowlist: None,
             download: None,
@@ -102,6 +104,7 @@ impl Module {
             srcdir: defaults.srcdir.clone(),
             build_dep_files: None,
             is_build_dep: false,
+            is_global_build_dep: defaults.is_global_build_dep,
         }
     }
 

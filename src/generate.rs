@@ -418,29 +418,61 @@ fn configure_build(
     // set containing ninja build or rule blocks
     let mut ninja_entries = IndexSet::new();
 
-    // iterate modules once, building both the module's env including imports,
+    // list of global build dependencies
+    let mut global_build_deps: IndexSet<&Module> = IndexSet::new();
+
+    // iterate modules, building both the module's env including imports,
     // and the list of imports that are build dependencies
     let modules: IndexMap<&String, _> = modules
         .iter()
+        .map(|(module_name, module)| {
+            // insert all global build deps into `global_build_deps`
+            if module.is_global_build_dep {
+                global_build_deps.insert(module);
+            }
+            (module_name, module)
+        })
         .map(|(module_name, module)| {
             let (module_env, module_build_deps) = module.build_env(&global_env, &modules);
             (*module_name, (*module, module_env, module_build_deps))
         })
         .collect();
 
-    // generate build order dependencies
+    // generate build *order* dependencies
+    // for this, a DepGraph is used, with a "root" node from which the build
+    // order dependency tree will traverse.
+    // This tree is later used to create a build order sequence. That way,
+    // modules can pass dynamic file dependencies (e.g., containing rule hashes)
+    // to dependees.
     let mut build_dep_graph: DepGraph<&String> = DepGraph::new();
+    // this is the "root" node
     let build_dep_graph_rootnode = String::from("");
+    // this is a leaf that depends on all "global build dependencies".
+    // all other nodes but root and the global build dependencies depend on this.
+    let global_build_dep_node = String::from("_global_build_deps");
 
-    for (module_name, (_, _, module_build_deps)) in modules.iter() {
+    let have_global_build_deps = !global_build_deps.is_empty();
+    if have_global_build_deps {
+        for dep in global_build_deps.clone() {
+            build_dep_graph.register_dependency(&global_build_dep_node, &dep.name);
+        }
+    }
+
+    for (module_name, (module, _, module_build_deps)) in modules.iter() {
         if let Some(module_build_deps) = module_build_deps {
             for dep in module_build_deps {
                 build_dep_graph.register_dependency(*module_name, &dep.name);
             }
         }
+        // the "root node" depends on all modules
         build_dep_graph.register_dependency(&build_dep_graph_rootnode, *module_name);
+        // all modules that are *not* global build dependencies depend on those
+        if !module.is_global_build_dep {
+            build_dep_graph.register_dependency(*module_name, &global_build_dep_node);
+        }
     }
 
+    // create build order sequence
     let mut modules_in_build_order = Vec::new();
     for node in build_dep_graph
         .dependencies_of(&&build_dep_graph_rootnode)
@@ -448,7 +480,7 @@ fn configure_build(
     {
         match node {
             Ok(dep_name) => {
-                if *dep_name != &build_dep_graph_rootnode {
+                if *dep_name != &build_dep_graph_rootnode && *dep_name != &global_build_dep_node {
                     modules_in_build_order.push(modules.get(dep_name).unwrap());
                 }
             }
@@ -493,6 +525,18 @@ fn configure_build(
                 }
             }
         }
+
+        // handle global possible global build deps
+        let module_build_deps = if have_global_build_deps && !module.is_global_build_dep {
+            let mut result = global_build_deps.clone();
+            if let Some(module_build_deps) = module_build_deps {
+                result.extend(module_build_deps);
+            }
+            Some(result)
+        } else {
+            // TODO: (opt) get rid of this clone
+            module_build_deps.clone()
+        };
 
         // collect exported build_dep_files from dependencies
         let imported_build_deps = {
