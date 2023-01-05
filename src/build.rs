@@ -20,6 +20,11 @@ struct Resolver<'a> {
     provided_by: IndexMap<&'a String, Vec<&'a Module>>,
 }
 
+pub struct ResolverResult<'a> {
+    pub modules: IndexMap<&'a String, &'a Module>,
+    pub providers: IndexMap<&'a String, Vec<&'a Module>>,
+}
+
 #[derive(Debug)]
 struct ResolverState {
     module_set_prev_len: usize,
@@ -56,8 +61,11 @@ impl<'a> Resolver<'a> {
         self.provided_by.truncate(state.provided_prev_len)
     }
 
-    fn result(self) -> IndexMap<&'a String, &'a Module> {
-        self.module_set
+    fn result(self) -> ResolverResult<'a> {
+        ResolverResult {
+            modules: self.module_set,
+            providers: self.provided_by,
+        }
     }
 
     fn resolve_module_name_deep(&mut self, module_name: &String) -> Result<(), Error> {
@@ -311,7 +319,7 @@ impl<'a: 'b, 'b> Build<'b> {
     pub fn resolve_selects(
         &self,
         disabled_modules: IndexSet<String>,
-    ) -> Result<IndexMap<&String, &Module>, Error> {
+    ) -> Result<ResolverResult, Error> {
         let mut resolver = Resolver::new(self, disabled_modules);
 
         resolver

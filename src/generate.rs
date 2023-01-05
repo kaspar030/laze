@@ -344,13 +344,15 @@ fn configure_build(
 
     // resolve all dependency names to specific modules.
     // this also determines if all dependencies are met
-    let modules = match build.resolve_selects(disabled_modules) {
+    let resolved = match build.resolve_selects(disabled_modules) {
         Err(e) => {
             println!("laze: not building {:?}", e);
             return Ok(None);
         }
         Ok(val) => val,
     };
+
+    let modules = resolved.modules;
 
     // collect build context rules
     let mut rules = IndexMap::new();
