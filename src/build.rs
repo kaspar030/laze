@@ -17,7 +17,7 @@ struct Resolver<'a> {
     module_set: IndexMap<&'a String, &'a Module>,
     if_then_deps: IndexMap<String, Vec<Dependency<String>>>,
     disabled_modules: IndexSet<String>,
-    provided_set: IndexSet<String>,
+    provided_by: IndexMap<&'a String, Vec<&'a Module>>,
 }
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ struct ResolverState {
     module_set_prev_len: usize,
     if_then_deps_prev_len: usize,
     disabled_modules_prev_len: usize,
-    provided_set_prev_len: usize,
+    provided_prev_len: usize,
 }
 
 impl<'a> Resolver<'a> {
@@ -34,7 +34,7 @@ impl<'a> Resolver<'a> {
             build,
             module_set: IndexMap::new(),
             if_then_deps: IndexMap::new(),
-            provided_set: IndexSet::new(),
+            provided_by: IndexMap::new(),
             disabled_modules,
         }
     }
@@ -44,7 +44,7 @@ impl<'a> Resolver<'a> {
             module_set_prev_len: self.module_set.len(),
             if_then_deps_prev_len: self.if_then_deps.len(),
             disabled_modules_prev_len: self.disabled_modules.len(),
-            provided_set_prev_len: self.provided_set.len(),
+            provided_prev_len: self.provided_by.len(),
         }
     }
 
@@ -53,7 +53,7 @@ impl<'a> Resolver<'a> {
         self.if_then_deps.truncate(state.if_then_deps_prev_len);
         self.disabled_modules
             .truncate(state.disabled_modules_prev_len);
-        self.provided_set.truncate(state.provided_set_prev_len)
+        self.provided_by.truncate(state.provided_prev_len)
     }
 
     fn result(self) -> IndexMap<&'a String, &'a Module> {
@@ -89,7 +89,7 @@ impl<'a> Resolver<'a> {
                     self.reset(state);
                     return Err(anyhow!("\"{}\" conflicts \"{}\"", module.name, conflicted));
                 }
-                if self.provided_set.contains(conflicted) {
+                if self.provided_by.contains_key(conflicted) {
                     self.reset(state);
                     return Err(anyhow!(
                         "\"{}\" conflicts already provided \"{}\"",
@@ -117,10 +117,12 @@ impl<'a> Resolver<'a> {
             self.disabled_modules.extend(conflicts.iter().cloned());
         }
 
-        // all provided modules get added to the "provided set", so later
+        // all provided modules get added to the "provided_by" map, so later
         // dependees of one of those get informed.
         if let Some(provides) = &module.provides {
-            self.provided_set.extend(provides.iter().cloned());
+            for name in provides {
+                self.add_provided_by(name, module);
+            }
         }
 
         // if self.provided_set.contains(dep_name) {
@@ -174,7 +176,8 @@ impl<'a> Resolver<'a> {
                 if let Some(providing_modules) = provides.get(dep_name) {
                     if self.resolve_module_list(providing_modules, dep_name) > 0 {
                         optional = true;
-                        self.provided_set.insert(dep_name.clone());
+                        // resolve_module_deep should handle this:
+                        //self.provided_set.insert(dep_name.clone());
                         if self.disabled_modules.contains(dep_name) {
                             // one provider conflicted the dependency name,
                             // we'll need to skip the possible exact matching
@@ -198,6 +201,13 @@ impl<'a> Resolver<'a> {
             }
         }
         Ok(())
+    }
+
+    fn add_provided_by(&mut self, name: &'a String, module: &'a Module) {
+        self.provided_by
+            .entry(name)
+            .or_insert_with(Vec::new)
+            .push(module);
     }
 
     fn resolve_module_list(
