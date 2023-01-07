@@ -352,8 +352,6 @@ fn configure_build(
         Ok(val) => val,
     };
 
-    let modules = resolved.modules;
-
     // collect build context rules
     let mut rules = IndexMap::new();
     let rules = build.build_context.collect_rules(contexts, &mut rules);
@@ -367,7 +365,7 @@ fn configure_build(
     // modules contains the dependencies in order (a->b, b->c => a,b,c)
     // we want modules to override or append to env vars deeper in the tree,
     // so iterate in reverse order, merging higher envs onto the deeper ones.
-    for (_, module) in modules.iter().rev() {
+    for (_, module) in resolved.modules.iter().rev() {
         global_env = nested_env::merge(global_env, module.env_global.clone());
     }
 
@@ -394,7 +392,15 @@ fn configure_build(
     // insert list of actually used modules
     global_env.insert(
         "modules".into(),
-        EnvKey::List(modules.keys().cloned().cloned().sorted().collect::<_>()),
+        EnvKey::List(
+            resolved
+                .modules
+                .keys()
+                .cloned()
+                .cloned()
+                .sorted()
+                .collect::<_>(),
+        ),
     );
 
     // if provided, merge CLI env overrides
@@ -425,7 +431,8 @@ fn configure_build(
 
     // iterate modules, building both the module's env including imports,
     // and the list of imports that are build dependencies
-    let modules: IndexMap<&String, _> = modules
+    let modules: IndexMap<&String, _> = resolved
+        .modules
         .iter()
         .map(|(module_name, module)| {
             // insert all global build deps into `global_build_deps`
@@ -435,7 +442,7 @@ fn configure_build(
             (module_name, module)
         })
         .map(|(module_name, module)| {
-            let (module_env, module_build_deps) = module.build_env(&global_env, &modules);
+            let (module_env, module_build_deps) = module.build_env(&global_env, &resolved);
             (*module_name, (*module, module_env, module_build_deps))
         })
         .collect();

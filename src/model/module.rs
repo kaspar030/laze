@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 use indexmap::{indexset, IndexMap, IndexSet};
 
+use crate::build::ResolverResult;
 use crate::download;
 use crate::nested_env;
 use crate::nested_env::Env;
@@ -112,11 +113,15 @@ impl Module {
     //    contexts.context_is_in(self.context_id.unwrap(), context.index.unwrap())
     //}
     //
-    fn get_imports_recursive<'a>(
+    fn get_imports_recursive<'a, 'b>(
         &'a self,
-        modules: &IndexMap<&String, &'a Module>,
-        seen: Option<&mut HashSet<&'a String>>,
-    ) -> Vec<&'a Module> {
+        modules: &IndexMap<&'a String, &'a Module>,
+        providers: &IndexMap<&'a String, Vec<&'a Module>>,
+        seen: Option<&mut HashSet<&'b String>>,
+    ) -> Vec<&'a Module>
+    where
+        'a: 'b,
+    {
         let mut result = Vec::new();
 
         let mut newseen = HashSet::new();
@@ -151,9 +156,20 @@ impl Module {
                 }
             };
 
+            // this recurses into the dependency
             if let Some(other_module) = modules.get(&dep_name) {
-                let mut other_deps = other_module.get_imports_recursive(modules, Some(seen));
+                let mut other_deps =
+                    other_module.get_imports_recursive(modules, providers, Some(seen));
                 result.append(&mut other_deps);
+            }
+
+            // this recurses into all modules that "provide" this dependency
+            if let Some(providing_modules) = providers.get(&dep_name) {
+                for provider in providing_modules {
+                    let mut provider_deps =
+                        provider.get_imports_recursive(modules, providers, Some(seen));
+                    result.append(&mut provider_deps);
+                }
             }
         }
 
@@ -165,8 +181,11 @@ impl Module {
     pub fn build_env<'a>(
         &'a self,
         global_env: &Env,
-        modules: &IndexMap<&String, &'a Module>,
+        resolver_result: &'a ResolverResult,
     ) -> (Env, Option<IndexSet<&'a Module>>) {
+        let modules = &resolver_result.modules;
+        let providers = &resolver_result.providers;
+
         /* start with the global env env */
         let mut module_env = global_env.clone();
 
@@ -174,7 +193,7 @@ impl Module {
         let mut build_dep_modules = None;
 
         /* from each (recursive) import ... */
-        let deps = self.get_imports_recursive(modules, None);
+        let deps = self.get_imports_recursive(modules, providers, None);
 
         for dep in &deps {
             /* merge that dependency's exported env */
