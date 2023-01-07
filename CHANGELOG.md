@@ -5,9 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [0.1.12]
 
-## [0.1.10]
+### Added
+
+- modules: add "is_global_build_dep"
+
+### Fixed
+
+- exports from "provided" dependencies are now properly imported
+
+### Dependencies
+
+- bump anyhow from 1.0.66 to 1.0.68
+- bump clap from 4.0.29 to 4.0.32
+- bump clap_complete from 4.0.6 to 4.0.7
+- bump clap_mangen from 0.2.5 to 0.2.6
+- bump serde from 1.0.150 to 1.0.152
+- bump serde_yaml from 0.9.14 to 0.9.16
+
+## [0.1.11]
 
 ### Added
 
@@ -101,7 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.1] - 2021-01-07
 
-[unreleased]: https://github.com/kaspar030/laze/compare/0.1.11...HEAD
+[0.1.12]: https://github.com/kaspar030/laze/compare/0.1.11...0.1.12
 [0.1.11]: https://github.com/kaspar030/laze/compare/0.1.10...0.1.11
 [0.1.10]: https://github.com/kaspar030/laze/compare/0.1.9...0.1.10
 [0.1.9]: https://github.com/kaspar030/laze/compare/0.1.8...0.1.9
