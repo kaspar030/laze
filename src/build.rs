@@ -133,10 +133,6 @@ impl<'a> Resolver<'a> {
             }
         }
 
-        // if self.provided_set.contains(dep_name) {
-        //     optional = true;
-        // }
-
         self.module_set.insert(&module.name, module);
 
         // late if_then_deps are dependencies that are induced by if_then_deps of
@@ -184,8 +180,6 @@ impl<'a> Resolver<'a> {
                 if let Some(providing_modules) = provides.get(dep_name) {
                     if self.resolve_module_list(providing_modules, dep_name) > 0 {
                         optional = true;
-                        // resolve_module_deep should handle this:
-                        //self.provided_set.insert(dep_name.clone());
                         if self.disabled_modules.contains(dep_name) {
                             // one provider conflicted the dependency name,
                             // we'll need to skip the possible exact matching
