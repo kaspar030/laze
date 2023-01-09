@@ -434,12 +434,11 @@ fn configure_build(
     let modules: IndexMap<&String, _> = resolved
         .modules
         .iter()
-        .map(|(module_name, module)| {
+        .inspect(|(_, module)| {
             // insert all global build deps into `global_build_deps`
             if module.is_global_build_dep {
                 global_build_deps.insert(module);
             }
-            (module_name, module)
         })
         .map(|(module_name, module)| {
             let (module_env, module_build_deps) = module.build_env(&global_env, &resolved);
