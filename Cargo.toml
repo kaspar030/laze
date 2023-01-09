@@ -6,7 +6,7 @@ edition = "2021"
 
 description = "A declarative build system for C projects aiming to be simple, fast and correct"
 repository = "https://github.com/kaspar030/laze"
-homepage = "https://github.com/kaspar030/laze"
+homepage = "https://laze-build.org"
 license = "Apache-2.0"
 readme = "README.md"
 include = ["src/**/*", "LICENSE", "README.md", "CHANGELOG.md", "!**/tests/**/*", "assets/**/*"]
