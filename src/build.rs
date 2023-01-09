@@ -61,7 +61,16 @@ impl<'a> Resolver<'a> {
         self.provided_by.truncate(state.provided_prev_len)
     }
 
-    fn result(self) -> ResolverResult<'a> {
+    fn result(mut self) -> ResolverResult<'a> {
+        // Resolver's state `reset()` works index based (it can truncate indexes
+        // to a previous lower index), but `add_provided_by()` adds to the values
+        // of even lower indexes.
+        // Here, we fix up those so only actually selected modules end up in the
+        // "provided_by" lists.
+        self.provided_by.retain(|_, list| {
+            list.retain(|module| self.module_set.contains_key(&module.name));
+            !list.is_empty()
+        });
         ResolverResult {
             modules: self.module_set,
             providers: self.provided_by,

@@ -166,6 +166,7 @@ impl Module {
             // this recurses into all modules that "provide" this dependency
             if let Some(providing_modules) = providers.get(&dep_name) {
                 for provider in providing_modules {
+                    debug_assert!(modules.contains_key(&provider.name));
                     let mut provider_deps =
                         provider.get_imports_recursive(modules, providers, Some(seen));
                     result.append(&mut provider_deps);
