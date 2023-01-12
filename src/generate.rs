@@ -506,8 +506,11 @@ fn configure_build(
 
     // now handle each module
     for (module, module_env, module_build_deps) in modules_in_build_order.iter() {
+        // finalize this module's environment
+        let flattened_env = nested_env::flatten_with_opts_option(module_env, merge_opts.as_ref());
+
         // handle possible remote sources
-        let download_rules = download::handle_module(module, &build_dir, rules)?;
+        let download_rules = download::handle_module(module, &build_dir, rules, &flattened_env)?;
 
         if let Some(mut download_rules) = download_rules {
             ninja_entries.extend(download_rules.drain(..));
@@ -519,7 +522,6 @@ fn configure_build(
         // This is populated in data.rs, so unwrap() always succeeds.
         let srcdir = module.srcdir.as_ref().unwrap();
 
-        let flattened_env = nested_env::flatten_with_opts_option(module_env, merge_opts.as_ref());
         //println!("{:#?}", builder.var_options);
 
         // add optional sources, if needed
