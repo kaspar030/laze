@@ -96,6 +96,7 @@ struct YamlModule {
     selects: Option<Vec<String>>,
     uses: Option<Vec<String>>,
     provides: Option<Vec<String>>,
+    provides_unique: Option<Vec<String>>,
     #[serde(alias = "disables")]
     conflicts: Option<Vec<String>>,
     #[serde(default = "default_as_false")]
@@ -124,6 +125,7 @@ impl YamlModule {
             selects: None,
             uses: None,
             provides: None,
+            provides_unique: None,
             conflicts: None,
             notify_all: false,
             sources: None,
@@ -514,12 +516,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         }
 
         if let Some(conflicts) = &module.conflicts {
-            if m.conflicts.is_none() {
-                m.conflicts = Some(Vec::new());
-            }
-            for dep_name in conflicts {
-                m.conflicts.as_mut().unwrap().push(dep_name.clone());
-            }
+            add_conflicts(&mut m, conflicts);
         }
 
         if let Some(provides) = &module.provides {
@@ -531,6 +528,20 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
             } else {
                 m.provides = Some(provides.clone());
             }
+        }
+
+        if let Some(provides_unique) = &module.provides_unique {
+            // a "uniquely provided module" requires to be the only provider
+            // for that module. think `provides_unique: [ libc ]`.
+            // practically, it means adding to both "provides" and "conflicts"
+            add_conflicts(&mut m, provides_unique);
+            if m.provides.is_none() {
+                m.provides = Some(Vec::new());
+            }
+            m.provides
+                .as_mut()
+                .unwrap()
+                .append(&mut provides_unique.clone());
         }
 
         if module.notify_all {
@@ -828,4 +839,13 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
     );
 
     Ok((contexts, treestate))
+}
+
+fn add_conflicts(m: &mut Module, conflicts: &Vec<String>) {
+    if m.conflicts.is_none() {
+        m.conflicts = Some(Vec::new());
+    }
+    for dep_name in conflicts {
+        m.conflicts.as_mut().unwrap().push(dep_name.clone());
+    }
 }
