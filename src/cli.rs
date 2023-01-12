@@ -32,7 +32,6 @@ pub fn clap() -> clap::Command {
             .long("select")
             .alias("enable")
             .env("LAZE_SELECT")
-            .num_args(1..)
             .action(ArgAction::Append)
             .value_delimiter(',')
     }
@@ -43,7 +42,6 @@ pub fn clap() -> clap::Command {
             .short('d')
             .long("disable")
             .env("LAZE_DISABLE")
-            .num_args(1..)
             .action(ArgAction::Append)
             .value_delimiter(',')
     }
@@ -54,7 +52,6 @@ pub fn clap() -> clap::Command {
             .short('D')
             .long("define")
             .env("LAZE_DEFINE")
-            .num_args(1..)
             .action(ArgAction::Append)
             .value_delimiter(',')
     }
@@ -131,7 +128,6 @@ pub fn clap() -> clap::Command {
                         .long("builders")
                         .help("builders to configure")
                         .env("LAZE_BUILDERS")
-                        .num_args(1..)
                         .action(ArgAction::Append)
                         .value_delimiter(','),
                 )
@@ -141,7 +137,6 @@ pub fn clap() -> clap::Command {
                         .long("apps")
                         .help("apps to configure")
                         .env("LAZE_APPS")
-                        .num_args(1..)
                         .action(ArgAction::Append)
                         .value_delimiter(','),
                 )
