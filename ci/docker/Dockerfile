@@ -21,12 +21,14 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN if test -z "$(command -v cargo)"; then apt-get update && apt-get -y install build-essential curl ; fi
 RUN if test -z "$(command -v cargo)"; then curl https://sh.rustup.rs -sSf | sh -s -- -y ; fi
 
-# override this to e.g., "--git https://github.com/kaspar030/laze --rev foo"
-ARG LAZE_SOURCE=laze
-RUN cargo install ${LAZE_SOURCE}
-
 # this works on both debian and ubuntu
 ENV PATH="/root/.cargo/bin:${PATH}"
+
+# override this to e.g., "--git https://github.com/kaspar030/laze --rev foo"
+ARG LAZE_SOURCE=laze
+
+# build laze
+RUN cargo install ${LAZE_SOURCE}
 RUN cp $(command -v laze) /
 
 FROM scratch
