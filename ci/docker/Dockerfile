@@ -18,7 +18,8 @@ LABEL maintainer="Kaspar Schleiser <kaspar@schleiser.de>"
 ENV DEBIAN_FRONTEND noninteractive
 
 # install rust if not available.
-RUN if test -z "$(command -v cargo)"; then apt-get update && apt-get -y install cargo && rustup update ; fi
+RUN if test -z "$(command -v cargo)"; then apt-get update && apt-get -y install build-essential curl ; fi
+RUN if test -z "$(command -v cargo)"; then curl https://sh.rustup.rs -sSf | sh -s -- -y ; fi
 
 # override this to e.g., "--git https://github.com/kaspar030/laze --rev foo"
 ARG LAZE_SOURCE=laze
