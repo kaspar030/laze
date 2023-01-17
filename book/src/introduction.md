@@ -42,7 +42,7 @@ The resulting executable ends up in `build/out/host/hello/hello.elf`.
 
 Alternatively,
 
-    laze task run
+    laze build run
 
 Would run the executable, (re-)building it if necessary.
 

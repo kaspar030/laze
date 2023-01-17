@@ -5,6 +5,6 @@
 cleanup
 build
 
-${LAZE} task run | tail -n 1 | grep -s "^Hello Laze!$" && echo TEST_OK
+${LAZE} build run | tail -n 1 | grep -s "^Hello Laze!$" && echo TEST_OK
 
 cleanup

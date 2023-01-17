@@ -104,6 +104,8 @@ pub fn clap() -> clap::Command {
         .subcommand(
             Command::new("build")
                 .about("generate build files and build")
+                .allow_external_subcommands(true)
+                .override_usage("laze build [OPTIONS] [<TASK> [ARGS]...]")
                 .arg(verbose())
                 .arg(build_dir())
                 .arg(
@@ -144,37 +146,6 @@ pub fn clap() -> clap::Command {
                 .arg(disable())
                 .arg(define())
                 .arg(partition()),
-        )
-        .subcommand(
-            Command::new("task")
-                .about("run builder specific task")
-                .override_usage("laze task [FLAGS] [OPTIONS] <TASK> [ARGS]...")
-                .allow_external_subcommands(true)
-                .subcommand_required(true)
-                .arg(build_dir())
-                .arg(verbose())
-                .arg(jobs())
-                .arg(
-                    Arg::new("builder")
-                        .short('b')
-                        .long("builder")
-                        .help("builder to run task for")
-                        .required(false)
-                        .num_args(1)
-                        .env("LAZE_BUILDERS"),
-                )
-                .arg(
-                    Arg::new("app")
-                        .short('a')
-                        .long("app")
-                        .help("application target to run task for")
-                        .required(false)
-                        .num_args(1)
-                        .env("LAZE_APPS"),
-                )
-                .arg(select())
-                .arg(disable())
-                .arg(define()),
         )
         .subcommand(
             Command::new("clean")

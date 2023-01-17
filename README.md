@@ -23,7 +23,7 @@ laze using cargo:
 
 # Getting started
 
-    $ laze -C examples/hello-world task run
+    $ laze -C examples/hello-world build run
 
 
 # Documentation

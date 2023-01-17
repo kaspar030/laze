@@ -13,7 +13,6 @@ extern crate pathdiff;
 use core::sync::atomic::AtomicBool;
 
 use std::env;
-use std::iter;
 use std::os::unix::prelude::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::str;
@@ -247,7 +246,7 @@ fn try_main() -> Result<i32> {
             let ninja_build_file = get_ninja_build_file(build_dir, &mode);
 
             if build_matches.get_flag("compile-commands") {
-                let mut compile_commands = project_root;
+                let mut compile_commands = project_root.clone();
                 compile_commands.push("compile_commands.json");
                 println!("generating {}", &compile_commands.to_string_lossy());
                 ninja::generate_compile_commands(
@@ -256,147 +255,86 @@ fn try_main() -> Result<i32> {
                 )?;
             }
 
+            // collect (optional) task and it's arguments
+            let task = collect_tasks(build_matches);
+
             // generation of ninja build file complete.
             // exit here if requested.
-            if build_matches.get_flag("generate-only") {
+            if task.is_none() && build_matches.get_flag("generate-only") {
                 return Ok(0);
             }
 
-            // build ninja target arguments, if necessary
-            let targets: Option<Vec<PathBuf>> = if let Selector::All = builders {
-                if let Selector::All = apps {
-                    None
-                } else {
-                    None
+            if let Some((task, args)) = task {
+                let builds: Vec<&(String, String, BuildInfo)> = builds
+                    .build_infos
+                    .iter()
+                    .filter(|(builder, app, build_info)| {
+                        builders.selects(builder)
+                            && apps.selects(app)
+                            && build_info.tasks.contains_key(task)
+                    })
+                    .collect();
+
+                if builds.len() > 1 {
+                    eprintln!("laze: multiple task targets found:");
+                    for (builder, bin, _build_info) in builds {
+                        eprintln!("{} {}", builder, bin);
+                    }
+
+                    // TODO: allow running tasks for multiple targets
+                    return Err(anyhow!("please specify one of these."));
                 }
+
+                if builds.is_empty() {
+                    return Err(anyhow!("no matching target for task \"{}\" found.", task));
+                }
+
+                let build = builds[0];
+                let targets = Some(vec![build.2.out.clone()]);
+
+                let task_name = task;
+                let task = build.2.tasks.get(task).unwrap();
+
+                if task.build_app() && !build_matches.get_flag("generate-only") {
+                    let ninja_build_file = get_ninja_build_file(build_dir, &mode);
+                    if ninja_run(ninja_build_file.as_path(), verbose > 0, targets, jobs)? != 0 {
+                        return Err(anyhow!("build error"));
+                    };
+                }
+
+                println!(
+                    "laze: executing task {} for builder {} bin {}",
+                    task_name, build.0, build.1,
+                );
+
+                task.execute(project_root.as_ref(), args, verbose)?;
             } else {
-                Some(
-                    builds
-                        .build_infos
-                        .iter()
-                        .filter_map(|(builder, app, build_info)| {
-                            if builders.selects(builder) && apps.selects(app) {
-                                Some(build_info.out.clone())
-                            } else {
-                                None
-                            }
-                        })
-                        .collect(),
-                )
-            };
-
-            ninja_run(ninja_build_file.as_path(), verbose > 0, targets, jobs)?;
-        }
-        Some(("task", task_matches)) => {
-            let verbose = task_matches.get_count("verbose");
-            let build_dir = task_matches.get_one::<PathBuf>("build-dir").unwrap();
-
-            let builder = task_matches.get_one::<String>("builder");
-            let app = task_matches.get_one::<String>("app");
-
-            let jobs = task_matches.get_one("jobs").copied();
-
-            // collect CLI selected/disabled modules
-            let select = get_selects(task_matches);
-            let disable = get_disables(task_matches);
-
-            // collect CLI env overrides
-            let cli_env = get_cli_vars(task_matches)?;
-
-            let (task, args) = match task_matches.subcommand() {
-                Some((name, matches)) => {
-                    let args = matches
-                        .get_many::<std::ffi::OsString>("")
-                        .into_iter()
-                        .flatten()
-                        .map(|v| str::from_utf8(v.as_bytes()).expect("task arg is invalid UTF8"))
-                        .collect::<Vec<_>>();
-                    (name, Some(args))
-                }
-                _ => unreachable!(),
-            };
-
-            // collect builder names from args
-            let builders = match builder {
-                Some(builder) => {
-                    Selector::Some(iter::once(builder.into()).collect::<IndexSet<String>>())
-                }
-                None => Selector::All,
-            };
-
-            // collect app names from args
-            let apps = match app {
-                Some(app) => Selector::Some(iter::once(app.into()).collect::<IndexSet<String>>()),
-                None => Selector::All,
-            };
-
-            let mode = match global {
-                true => GenerateMode::Global,
-                false => GenerateMode::Local(start_relpath),
-            };
-
-            println!("building {} for {}", &apps, &builders);
-
-            // arguments parsed, launch generation of ninja file(s)
-            let generator = GeneratorBuilder::default()
-                .project_root(&project_root)
-                .project_file(project_file)
-                .build_dir(build_dir)
-                .mode(mode.clone())
-                .builders(builders.clone())
-                .apps(apps.clone())
-                .select(select)
-                .disable(disable)
-                .cli_env(cli_env)
-                .partitioner(None)
-                .build()
-                .unwrap();
-
-            let builds = generator.execute(None)?;
-
-            let builds: Vec<&(String, String, BuildInfo)> = builds
-                .build_infos
-                .iter()
-                .filter(|(builder, app, build_info)| {
-                    builders.selects(builder)
-                        && apps.selects(app)
-                        && build_info.tasks.contains_key(task)
-                })
-                .collect();
-
-            if builds.len() > 1 {
-                eprintln!("laze: multiple task targets found:");
-                for (builder, bin, _build_info) in builds {
-                    eprintln!("{} {}", builder, bin);
-                }
-
-                // TODO: allow running tasks for multiple targets
-                return Err(anyhow!("please specify one of these."));
-            }
-
-            if builds.is_empty() {
-                return Err(anyhow!("no matching target for task \"{}\" found.", task));
-            }
-
-            let build = builds[0];
-            let targets = Some(vec![build.2.out.clone()]);
-
-            let task_name = task;
-            let task = build.2.tasks.get(task).unwrap();
-
-            if task.build_app() {
-                let ninja_build_file = get_ninja_build_file(build_dir, &mode);
-                if ninja_run(ninja_build_file.as_path(), verbose > 0, targets, jobs)? != 0 {
-                    return Err(anyhow!("build error"));
+                // build ninja target arguments, if necessary
+                let targets: Option<Vec<PathBuf>> = if let Selector::All = builders {
+                    if let Selector::All = apps {
+                        None
+                    } else {
+                        // TODO: filter by app
+                        None
+                    }
+                } else {
+                    Some(
+                        builds
+                            .build_infos
+                            .iter()
+                            .filter_map(|(builder, app, build_info)| {
+                                if builders.selects(builder) && apps.selects(app) {
+                                    Some(build_info.out.clone())
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect(),
+                    )
                 };
+
+                ninja_run(ninja_build_file.as_path(), verbose > 0, targets, jobs)?;
             }
-
-            println!(
-                "laze: executing task {} for builder {} bin {}",
-                task_name, build.0, build.1,
-            );
-
-            task.execute(project_root.as_ref(), args, verbose)?;
         }
         Some(("clean", clean_matches)) => {
             let verbose = clean_matches.get_count("verbose");
@@ -418,6 +356,21 @@ fn try_main() -> Result<i32> {
     };
 
     Ok(0)
+}
+
+fn collect_tasks(task_matches: &clap::ArgMatches) -> Option<(&str, Option<Vec<&str>>)> {
+    match task_matches.subcommand() {
+        Some((name, matches)) => {
+            let args = matches
+                .get_many::<std::ffi::OsString>("")
+                .into_iter()
+                .flatten()
+                .map(|v| str::from_utf8(v.as_bytes()).expect("task arg is invalid UTF8"))
+                .collect::<Vec<_>>();
+            Some((name, Some(args)))
+        }
+        _ => None,
+    }
 }
 
 fn get_cli_vars(
