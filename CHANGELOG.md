@@ -13,9 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Lists can still be specified as comma-seperated (e.g., `--apps foo,bar`),
   or by doing e.g., `--apps foo --apps bar`.
 
+- MSRV bumped to 1.64
+
 ### Added
 
-- feat: add modules `provides_unique` as shortcut to both provide and conflict
+- modules: add `provides_unique` as shortcut to both provide and conflict
+- download and patch rules are now module-env expanded
 
 ## [0.1.13]
 
@@ -26,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Dependencies
 
 - bump mimalloc from 0.1.32 to 0.1.34
+- bump clap from 4.0.32 to 4.1.1
+- bump clap_mangen from 0.2.6 to 0.2.7
 
 ## [0.1.12]
 
@@ -140,6 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.1] - 2021-01-07
 
+[0.1.13]: https://github.com/kaspar030/laze/compare/0.1.13...0.1.14
 [0.1.13]: https://github.com/kaspar030/laze/compare/0.1.12...0.1.13
 [0.1.12]: https://github.com/kaspar030/laze/compare/0.1.11...0.1.12
 [0.1.11]: https://github.com/kaspar030/laze/compare/0.1.10...0.1.11
