@@ -106,6 +106,7 @@ pub fn clap() -> clap::Command {
                 .about("generate build files and build")
                 .allow_external_subcommands(true)
                 .override_usage("laze build [OPTIONS] [<TASK> [ARGS]...]")
+                .next_help_heading("Build options")
                 .arg(verbose())
                 .arg(build_dir())
                 .arg(
@@ -124,6 +125,7 @@ pub fn clap() -> clap::Command {
                         .action(ArgAction::SetTrue),
                 )
                 .arg(jobs())
+                .next_help_heading("What to build")
                 .arg(
                     Arg::new("builders")
                         .short('b')
@@ -142,10 +144,11 @@ pub fn clap() -> clap::Command {
                         .action(ArgAction::Append)
                         .value_delimiter(','),
                 )
+                .arg(partition())
+                .next_help_heading("Extra build settings")
                 .arg(select())
                 .arg(disable())
-                .arg(define())
-                .arg(partition()),
+                .arg(define()),
         )
         .subcommand(
             Command::new("clean")
