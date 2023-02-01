@@ -783,6 +783,20 @@ fn configure_build(
         }
     }
 
+    let global_build_dep_files = {
+        let mut res = IndexSet::new();
+        for dep in global_build_deps {
+            if let Some(dep_files) = module_build_dep_files.get(&dep.name) {
+                res.extend(dep_files);
+            }
+        }
+        if res.is_empty() {
+            None
+        } else {
+            Some(res.iter().map(|x| Cow::from(*x)).collect_vec())
+        }
+    };
+
     // NinjaBuildBuilder expects a Vec<&Path>, but the loop above creates a Vec<PathBuf>.
     // thus, convert.
     let objects: Vec<_> = objects.iter().map(Cow::from).collect();
@@ -808,6 +822,7 @@ fn configure_build(
         let ninja_link_build = NinjaBuildBuilder::default()
             .rule(&*ninja_link_rule.name)
             .inputs(objects)
+            .deps(global_build_dep_files)
             .out(outfile.as_path())
             .always(link_rule.always)
             .build()
