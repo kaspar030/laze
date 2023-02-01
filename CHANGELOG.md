@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - cli: improve "build" subcommand help message
 
+### Fixed
+
+- global build deps are now applied to the LINK step. That fixes build targets
+  that have no created objects where the dependencies can be added to, e.g.,
+  a module with 'download:' but without `sources:` / objects.
+
 ## [0.1.15]
 
 ### Fixed
