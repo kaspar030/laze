@@ -121,26 +121,11 @@ impl Generator {
         let start = Instant::now();
 
         let mut laze_env = im::HashMap::new();
-        laze_env.insert(
-            "in".to_string(),
-            nested_env::EnvKey::Single("\\${in}".to_string()),
-        );
-        laze_env.insert(
-            "out".to_string(),
-            nested_env::EnvKey::Single("\\${out}".to_string()),
-        );
-        laze_env.insert(
-            "build-dir".to_string(),
-            nested_env::EnvKey::Single(self.build_dir.to_string_lossy().into()),
-        );
-        laze_env.insert(
-            "outfile".to_string(),
-            nested_env::EnvKey::Single("${bindir}/${app}.elf".into()),
-        );
-        laze_env.insert(
-            "project-root".to_string(),
-            nested_env::EnvKey::Single(self.project_root.to_string_lossy().into()),
-        );
+        laze_env.insert("in".to_string(), "\\${in}".into());
+        laze_env.insert("out".to_string(), "\\${out}".into());
+        laze_env.insert("build-dir".to_string(), self.build_dir.clone().into());
+        laze_env.insert("outfile".to_string(), "${bindir}/${app}.elf".into());
+        laze_env.insert("project-root".to_string(), self.project_root.clone().into());
 
         let laze_env = laze_env;
 
@@ -373,20 +358,12 @@ fn configure_build(
     // this will be overridden by each module's environment.
     // inserting it here (to the relpath of the app)
     // makes it available to the linking step and tasks.
-    global_env.insert(
-        "relpath".into(),
-        EnvKey::Single(binary.relpath.as_ref().unwrap().to_str().unwrap().into()),
-    );
+    global_env.insert("relpath".into(), binary.relpath.as_ref().unwrap().into());
 
     // same with "relroot"
     global_env.insert(
         "relroot".into(),
-        EnvKey::Single(
-            relroot(binary.relpath.as_ref().unwrap())
-                .to_str()
-                .unwrap()
-                .into(),
-        ),
+        relroot(binary.relpath.as_ref().unwrap()).into(),
     );
 
     // insert list of actually used modules
@@ -990,5 +967,11 @@ impl TryFrom<&Generator> for GenerateResult {
             return Err(anyhow!("laze: build files have changed"));
         }
         Ok(res)
+    }
+}
+
+impl<T: AsRef<Path>> From<T> for EnvKey {
+    fn from(path: T) -> EnvKey {
+        EnvKey::Single(path.as_ref().to_str().unwrap().into())
     }
 }
