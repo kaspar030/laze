@@ -21,10 +21,6 @@ pub struct Rule {
     pub pool: Option<String>,
     pub description: Option<String>,
 
-    /* make this rule's command show up in compile_commands.json */
-    #[serde(default = "default_as_false")]
-    pub compile_command: bool,
-
     #[serde(default = "default_as_false")]
     pub always: bool,
 }
