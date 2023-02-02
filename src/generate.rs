@@ -15,7 +15,6 @@ use std::time::Instant;
 use anyhow::Result;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-//use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 use solvent::DepGraph;
 
