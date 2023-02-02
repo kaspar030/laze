@@ -53,8 +53,6 @@ contexts:
       - name: LINK
         description: LINK ${out}
         in: "o"
-        options:
-          combine: true
         cmd: "${LINK} ${LINKFLAGS} ${CFLAGS_STD} ${CFLAGS_ARCH}
           ${CFLAGS_CODEGEN} ${CFLAGS}
           ${in} ${libs} -o ${out}"
