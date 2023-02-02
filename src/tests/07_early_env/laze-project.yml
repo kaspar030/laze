@@ -7,8 +7,6 @@ builders:
           cmd: 'echo ${LOCAL_VAR} ${LOCAL_VAR2} ${GLOBAL_VAR} ${GLOBAL_VAR2} ${in} > ${out} && cat ${in} >> ${out}'
         - name: LINK
           in: 'o'
-          options:
-              combine: true
           cmd: 'cat ${in} > ${out}'
 
 contexts:

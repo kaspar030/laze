@@ -7,8 +7,6 @@ builders:
           cmd: 'cat ${in} > ${out}'
         - name: LINK
           in: 'o'
-          options:
-              combine: true
           cmd: 'cat ${in} > ${out}'
 
     env:

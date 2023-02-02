@@ -7,8 +7,6 @@ builders:
           cmd: 'echo ${LOCAL_VAR} ${LOCAL_VAR1} ${GLOBAL_VAR} ${GLOBAL_VAR1} ${in} > ${out}'
         - name: LINK
           in: 'o'
-          options:
-              combine: true
           cmd: 'cat ${in} > ${out}'
     env:
       bindir: build/${builder}/${app}

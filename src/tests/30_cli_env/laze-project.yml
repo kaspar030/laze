@@ -7,8 +7,6 @@ builders:
           cmd: 'echo ${in} VAR1=${VAR1} VAR2=${VAR2} VAR3=${VAR3} > ${out}'
         - name: LINK
           in: 'o'
-          options:
-              combine: true
           cmd: 'cat ${in} > ${out}'
 
     env:

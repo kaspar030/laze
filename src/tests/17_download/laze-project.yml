@@ -8,8 +8,6 @@ builders:
 
       - name: LINK
         in: "o"
-        options:
-          combine: true
         cmd: "cat ${in} > ${out}"
 
       - name: GIT_DOWNLOAD

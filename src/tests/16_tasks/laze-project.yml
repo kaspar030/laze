@@ -3,8 +3,6 @@ builders:
     rules:
         - name: LINK
           in: 'o'
-          options:
-              combine: true
           cmd: 'cat ${in} > ${out}'
 
     env:

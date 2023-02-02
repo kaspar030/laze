@@ -10,8 +10,6 @@ builders:
         cmd: "echo ${EXPORT_VAR} ${in} > ${out}"
       - name: LINK
         in: "o"
-        options:
-          combine: true
         cmd: "cat ${in} > ${out}"
     env:
       bindir: build/${builder}/${app}

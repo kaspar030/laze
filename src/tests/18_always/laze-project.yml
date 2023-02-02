@@ -7,8 +7,6 @@ builders:
           cmd: 'echo ${EXPORT_VAR} ${in} > ${out}'
         - name: LINK
           in: 'o'
-          options:
-              combine: true
           cmd: 'test -f ${out} && echo "overwrite" >> ${out}; cat ${in} >> ${out}'
           always: true
     env:

@@ -7,8 +7,6 @@ builders:
         cmd: "echo ${notify} ${in} > ${out}"
       - name: LINK
         in: "o"
-        options:
-          combine: true
         cmd: "cat ${in} > ${out}"
     var_options:
       notify:
