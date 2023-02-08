@@ -4,9 +4,9 @@ use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -21,7 +21,7 @@ impl Default for NinjaRuleDeps {
     }
 }
 
-#[derive(Default, Builder, Debug, PartialEq, Eq, Clone)]
+#[derive(Builder, Debug, PartialEq, Eq, Clone)]
 #[builder(setter(into))]
 pub struct NinjaRule<'a> {
     pub name: Cow<'a, str>,
@@ -49,23 +49,23 @@ impl<'a> fmt::Display for NinjaRule<'a> {
             self.name,
             self.command,
             match &self.description {
-                Some(description) => format!("  description = {}\n", description),
+                Some(description) => format!("  description = {description}\n"),
                 None => String::new(),
             },
             match &self.deps {
                 NinjaRuleDeps::None => String::new(),
-                NinjaRuleDeps::GCC(s) => format!("  deps = gcc\n  depfile = {}\n", s),
+                NinjaRuleDeps::GCC(depfile) => format!("  deps = gcc\n  depfile = {depfile}\n"),
             },
             match &self.rspfile {
-                Some(rspfile) => format!("  rspfile = {}\n", rspfile),
+                Some(rspfile) => format!("  rspfile = {rspfile}\n"),
                 None => String::new(),
             },
             match &self.rspfile_content {
-                Some(rspfile_content) => format!("  rspfile_content = {}\n", rspfile_content),
+                Some(rspfile_content) => format!("  rspfile_content = {rspfile_content}\n"),
                 None => String::new(),
             },
             match &self.pool {
-                Some(pool) => format!("  pool = {}\n", pool),
+                Some(pool) => format!("  pool = {pool}\n"),
                 None => String::new(),
             },
         )
@@ -121,11 +121,11 @@ pub struct NinjaBuild<'a> {
     rule: Cow<'a, str>,
 
     #[builder(setter(strip_option), default = "None")]
-    inputs: Option<Vec<Cow<'a, Path>>>,
-    outs: Vec<Cow<'a, Path>>,
+    inputs: Option<Vec<Cow<'a, Utf8Path>>>,
+    outs: Vec<Cow<'a, Utf8Path>>,
 
     #[builder(default = "None")]
-    deps: Option<Vec<Cow<'a, Path>>>,
+    deps: Option<Vec<Cow<'a, Utf8Path>>>,
 
     #[builder(setter(into, strip_option), default = "None")]
     env: Option<&'a IndexMap<String, String>>,
@@ -138,7 +138,7 @@ pub struct NinjaBuild<'a> {
 impl<'a> NinjaBuildBuilder<'a> {
     pub fn out<I>(&mut self, out: I) -> &mut Self
     where
-        I: Into<Cow<'a, Path>>,
+        I: Into<Cow<'a, Utf8Path>>,
     {
         if let Some(outs) = self.outs.as_mut() {
             outs.push(out.into());
@@ -150,7 +150,7 @@ impl<'a> NinjaBuildBuilder<'a> {
 
     pub fn input<I>(&mut self, input: I) -> &mut Self
     where
-        I: Into<Cow<'a, Path>>,
+        I: Into<Cow<'a, Utf8Path>>,
     {
         if let Some(inputs) = self.inputs.as_mut() {
             if let Some(inputs) = inputs {
@@ -170,14 +170,14 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
         write!(f, "build")?;
 
         for out in &self.outs {
-            write!(f, " {}", out.to_str().unwrap())?;
+            write!(f, " {out}")?;
         }
 
         write!(f, ": $\n    {}", self.rule)?;
 
         if let Some(inputs) = &self.inputs {
             for path in inputs {
-                write!(f, " $\n    {}", path.to_str().unwrap())?;
+                write!(f, " $\n    {path}")?;
             }
         }
 
@@ -185,7 +185,7 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
             write!(f, " $\n    |")?;
             if let Some(list) = &self.deps {
                 for entry in list {
-                    write!(f, " $\n    {}", entry.to_str().unwrap())?;
+                    write!(f, " $\n    {entry}")?;
                 }
             }
             if self.always {
@@ -196,7 +196,7 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
 
         if let Some(env) = self.env {
             for (k, v) in env {
-                writeln!(f, "  {} = {}", k, v)?;
+                writeln!(f, "  {k} = {v}")?;
             }
         }
 
@@ -210,7 +210,7 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
 // }
 
 // impl NinjaWriter {
-//     pub fn new(path: &Path) -> std::io::Result<NinjaWriter> {
+//     pub fn new(path: &Utf8Path) -> std::io::Result<NinjaWriter> {
 //         Ok(NinjaWriter {
 //             file: BufWriter::new(File::create(path)?),
 //             rules: HashSet::new(),
@@ -244,14 +244,14 @@ impl<'a> fmt::Display for NinjaBuild<'a> {
 //     }
 // }
 
-#[derive(Default, Builder, Debug, Clone)]
+#[derive(Builder, Debug, Clone)]
 #[builder(setter(into))]
 pub struct NinjaToolBase<'a> {
-    #[builder(setter(into), default = "\"ninja\"")]
-    binary: &'a str,
+    #[builder(setter(into), default = "Utf8Path::new(\"ninja\")")]
+    binary: &'a Utf8Path,
 
-    #[builder(setter(into), default = "\"build.ninja\"")]
-    build_file: &'a str,
+    #[builder(setter(into), default = "Utf8Path::new(\"build.ninja\")")]
+    build_file: &'a Utf8Path,
 
     args: Vec<String>,
 }
@@ -277,11 +277,11 @@ impl<'a> NinjaToolBase<'a> {
 }
 
 pub fn generate_compile_commands(
-    build_file: &Path,
-    target: &Path,
+    build_file: &Utf8Path,
+    target: &Utf8Path,
 ) -> Result<ExitStatus, std::io::Error> {
     let mut cmd = NinjaToolBaseBuilder::default()
-        .build_file(build_file.to_str().unwrap())
+        .build_file(build_file)
         .arg("-t".into())
         .arg("compdb".into())
         .build()
@@ -293,20 +293,20 @@ pub fn generate_compile_commands(
     cmd.spawn()?.wait()
 }
 
-#[derive(Default, Builder, Debug, Clone)]
+#[derive(Builder, Debug, Clone)]
 #[builder(setter(into))]
 pub struct NinjaCmd<'a> {
-    #[builder(setter(into), default = "\"ninja\"")]
-    binary: &'a str,
+    #[builder(setter(into), default = "Utf8Path::new(\"ninja\")")]
+    binary: &'a Utf8Path,
 
-    #[builder(setter(into), default = "\"build.ninja\"")]
-    build_file: &'a str,
+    #[builder(setter(into), default = "Utf8Path::new(\"build.ninja\")")]
+    build_file: &'a Utf8Path,
 
     #[builder(default = "false")]
     verbose: bool,
 
     #[builder(default = "None")]
-    targets: Option<Vec<PathBuf>>,
+    targets: Option<Vec<Utf8PathBuf>>,
 
     #[builder(default = "None")]
     jobs: Option<usize>,
@@ -342,7 +342,7 @@ mod tests {
 
     // #[test]
     // fn basic() {
-    //     let mut file = NinjaWriter::new(Path::new("ninja.build")).unwrap();
+    //     let mut file = NinjaWriter::new(Utf8Path::new("ninja.build")).unwrap();
     //     file.file.write(b"foo\n").unwrap();
     // }
 
@@ -367,7 +367,7 @@ mod tests {
 
     #[test]
     fn build_simple() {
-        let out = PathBuf::from("test.o");
+        let out = Utf8PathBuf::from("test.o");
         let rule = NinjaBuildBuilder::default()
             .rule("CC")
             .out(out.as_path())
@@ -381,10 +381,10 @@ mod tests {
 
     #[test]
     fn build_with_input() {
-        let testc = PathBuf::from("test.c");
-        let test2c = PathBuf::from("test2.c");
+        let testc = Utf8PathBuf::from("test.c");
+        let test2c = Utf8PathBuf::from("test2.c");
         let in_vec = vec![testc.as_path().into(), test2c.as_path().into()];
-        let out = PathBuf::from("test.o");
+        let out = Utf8PathBuf::from("test.o");
         let rule = NinjaBuildBuilder::default()
             .rule("CC")
             .inputs(in_vec)
@@ -406,11 +406,14 @@ mod tests {
 
     #[test]
     fn build_with_deps() {
-        let testc = PathBuf::from("test.c");
-        let test2c = PathBuf::from("test2.c");
+        let testc = Utf8PathBuf::from("test.c");
+        let test2c = Utf8PathBuf::from("test2.c");
         let in_vec = vec![testc.as_path().into(), test2c.as_path().into()];
-        let deps = vec![Path::new("other.o").into(), Path::new("other2.o").into()];
-        let out = PathBuf::from("test.o");
+        let deps = vec![
+            Utf8Path::new("other.o").into(),
+            Utf8Path::new("other2.o").into(),
+        ];
+        let out = Utf8PathBuf::from("test.o");
         let rule = NinjaBuildBuilder::default()
             .rule("CC")
             .inputs(in_vec)

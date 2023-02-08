@@ -1,7 +1,8 @@
 use indexmap::{IndexMap, IndexSet};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::path::PathBuf;
+
+use camino::Utf8PathBuf;
 
 use crate::Env;
 use crate::MergeOption;
@@ -26,7 +27,7 @@ pub struct Context {
     pub tasks: Option<HashMap<String, Task>>,
     pub env_early: Env,
     pub is_builder: bool,
-    pub defined_in: Option<PathBuf>,
+    pub defined_in: Option<Utf8PathBuf>,
 }
 
 impl Context {

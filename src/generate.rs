@@ -4,15 +4,14 @@
 use core::hash::Hash;
 use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
-use std::ffi::OsStr;
 use std::fmt;
 use std::fs::File;
 use std::hash::Hasher;
 use std::io::prelude::*;
-use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use anyhow::Result;
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -32,7 +31,7 @@ use super::{
 #[derive(Deserialize, Serialize)]
 pub struct BuildInfo {
     pub tasks: IndexMap<String, Task>,
-    pub out: PathBuf,
+    pub out: Utf8PathBuf,
 }
 
 pub type BuildInfoList = Vec<(String, String, BuildInfo)>;
@@ -40,7 +39,7 @@ pub type BuildInfoList = Vec<(String, String, BuildInfo)>;
 #[derive(Clone, Deserialize, Serialize)]
 pub enum GenerateMode {
     Global,
-    Local(PathBuf),
+    Local(Utf8PathBuf),
 }
 
 impl GenerateMode {
@@ -50,7 +49,7 @@ impl GenerateMode {
 }
 
 /// returns the used ninja build file
-pub fn get_ninja_build_file(build_dir: &Path, mode: &GenerateMode) -> PathBuf {
+pub fn get_ninja_build_file(build_dir: &Utf8Path, mode: &GenerateMode) -> Utf8PathBuf {
     if mode.is_local() {
         build_dir.join("build-local.ninja")
     } else {
@@ -61,12 +60,12 @@ pub fn get_ninja_build_file(build_dir: &Path, mode: &GenerateMode) -> PathBuf {
 /// returns the path relative to the project root
 ///
 /// Example: src/module/foo.yml -> ../..
-fn relroot(relpath: &Path) -> PathBuf {
+fn relroot(relpath: &Utf8Path) -> Utf8PathBuf {
     let components = relpath.components().count();
     if components == 0 {
         "${root}".into()
     } else {
-        let mut res = PathBuf::new();
+        let mut res = Utf8PathBuf::new();
         for _ in 0..components {
             res.push("..");
         }
@@ -77,9 +76,9 @@ fn relroot(relpath: &Path) -> PathBuf {
 #[derive(Builder)]
 #[builder(setter(into))]
 pub struct Generator {
-    project_root: PathBuf,
-    project_file: PathBuf,
-    build_dir: PathBuf,
+    project_root: Utf8PathBuf,
+    project_file: Utf8PathBuf,
+    build_dir: Utf8PathBuf,
     mode: GenerateMode,
     builders: Selector,
     apps: Selector,
@@ -101,7 +100,7 @@ impl Generator {
                 println!("laze: reading cache took {:?}.", start.elapsed());
                 return Ok(cached);
             }
-            Err(x) => println!("laze: reading cache: {}", x),
+            Err(x) => println!("laze: reading cache: {x}"),
         }
 
         let (contexts, treestate) = load(&self.project_file, &self.build_dir)?;
@@ -111,8 +110,7 @@ impl Generator {
             get_ninja_build_file(&self.build_dir, &self.mode).as_path(),
         )?);
 
-        ninja_build_file
-            .write_all(format!("builddir = {}\n", self.build_dir.to_str().unwrap()).as_bytes())?;
+        ninja_build_file.write_all(format!("builddir = {}\n", self.build_dir).as_bytes())?;
 
         // add phony helper
         ninja_build_file.write_all(b"build ALWAYS: phony\n")?;
@@ -314,7 +312,7 @@ fn configure_build(
 
     // get build dir from laze_env
     let build_dir = match laze_env.get("build-dir").unwrap() {
-        nested_env::EnvKey::Single(path) => PathBuf::from(path),
+        nested_env::EnvKey::Single(path) => Utf8PathBuf::from(path),
         _ => unreachable!(),
     };
 
@@ -389,7 +387,7 @@ fn configure_build(
     let mut global_env_flattened = nested_env::flatten_with_opts_option(&tmp, merge_opts.as_ref());
 
     // build application file name
-    let outfile = PathBuf::from(
+    let outfile = Utf8PathBuf::from(
         nested_env::expand("${outfile}", &global_env_flattened, IfMissing::Empty).unwrap(),
     );
 
@@ -478,7 +476,7 @@ fn configure_build(
         }
     }
 
-    let mut module_build_dep_files: IndexMap<&String, IndexSet<PathBuf>> = IndexMap::new();
+    let mut module_build_dep_files: IndexMap<&String, IndexSet<Utf8PathBuf>> = IndexMap::new();
 
     // now handle each module
     for (module, module_env, module_build_deps) in modules_in_build_order.iter() {
@@ -551,7 +549,12 @@ fn configure_build(
                 .or_insert_with(IndexSet::new)
                 .extend(local_build_deps.iter().cloned());
 
-            Some(local_build_deps.iter().map(Cow::from).collect_vec())
+            Some(
+                local_build_deps
+                    .iter()
+                    .map(|x| Cow::from(x.as_ref()))
+                    .collect_vec(),
+            )
         } else {
             None
         };
@@ -566,7 +569,7 @@ fn configure_build(
                         .iter()
                         .flat_map(|x| x.iter())
                         .flatten()
-                        .map(Cow::from)
+                        .map(|x| Cow::from(x.as_ref()))
                         .collect_vec(),
                 )
             } else {
@@ -619,27 +622,25 @@ fn configure_build(
                     // 1. determine full file path (relative to project root)
                     let mut srcpath = srcdir.clone();
                     srcpath.push(source);
-                    let srcpath = srcpath.to_str().unwrap();
-                    PathBuf::from(
+                    Utf8PathBuf::from(
                         nested_env::expand(srcpath, &flattened_env, IfMissing::Empty).unwrap(),
                     )
                 })
                 .collect_vec();
 
-            // Vec<PathBuf> -> Cow<&Path>
-            let sources = sources.iter().map(Cow::from).collect_vec();
+            // Vec<Utf8PathBuf> -> Cow<&Utf8Path>
+            let sources = sources.iter().map(|x| Cow::from(x.as_ref())).collect_vec();
 
             let mut hasher = DefaultHasher::new();
             // collect any specified outs
             let outs = build.out.as_ref().map_or_else(std::vec::Vec::new, |outs| {
                 outs.iter()
                     .map(|out| {
-                        let out = Cow::from(PathBuf::from(
+                        let out = Utf8PathBuf::from(
                             nested_env::expand(out, &flattened_env, IfMissing::Empty).unwrap(),
-                        ));
-                        // TODO: check if this hashes the path or a Cow
+                        );
                         out.hash(&mut hasher);
-                        out
+                        Cow::from(out)
                     })
                     .collect_vec()
             });
@@ -658,7 +659,7 @@ fn configure_build(
             // create an alias (phony build entry) for "outs_${hash}" of this custom build.
             // that way, dependees don't have to list all the outs, but just
             // this alias
-            let outs_alias_output = Cow::from(PathBuf::from(format!("outs_{}", outs_hash)));
+            let outs_alias_output = Cow::from(Utf8PathBuf::from(format!("outs_{outs_hash}")));
             let outs_alias = NinjaBuildBuilder::default()
                 .rule("phony")
                 .inputs(outs.clone())
@@ -670,7 +671,7 @@ fn configure_build(
             module_build_dep_files
                 .entry(&module.name)
                 .or_insert_with(IndexSet::new)
-                .insert(PathBuf::from(format!("outs_{}", outs_hash)));
+                .insert(Utf8PathBuf::from(format!("outs_{}", outs_hash)));
 
             // add ninja rule/build snippets to ninja snippets set
             ninja_entries.insert(format!("{}", &rule));
@@ -685,17 +686,14 @@ fn configure_build(
             // apply rules to sources
             // BUG01: ext is taken *before* variable substitution
             for source in module.sources.iter().chain(optional_sources.iter()) {
-                let ext = Path::new(&source)
-                    .extension()
-                    .and_then(OsStr::to_str)
-                    .ok_or_else(|| {
-                        anyhow!(format!(
-                            "\"{}\": module \"{:?}\": source file \"{}\" missing extension",
-                            module.defined_in.as_ref().unwrap().to_string_lossy(),
-                            &module.name,
-                            &source
-                        ))
-                    })?;
+                let ext = Utf8Path::new(&source).extension().ok_or_else(|| {
+                    anyhow!(format!(
+                        "\"{}\": module \"{:?}\": source file \"{}\" missing extension",
+                        module.defined_in.as_ref().unwrap(),
+                        &module.name,
+                        &source
+                    ))
+                })?;
 
                 // This block finds a rule for this source file's extension
                 // (e.g., .c -> CC).
@@ -707,7 +705,7 @@ fn configure_build(
                             "no rule found for \"{}\" of module \"{}\" (from {})",
                             source,
                             module.name,
-                            module.defined_in.as_ref().unwrap().to_string_lossy(),
+                            module.defined_in.as_ref().unwrap(),
                         )
                     })?;
 
@@ -715,7 +713,7 @@ fn configure_build(
                         nested_env::expand(&rule.cmd, &flattened_env, IfMissing::Empty).unwrap();
 
                     let rule = rule.to_ninja().command(expanded).build().unwrap().named();
-                    ninja_entries.insert(format!("{}", &rule));
+                    ninja_entries.insert(format!("{rule}"));
                     rule
                 });
             }
@@ -727,13 +725,12 @@ fn configure_build(
                 srcpath.push(source);
 
                 // expand variables in source path
-                let srcpath = srcpath.to_str().unwrap();
-                let srcpath = PathBuf::from(
+                let srcpath = Utf8PathBuf::from(
                     nested_env::expand(srcpath, &flattened_env, IfMissing::Empty).unwrap(),
                 );
 
                 // 2. find ninja rule by lookup of the source file's extension
-                let ext = srcpath.extension().and_then(OsStr::to_str).unwrap();
+                let ext = srcpath.extension().unwrap();
 
                 let rule = rules.get(ext).unwrap();
 
@@ -754,13 +751,13 @@ fn configure_build(
                 // ninja statement set
                 let build = NinjaBuildBuilder::default()
                     .rule(&*ninja_rule.name)
-                    .input(Cow::from(&srcpath))
+                    .input(Cow::from(srcpath.as_path()))
                     .deps(combined_build_deps.clone())
                     .out(object.as_path())
                     .build()
                     .unwrap();
 
-                ninja_entries.insert(format!("{}", build));
+                ninja_entries.insert(format!("{build}"));
 
                 // 5. store the output in this build's output list
                 objects.push(object);
@@ -772,11 +769,11 @@ fn configure_build(
                     let build = NinjaBuildBuilder::default()
                         .rule("phony")
                         .deps(local_build_deps.clone())
-                        .out(Cow::from(&srcpath))
+                        .out(Cow::from(srcpath))
                         .build()
                         .unwrap();
 
-                    ninja_entries.insert(format!("{}", build));
+                    ninja_entries.insert(format!("{build}"));
                 }
             }
         }
@@ -792,13 +789,13 @@ fn configure_build(
         if res.is_empty() {
             None
         } else {
-            Some(res.iter().map(|x| Cow::from(*x)).collect_vec())
+            Some(res.iter().map(|x| Cow::from(x.as_path())).collect_vec())
         }
     };
 
-    // NinjaBuildBuilder expects a Vec<&Path>, but the loop above creates a Vec<PathBuf>.
+    // NinjaBuildBuilder expects a Vec<&Utf8Path>, but the loop above creates a Vec<Utf8PathBuf>.
     // thus, convert.
-    let objects: Vec<_> = objects.iter().map(Cow::from).collect();
+    let objects: Vec<_> = objects.iter().map(|x| Cow::from(x.as_ref())).collect();
 
     // linking
     {
@@ -832,7 +829,7 @@ fn configure_build(
     }
 
     // collect tasks
-    global_env_flattened.insert(&out_string, String::from(outfile.to_str().unwrap()));
+    global_env_flattened.insert(&out_string, outfile.to_string());
     let tasks = build
         .build_context
         .collect_tasks(contexts, &global_env_flattened);
@@ -925,14 +922,17 @@ impl GenerateResult {
         }
     }
 
-    fn cache_file(build_dir: &Path, mode: &GenerateMode) -> PathBuf {
+    fn cache_file(build_dir: &Utf8Path, mode: &GenerateMode) -> Utf8PathBuf {
         match mode {
             GenerateMode::Global => build_dir.join("laze-cache-global.bincode"),
             GenerateMode::Local(_) => build_dir.join("laze-cache-local.bincode"),
         }
     }
 
-    pub fn to_cache(&self, build_dir: &Path) -> std::result::Result<(), Box<bincode::ErrorKind>> {
+    pub fn to_cache(
+        &self,
+        build_dir: &Utf8Path,
+    ) -> std::result::Result<(), Box<bincode::ErrorKind>> {
         let start = Instant::now();
         let file = Self::cache_file(build_dir, &self.mode);
         let file = File::create(file)?;
@@ -984,8 +984,9 @@ impl TryFrom<&Generator> for GenerateResult {
     }
 }
 
-impl<T: AsRef<Path>> From<T> for EnvKey {
+impl<T: AsRef<Utf8Path>> From<T> for EnvKey {
     fn from(path: T) -> EnvKey {
-        EnvKey::Single(path.as_ref().to_str().unwrap().into())
+        let path = path.as_ref();
+        EnvKey::Single(path.to_string())
     }
 }

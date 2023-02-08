@@ -11,10 +11,10 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use anyhow::{Context as _, Error, Result};
+use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Deserializer};
 
 use treestate::{FileState, TreeState};
@@ -28,7 +28,7 @@ use crate::serde_bool_helpers::default_as_false;
 mod import;
 use import::Import;
 
-pub type FileTreeState = TreeState<FileState, PathBuf>;
+pub type FileTreeState = TreeState<FileState, std::path::PathBuf>;
 
 // Any value that is present is considered Some value, including null.
 fn deserialize_some<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
@@ -51,7 +51,7 @@ struct YamlFile {
     subdirs: Option<Vec<String>>,
     defaults: Option<HashMap<String, YamlModule>>,
     #[serde(skip)]
-    filename: Option<PathBuf>,
+    filename: Option<Utf8PathBuf>,
     #[serde(skip)]
     doc_idx: Option<usize>,
     #[serde(skip)]
@@ -107,7 +107,7 @@ struct YamlModule {
     blocklist: Option<Vec<String>>,
     allowlist: Option<Vec<String>>,
     download: Option<Download>,
-    srcdir: Option<PathBuf>,
+    srcdir: Option<Utf8PathBuf>,
     #[serde(default = "default_as_false")]
     is_build_dep: bool,
     #[serde(default = "default_as_false")]
@@ -160,7 +160,7 @@ struct YamlModuleEnv {
     global: Option<Env>,
 }
 
-// fn load_one<'a>(filename: &PathBuf) -> Result<YamlFile> {
+// fn load_one<'a>(filename: &Utf8PathBuf) -> Result<YamlFile> {
 //     let file = read_to_string(filename).unwrap();
 //     let docs: Vec<&str> = file.split("\n---\n").collect();
 //     let mut data: YamlFile = serde_yaml::from_str(&docs[0])
@@ -201,8 +201,7 @@ fn load_all(file_include: &FileInclude, index_start: usize) -> Result<Vec<YamlFi
 
     let mut result = Vec::new();
     for (n, doc) in serde_yaml::Deserializer::from_str(&file).enumerate() {
-        let mut parsed =
-            YamlFile::deserialize(doc).with_context(|| format!("{}", filename.display()))?;
+        let mut parsed = YamlFile::deserialize(doc).with_context(|| filename.clone())?;
         parsed.filename = Some(filename.clone());
         parsed.doc_idx = Some(index_start + n);
         parsed.included_by = file_include.included_by_doc_idx;
@@ -214,23 +213,23 @@ fn load_all(file_include: &FileInclude, index_start: usize) -> Result<Vec<YamlFi
 }
 
 #[derive(Hash, Debug, PartialEq, Eq, Clone)]
-struct ImportRoot(PathBuf);
+struct ImportRoot(Utf8PathBuf);
 impl ImportRoot {
-    fn path(&self) -> &Path {
+    fn path(&self) -> &Utf8Path {
         self.0.as_path()
     }
 }
 
 #[derive(Hash, Debug, PartialEq, Eq)]
 struct FileInclude {
-    filename: PathBuf,
+    filename: Utf8PathBuf,
     included_by_doc_idx: Option<usize>,
     import_root: Option<ImportRoot>,
 }
 
 impl FileInclude {
     fn new(
-        filename: PathBuf,
+        filename: Utf8PathBuf,
         included_by_doc_idx: Option<usize>,
         import_root: Option<ImportRoot>,
     ) -> Self {
@@ -241,9 +240,9 @@ impl FileInclude {
         }
     }
 
-    fn new_import(filename: PathBuf, included_by_doc_idx: Option<usize>) -> Self {
+    fn new_import(filename: Utf8PathBuf, included_by_doc_idx: Option<usize>) -> Self {
         // TODO: (opt) Cow import_root?
-        let import_root = Some(ImportRoot(PathBuf::from(
+        let import_root = Some(ImportRoot(Utf8PathBuf::from(
             filename.parent().as_ref().unwrap(),
         )));
         FileInclude {
@@ -254,7 +253,7 @@ impl FileInclude {
     }
 }
 
-pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeState)> {
+pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, FileTreeState)> {
     let mut contexts = ContextBag::new();
     let start = Instant::now();
 
@@ -266,7 +265,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
     // set.
     // using an IndexSet so files can only be added once
     let mut filenames: IndexSet<FileInclude> = IndexSet::new();
-    filenames.insert(FileInclude::new(PathBuf::from(filename), None, None));
+    filenames.insert(FileInclude::new(Utf8PathBuf::from(filename), None, None));
 
     let mut filenames_pos = 0;
     while filenames_pos < filenames.len() {
@@ -287,7 +286,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
 
                 // collect subdirs, add do filenames list
                 for subdir in subdirs {
-                    let sub_file = Path::new(&relpath).join(subdir).join("laze.yml");
+                    let sub_file = Utf8Path::new(&relpath).join(subdir).join("laze.yml");
                     filenames.insert(FileInclude::new(
                         sub_file,
                         new.doc_idx,
@@ -313,7 +312,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         context: &YamlContext,
         contexts: &mut ContextBag,
         is_builder: bool,
-        filename: &PathBuf,
+        filename: &Utf8PathBuf,
         import_root: &Option<ImportRoot>,
     ) -> Result<(), Error> {
         let context_name = &context.name;
@@ -358,7 +357,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         context_.var_options = context.var_options.clone();
         // populate "early env"
         let relpath = {
-            let relpath = filename.parent().unwrap().to_str().unwrap();
+            let relpath = filename.parent().unwrap().as_str();
             if relpath.is_empty() {
                 ".".to_string()
             } else {
@@ -372,7 +371,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         if let Some(import_root) = import_root {
             context_.env_early.insert(
                 "root".into(),
-                EnvKey::Single(import_root.path().to_str().unwrap().into()),
+                EnvKey::Single(format!("{}", import_root.path())),
             );
         } else {
             context_
@@ -413,27 +412,23 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         name: &Option<String>,
         context: Option<&String>,
         is_binary: bool,
-        filename: &Path,
+        filename: &Utf8Path,
         import_root: &Option<ImportRoot>,
         defaults: Option<&Module>,
     ) -> Module {
-        let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
+        let relpath = filename.parent().unwrap();
         let name = match name {
             Some(name) => name.clone(),
-            None => {
-                if let Some(import_root) = import_root {
-                    filename
-                        .parent()
-                        .unwrap()
-                        .strip_prefix(import_root.path())
-                        .unwrap()
-                        .to_str()
-                        .unwrap()
-                        .to_string()
-                } else {
-                    relpath.clone()
-                }
+            None => if let Some(import_root) = import_root {
+                filename
+                    .parent()
+                    .unwrap()
+                    .strip_prefix(import_root.path())
+                    .unwrap()
+            } else {
+                relpath
             }
+            .to_string(),
         };
 
         let mut module = match defaults {
@@ -443,7 +438,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
 
         module.is_binary = is_binary;
         module.defined_in = Some(filename.to_path_buf());
-        module.relpath = Some(PathBuf::from(&relpath));
+        module.relpath = Some(Utf8PathBuf::from(&relpath));
 
         module
     }
@@ -452,12 +447,12 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         module: &YamlModule,
         context: Option<&String>,
         is_binary: bool,
-        filename: &Path,
+        filename: &Utf8Path,
         import_root: &Option<ImportRoot>,
         defaults: Option<&Module>,
-        build_dir: &Path,
+        build_dir: &Utf8Path,
     ) -> Result<Module, Error> {
-        let relpath = filename.parent().unwrap().to_str().unwrap().to_string();
+        let relpath = filename.parent().unwrap().to_string();
 
         let mut m = init_module(
             &module.name,
@@ -631,7 +626,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
 
             srcdir
         } else {
-            PathBuf::from(relpath.clone())
+            Utf8PathBuf::from(relpath.clone())
         };
 
         m.build = module.build.clone();
@@ -646,7 +641,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         m.srcdir = module
             .srcdir
             .as_ref()
-            .map_or(Some(srcdir), |s| Some(PathBuf::from(s)));
+            .map_or(Some(srcdir), |s| Some(Utf8PathBuf::from(s)));
 
         // populate "early env"
         m.env_early
@@ -654,7 +649,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         if let Some(import_root) = import_root {
             m.env_early.insert(
                 "root".into(),
-                EnvKey::Single(import_root.path().to_str().unwrap().into()),
+                EnvKey::Single(import_root.path().to_string()),
             );
         } else {
             m.env_early
@@ -662,7 +657,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         }
         m.env_early.insert(
             "srcdir".into(),
-            EnvKey::Single(m.srcdir.as_ref().unwrap().to_str().unwrap().into()),
+            EnvKey::Single(m.srcdir.as_ref().unwrap().as_path().to_string()),
         );
 
         m.env_local = crate::nested_env::merge(m.env_local, m.env_early.clone());
@@ -713,7 +708,7 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
         defaults_map: &HashMap<usize, Module>,
         key: &str,
         is_binary: bool,
-        build_dir: &Path,
+        build_dir: &Utf8Path,
     ) -> Option<Module> {
         // this function determines the module or app defaults for a given YamlFile
 
@@ -831,7 +826,15 @@ pub fn load(filename: &Path, build_dir: &Path) -> Result<(ContextBag, FileTreeSt
     );
 
     let start = Instant::now();
-    let treestate = FileTreeState::new(filenames.iter().map(|include| &include.filename));
+
+    // convert Utf8PathBufs to PathBufs
+    // TODO: make treestate support camino Utf8PathBuf
+    let filenames = filenames
+        .drain(..)
+        .map(|include| include.filename.into_std_path_buf())
+        .collect_vec();
+
+    let treestate = FileTreeState::new(filenames.iter());
     println!(
         "laze: stat'ing {} files took {:?}",
         filenames.len(),

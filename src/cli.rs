@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use camino::Utf8PathBuf;
 
 use clap::{crate_version, value_parser, Arg, ArgAction, Command, ValueHint};
 
@@ -11,7 +11,7 @@ pub fn clap() -> clap::Command {
             .num_args(1)
             .value_name("DIR")
             .default_value("build")
-            .value_parser(clap::value_parser!(PathBuf))
+            .value_parser(clap::value_parser!(Utf8PathBuf))
             .value_hint(ValueHint::DirPath)
     }
 
@@ -88,7 +88,7 @@ pub fn clap() -> clap::Command {
                 .help("change working directory before doing anything else")
                 .global(true)
                 .required(false)
-                .value_parser(clap::value_parser!(PathBuf))
+                .value_parser(clap::value_parser!(Utf8PathBuf))
                 .value_hint(ValueHint::DirPath)
                 .num_args(1),
         )
@@ -182,7 +182,7 @@ pub fn clap() -> clap::Command {
                 .arg(
                     Arg::new("outdir")
                         .help("directory in which to create manpage files")
-                        .value_parser(value_parser!(PathBuf))
+                        .value_parser(value_parser!(Utf8PathBuf))
                         .value_hint(ValueHint::DirPath)
                         .required(true),
                 )

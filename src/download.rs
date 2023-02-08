@@ -7,10 +7,10 @@ use im::HashMap;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 use super::{ninja::NinjaBuildBuilder, Module, Rule};
 use crate::nested_env::{self, IfMissing};
+use camino::{Utf8Path, Utf8PathBuf};
 
 pub mod source {
     use serde::{Deserialize, Serialize};
@@ -41,8 +41,8 @@ pub struct Download {
 }
 
 impl Download {
-    pub fn srcdir(&self, build_dir: &Path, module: &Module) -> PathBuf {
-        let mut srcdir = PathBuf::from(build_dir);
+    pub fn srcdir(&self, build_dir: &Utf8Path, module: &Module) -> Utf8PathBuf {
+        let mut srcdir = Utf8PathBuf::from(build_dir);
         srcdir.push("dl");
         if let Some(dldir) = &self.dldir {
             srcdir.push(dldir);
@@ -53,15 +53,15 @@ impl Download {
         srcdir
     }
 
-    fn tagfile_download(&self, srcdir: &PathBuf) -> PathBuf {
-        Path::new(srcdir).join(".laze-downloaded")
+    fn tagfile_download(&self, srcdir: &Utf8PathBuf) -> Utf8PathBuf {
+        Utf8Path::new(srcdir).join(".laze-downloaded")
     }
 
-    fn tagfile_patched(&self, srcdir: &PathBuf) -> PathBuf {
-        Path::new(srcdir).join(".laze-patched")
+    fn tagfile_patched(&self, srcdir: &Utf8PathBuf) -> Utf8PathBuf {
+        Utf8Path::new(srcdir).join(".laze-patched")
     }
 
-    pub fn tagfile(&self, srcdir: &PathBuf) -> PathBuf {
+    pub fn tagfile(&self, srcdir: &Utf8PathBuf) -> Utf8PathBuf {
         if self.patches.is_some() {
             self.tagfile_patched(srcdir)
         } else {
@@ -72,7 +72,7 @@ impl Download {
     fn render(
         &self,
         module: &Module,
-        _build_dir: &Path,
+        _build_dir: &Utf8Path,
         rules: &IndexMap<String, &Rule>,
         env: &HashMap<&String, String>,
     ) -> Result<Vec<String>> {
@@ -146,11 +146,11 @@ impl Download {
 
         let patches = patches
             .iter()
-            .map(|x| Cow::from(Path::new(module.relpath.as_ref().unwrap()).join(x)))
+            .map(|x| Cow::from(Utf8Path::new(module.relpath.as_ref().unwrap()).join(x)))
             .collect_vec();
 
         let download_dep = std::iter::once(&tagfile_download)
-            .map(Cow::from)
+            .map(|x| Cow::from(x.as_ref()))
             .collect_vec();
 
         let ninja_patch_build = NinjaBuildBuilder::default()
@@ -170,7 +170,7 @@ impl Download {
 
 pub fn handle_module(
     module: &Module,
-    build_dir: &Path,
+    build_dir: &Utf8Path,
     rules: &IndexMap<String, &Rule>,
     env: &HashMap<&String, String>,
 ) -> Result<Option<Vec<String>>> {

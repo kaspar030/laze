@@ -14,7 +14,6 @@ use core::sync::atomic::AtomicBool;
 
 use std::env;
 use std::os::unix::prelude::OsStrExt;
-use std::path::{Path, PathBuf};
 use std::str;
 use std::thread;
 
@@ -22,6 +21,7 @@ use std::thread;
 extern crate serde_derive;
 
 use anyhow::{Context as _, Error, Result};
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use signal_hook::{consts::SIGINT, iterator::Signals};
@@ -46,33 +46,33 @@ use generate::{get_ninja_build_file, BuildInfo, GenerateMode, GeneratorBuilder, 
 use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
 
-fn determine_project_root(start: &Path) -> Result<(PathBuf, PathBuf)> {
+fn determine_project_root(start: &Utf8Path) -> Result<(Utf8PathBuf, Utf8PathBuf)> {
     let mut cwd = start.to_owned();
 
     loop {
         let mut tmp = cwd.clone();
         tmp.push("laze-project.yml");
         if tmp.exists() {
-            return Ok((cwd, PathBuf::from("laze-project.yml")));
+            return Ok((cwd, Utf8PathBuf::from("laze-project.yml")));
         }
         cwd = match cwd.parent() {
-            Some(p) => PathBuf::from(p),
+            Some(p) => Utf8PathBuf::from(p),
             None => return Err(anyhow!("cannot find laze-project.yml")),
         }
     }
 }
 
 fn ninja_run(
-    ninja_buildfile: &Path,
+    ninja_buildfile: &Utf8Path,
     verbose: bool,
-    targets: Option<Vec<PathBuf>>,
+    targets: Option<Vec<Utf8PathBuf>>,
     jobs: Option<usize>,
 ) -> Result<i32, Error> {
     let mut ninja_cmd = NinjaCmdBuilder::default();
 
     ninja_cmd
         .verbose(verbose)
-        .build_file(ninja_buildfile.to_str().unwrap())
+        .build_file(ninja_buildfile)
         .targets(targets);
 
     if let Some(jobs) = jobs {
@@ -84,7 +84,7 @@ fn ninja_run(
     match ninja_exit.code() {
         Some(code) => match code {
             0 => Ok(code),
-            _ => Err(anyhow!("ninja exited with code {}", code)),
+            _ => Err(anyhow!("ninja exited with code {code}")),
         },
         None => Err(anyhow!("ninja probably killed by signal")),
     }
@@ -94,7 +94,7 @@ fn main() {
     let result = try_main();
     match result {
         Err(e) => {
-            eprintln!("laze: error: {:#}", e);
+            eprintln!("laze: error: {e:#}");
             std::process::exit(1);
         }
         Ok(code) => std::process::exit(code),
@@ -139,7 +139,7 @@ fn try_main() -> Result<i32> {
             return Ok(0);
         }
         Some(("manpages", matches)) => {
-            fn create_manpage(cmd: clap::Command, outfile: &Path) -> Result<(), Error> {
+            fn create_manpage(cmd: clap::Command, outfile: &Utf8Path) -> Result<(), Error> {
                 let man = clap_mangen::Man::new(cmd);
                 let mut buffer: Vec<u8> = Default::default();
                 man.render(&mut buffer)?;
@@ -147,7 +147,8 @@ fn try_main() -> Result<i32> {
                 std::fs::write(outfile, buffer)?;
                 Ok(())
             }
-            let mut outpath: PathBuf = matches.get_one::<PathBuf>("outdir").unwrap().clone();
+            let mut outpath: Utf8PathBuf =
+                matches.get_one::<Utf8PathBuf>("outdir").unwrap().clone();
             let cmd = cli::clap();
 
             outpath.push("laze.1");
@@ -159,7 +160,7 @@ fn try_main() -> Result<i32> {
                 }
                 let name = subcommand.get_name();
                 outpath.pop();
-                outpath.push(format!("laze-{}.1", name));
+                outpath.push(format!("laze-{name}.1"));
                 create_manpage(subcommand.clone(), &outpath)?;
             }
 
@@ -168,31 +169,26 @@ fn try_main() -> Result<i32> {
         _ => (),
     }
 
-    if let Some(dir) = matches.get_one::<PathBuf>("chdir") {
-        env::set_current_dir(dir)
-            .context(format!("cannot change to directory \"{}\"", dir.display()))?;
+    if let Some(dir) = matches.get_one::<Utf8PathBuf>("chdir") {
+        env::set_current_dir(dir).context(format!("cannot change to directory \"{dir}\""))?;
     }
 
-    let cwd = env::current_dir()?;
+    let cwd = Utf8PathBuf::try_from(env::current_dir()?).expect("cwd not UTF8");
 
     let (project_root, project_file) = determine_project_root(&cwd)?;
-    let start_relpath = pathdiff::diff_paths(&cwd, &project_root).unwrap();
+    let start_relpath = pathdiff::diff_utf8_paths(&cwd, &project_root).unwrap();
 
     println!(
-        "laze: project root: {} relpath: {} project_file: {}",
-        project_root.display(),
-        start_relpath.display(),
-        project_file.display()
+        "laze: project root: {project_root} relpath: {start_relpath} project_file: {project_file}",
     );
 
     let global = matches.get_flag("global");
-    env::set_current_dir(&project_root)
-        .context(format!("cannot change to \"{}\"", &project_root.display()))?;
+    env::set_current_dir(&project_root).context(format!("cannot change to \"{project_root}\""))?;
 
     match matches.subcommand() {
         Some(("build", build_matches)) => {
             let verbose = build_matches.get_count("verbose");
-            let build_dir = build_matches.get_one::<PathBuf>("build-dir").unwrap();
+            let build_dir = build_matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
 
             // collect builder names from args
             let builders = match build_matches.get_many::<String>("builders") {
@@ -212,7 +208,7 @@ fn try_main() -> Result<i32> {
                 .get_one::<task_partitioner::PartitionerBuilder>("partition")
                 .map(|v| v.build());
 
-            println!("laze: building {} for {}", &apps, &builders);
+            println!("laze: building {apps} for {builders}");
 
             // collect CLI selected/disabled modules
             let select = get_selects(build_matches);
@@ -248,11 +244,8 @@ fn try_main() -> Result<i32> {
             if build_matches.get_flag("compile-commands") {
                 let mut compile_commands = project_root.clone();
                 compile_commands.push("compile_commands.json");
-                println!("generating {}", &compile_commands.to_string_lossy());
-                ninja::generate_compile_commands(
-                    ninja_build_file.as_path(),
-                    compile_commands.as_path(),
-                )?;
+                println!("laze: generating {compile_commands}");
+                ninja::generate_compile_commands(&ninja_build_file, &compile_commands)?;
             }
 
             // collect (optional) task and it's arguments
@@ -310,7 +303,7 @@ fn try_main() -> Result<i32> {
                 task.execute(project_root.as_ref(), args, verbose)?;
             } else {
                 // build ninja target arguments, if necessary
-                let targets: Option<Vec<PathBuf>> = if let Selector::All = builders {
+                let targets: Option<Vec<Utf8PathBuf>> = if let Selector::All = builders {
                     if let Selector::All = apps {
                         None
                     } else {
@@ -339,7 +332,7 @@ fn try_main() -> Result<i32> {
         Some(("clean", clean_matches)) => {
             let verbose = clean_matches.get_count("verbose");
             let unused = clean_matches.get_flag("unused");
-            let build_dir = clean_matches.get_one::<PathBuf>("build-dir").unwrap();
+            let build_dir = clean_matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
             let mode = match global {
                 true => GenerateMode::Global,
                 false => GenerateMode::Local(start_relpath),
@@ -349,7 +342,7 @@ fn try_main() -> Result<i32> {
                 true => "cleandead",
                 false => "clean",
             };
-            let clean_target: Option<Vec<PathBuf>> = Some(vec!["-t".into(), tool.into()]);
+            let clean_target: Option<Vec<Utf8PathBuf>> = Some(vec!["-t".into(), tool.into()]);
             ninja_run(ninja_build_file.as_path(), verbose > 0, clean_target, None)?;
         }
         _ => {}

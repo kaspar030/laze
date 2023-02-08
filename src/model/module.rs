@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::path::{Path, PathBuf};
 
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{indexset, IndexMap, IndexSet};
 
 use crate::build::ResolverResult;
@@ -37,10 +37,10 @@ pub struct Module {
 
     pub download: Option<download::Download>,
     pub context_id: Option<usize>,
-    pub defined_in: Option<PathBuf>,
-    pub relpath: Option<PathBuf>,
-    pub srcdir: Option<PathBuf>,
-    pub build_dep_files: Option<IndexSet<PathBuf>>,
+    pub defined_in: Option<Utf8PathBuf>,
+    pub relpath: Option<Utf8PathBuf>,
+    pub srcdir: Option<Utf8PathBuf>,
+    pub build_dep_files: Option<IndexSet<Utf8PathBuf>>,
     pub is_build_dep: bool,
     pub is_global_build_dep: bool,
     pub is_binary: bool,
@@ -257,7 +257,7 @@ impl Module {
 
     // adds a Ninja target name as build dependency for this target.
     // gets env expanded on module instantiation.
-    pub fn add_build_dep_file(&mut self, dep: &Path) {
+    pub fn add_build_dep_file(&mut self, dep: &Utf8Path) {
         if let Some(build_dep_files) = &mut self.build_dep_files {
             build_dep_files.insert(dep.to_owned());
         } else {
@@ -266,7 +266,7 @@ impl Module {
     }
 
     // returns all fixed and optional sources with srcdir prepended
-    // pub fn get_all_sources(&self, srcdir: PathBuf) -> Vec<PathBuf> {
+    // pub fn get_all_sources(&self, srcdir: Utf8PathBuf) -> Vec<Utf8PathBuf> {
     //     let mut res = self
     //         .sources
     //         .iter()
