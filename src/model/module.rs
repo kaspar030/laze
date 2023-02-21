@@ -82,30 +82,7 @@ impl Module {
         Module {
             name,
             context_name: context_name.unwrap_or_else(|| defaults.context_name.clone()),
-            selects: defaults.selects.clone(),
-            imports: defaults.imports.clone(),
-            provides: defaults.provides.clone(),
-            conflicts: defaults.conflicts.clone(),
-            notify_all: defaults.notify_all,
-            // exports: Vec::new(),
-            sources: defaults.sources.clone(),
-            build: defaults.build.clone(),
-            sources_optional: defaults.sources_optional.clone(),
-            env_local: defaults.env_local.clone(),
-            env_export: defaults.env_export.clone(),
-            env_global: defaults.env_global.clone(),
-            env_early: Env::new(),
-            context_id: None,
-            is_binary: false,
-            defined_in: None,
-            relpath: None,
-            blocklist: defaults.blocklist.clone(),
-            allowlist: defaults.blocklist.clone(),
-            download: defaults.download.clone(),
-            srcdir: defaults.srcdir.clone(),
-            build_dep_files: None,
-            is_build_dep: false,
-            is_global_build_dep: defaults.is_global_build_dep,
+            ..defaults.clone()
         }
     }
 
