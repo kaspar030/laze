@@ -1,20 +1,11 @@
 # Object Sharing
 
-_Object Sharing_ describes a feature of _laze_ where identically compiled objects
-are shared between builds.
+Object Sharing in laze
 
-Imagine both of "birthday_party" and "xmas_party" use the module "sound_system",
-and are both compiled for the same builder.
+Object Sharing is a useful feature of laze that enables the sharing of identical compiled objects between builds. This means that if two different builds are using the same module and are compiled for the same builder, laze will avoid compiling the module multiple times.
 
-When rendering a build plan, laze would place the objects of "sound_system" in a
-folder like `build/out/<builder>/<app>/src/sound_system`.
-But if laze can figure out that the objects are actually built identically, that
-would cause them to get built multiple times.
-Instead, laze places objects in `build/objects/<source_path>/filename.<hash>.o`,
-where `hash` represents the hash of the ninja build statement used to build the
-file. Laze also ensures that it doesn't add duplicate build statements.
+When generating a build plan, laze would normally place the objects of a module in a folder like `build/out/<builder>/<app>/src/<module>`. With Object Sharing enabled, laze will instead place objects in `build/objects/<source_path>/filename.<hash>.o`, where hash represents the hash of the ninja build statement used to build the file. In addition, laze makes sure that it doesn't include duplicate build statements.
 
-This scheme effectively and automatically makes laze apps share common objects
-without the need for user action.
+This scheme effectively and automatically makes laze apps share common objects, which eliminates the need for users to take any action to achieve this. In testing with the RIOT OS, this feature has reduced the number of built objects by approximately 30-40%.
 
-This has shown to reduce the number of built objects for the RIOT OS by ~30-40%.
+In summary, Object Sharing in laze is a powerful feature that streamlines the build process by avoiding the redundant compilation of identical objects. This can lead to significant time and resource savings for users, particularly in large-scale projects.
