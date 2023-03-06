@@ -328,20 +328,11 @@ exported environment will not be imported.</p>
 </li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="object-sharing"><a class="header" href="#object-sharing">Object Sharing</a></h1>
-<p><em>Object Sharing</em> describes a feature of <em>laze</em> where identically compiled objects
-are shared between builds.</p>
-<p>Imagine both of &quot;birthday_party&quot; and &quot;xmas_party&quot; use the module &quot;sound_system&quot;,
-and are both compiled for the same builder.</p>
-<p>When rendering a build plan, laze would place the objects of &quot;sound_system&quot; in a
-folder like <code>build/out/&lt;builder&gt;/&lt;app&gt;/src/sound_system</code>.
-But if laze can figure out that the objects are actually built identically, that
-would cause them to get built multiple times.
-Instead, laze places objects in <code>build/objects/&lt;source_path&gt;/filename.&lt;hash&gt;.o</code>,
-where <code>hash</code> represents the hash of the ninja build statement used to build the
-file. Laze also ensures that it doesn't add duplicate build statements.</p>
-<p>This scheme effectively and automatically makes laze apps share common objects
-without the need for user action.</p>
-<p>This has shown to reduce the number of built objects for the RIOT OS by ~30-40%.</p>
+<p>Object Sharing in laze</p>
+<p>Object Sharing is a useful feature of laze that enables the sharing of identical compiled objects between builds. This means that if two different builds are using the same module and are compiled for the same builder, laze will avoid compiling the module multiple times.</p>
+<p>When generating a build plan, laze would normally place the objects of a module in a folder like <code>build/out/&lt;builder&gt;/&lt;app&gt;/src/&lt;module&gt;</code>. With Object Sharing enabled, laze will instead place objects in <code>build/objects/&lt;source_path&gt;/filename.&lt;hash&gt;.o</code>, where hash represents the hash of the ninja build statement used to build the file. In addition, laze makes sure that it doesn't include duplicate build statements.</p>
+<p>This scheme effectively and automatically makes laze apps share common objects, which eliminates the need for users to take any action to achieve this. In testing with the RIOT OS, this feature has reduced the number of built objects by approximately 30-40%.</p>
+<p>In summary, Object Sharing in laze is a powerful feature that streamlines the build process by avoiding the redundant compilation of identical objects. This can lead to significant time and resource savings for users, particularly in large-scale projects.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="laze-file-reference"><a class="header" href="#laze-file-reference">Laze File Reference</a></h1>
 <p>This chapter contains the reference of laze's YAML build file format.</p>
 <p>TODO: it is currently incomplete ...</p>
