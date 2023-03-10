@@ -1,5 +1,9 @@
 pipeline:
   test:
+    when:
+      - event: pull_request
+      - event: push
+        branch: master
     image: rust:latest
     secrets: [COVERALLS_TOKEN]
     commands:
