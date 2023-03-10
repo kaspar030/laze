@@ -1,18 +1,9 @@
----
-kind: pipeline
-type: docker
-name: default
-
-clone:
-  git:
-  image: plugins/git:next
-
-steps:
+pipeline:
   - name: test
     image: rust:latest
+    secrets: [coverall_token]
     environment:
-      COVERALLS_TOKEN:
-        from_secret: COVERALL_TOKEN
+      COVERALLS_TOKEN: ${COVERALL_TOKEN}
     commands:
       - "#"
       - "# installing prerequisites"
@@ -84,8 +75,3 @@ steps:
 
         python3 dist/coveralls.py coveralls.json
         || true # temporarily allow an arror
----
-kind: signature
-hmac: 07183d90f3dd8bb51a07a74d44e1f840670a5054a02a107ced656fa63ed8741f
-
-...
