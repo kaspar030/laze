@@ -20,6 +20,8 @@ pipeline:
       - "#"
       - "# configure git"
       - git config --global init.defaultBranch main
+      - git config --global user.email "ci@riot-labs.de"
+      - git config --global user.name "CI"
 
       - "#"
       - "# compiling with stable rust"
