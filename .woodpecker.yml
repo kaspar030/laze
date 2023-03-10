@@ -1,9 +1,7 @@
 pipeline:
-  - name: test
+  test:
     image: rust:latest
-    secrets: [coverall_token]
-    environment:
-      COVERALLS_TOKEN: ${COVERALL_TOKEN}
+    secrets: [COVERALLS_TOKEN]
     commands:
       - "#"
       - "# installing prerequisites"
