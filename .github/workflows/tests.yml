@@ -1,23 +1,41 @@
 name: Run tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
 
     steps:
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.2
+      with:
+        version: "v0.4.0-pre.9"
+
+    - name: rust cache
+      uses: Swatinem/rust-cache@v2
+
+    - uses: taiki-e/install-action@v2
+      with:
+        tool: grcov,cargo-binstall
+
     - name: Check out repository code
       uses: actions/checkout@v3
 
     - name: "installing prerequisites"
       run: |
-        apt-get update
-        apt-get install -y ninja-build python3-requests
-        curl -L https://github.com/mozilla/grcov/releases/download/v0.8.2/grcov-linux-x86_64.tar.bz2 | tar jxf -
-        rustup toolchain install nightly
+        sudo apt-get install -y ninja-build python3-requests
         rustup +nightly component add llvm-tools-preview
-        cargo install --locked cargo-udeps
+        cargo binstall -y cargo-udeps
         git config --global init.defaultBranch main
         git config --global user.email "ci@riot-labs.de"
         git config --global user.name "CI"
@@ -28,44 +46,33 @@ jobs:
       run: cargo test --verbose --all
 
     - name: "stable end-to-end tests"
-      run: 'LAZE=$(pwd)/target/debug/laze make -C src/tests'
+      run: "LAZE=$(pwd)/target/debug/laze make -C src/tests"
 
     - name: "compiling with nightly rust"
-      run: 'RUSTFLAGS="-Cinstrument-coverage" cargo +nightly build'
+      run: "RUSTFLAGS=-Cinstrument-coverage cargo +nightly build"
 
-    # - "#"
-    # - "# nightly unittests"
-    # - "#"
-    # - 'RUSTFLAGS="-Cinstrument-coverage" cargo +nightly test'
+    - name: "nightly unittests"
+      run: "RUSTFLAGS=-Cinstrument-coverage cargo +nightly test"
 
-    # - "#"
-    # - "# end-to-end tests"
-    # - "#"
-    # - 'LAZE=$(pwd)/target/debug/laze make -C src/tests || true'
+    - name: "nightly end-to-end tests"
+      run: "LAZE=$(pwd)/target/debug/laze make -C src/tests"
 
-    # - "#"
-    # - "# checking for unused dependencies"
-    # - "#"
-    # - cargo +nightly udeps
+    - name: "checking for unused dependencies"
+      run: cargo +nightly udeps
 
-    # - "#"
-    # - "# uploading coverage results"
-    # - "#"
-    # - >
-    #   RUSTUP_TOOLCHAIN=nightly
-    #   ./grcov
-    #   $(find . -name 'default*profraw' -print)
-    #   --token $${COVERALLS_TOKEN}
-    #   --commit-sha $${DRONE_COMMIT}
-    #   --service-name drone.schleiser.de
-    #   --service-number $${DRONE_BUILD_NUMBER}
-    #   --vcs-branch $${DRONE_COMMIT_BRANCH}
-    #   --binary-path ./target/debug/laze
-    #   --branch
-    #   --output-path coveralls.json
-    #   --output-type coveralls+
-    #   --source-dir .
-    #     --ignore "/*" &&
+    - name: "collect coverage results"
+      run: >
+       RUSTUP_TOOLCHAIN=nightly
+       grcov
+       $(find . -name 'default*profraw' -print)
+       --binary-path ./target/debug/laze
+       --branch
+       --output-path ./lcov.info
+       --output-type lcov
+       --source-dir .
+       --ignore "/*"
 
-    #     python3 dist/coveralls.py coveralls.json
-    #     || true # temporarily allow an arror
+    - name: Coveralls
+      uses: coverallsapp/github-action@v1
+      with:
+        path-to-lcov: "lcov.info"
