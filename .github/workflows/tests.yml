@@ -35,7 +35,7 @@ jobs:
       run: |
         sudo apt-get install -y ninja-build python3-requests
         rustup +nightly component add llvm-tools-preview
-        cargo binstall -y cargo-udeps
+        cargo binstall -y --no-symlinks cargo-udeps
         git config --global init.defaultBranch main
         git config --global user.email "ci@riot-labs.de"
         git config --global user.name "CI"
