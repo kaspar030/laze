@@ -1,5 +1,5 @@
-[![Build Status](https://ci.riot-labs.de/api/badges/kaspar030/laze/status.svg)](https://ci.riot-labs.de/kaspar030/laze)
-[![dependency status](https://deps.rs/repo/github/kaspar030/laze/status.svg)](https://deps.rs/repo/github/kaspar030/laze)
+[![CI](https://github.com/kaspar030/laze/actions/workflows/tests.yml/badge.svg)](https://github.com/kaspar030/laze/actions/workflows/tests.yml)
+[![Dependency Status](https://deps.rs/repo/github/kaspar030/laze/status.svg)](https://deps.rs/repo/github/kaspar030/laze)
 [![Coverage Status](https://coveralls.io/repos/github/kaspar030/laze/badge.svg)](https://coveralls.io/github/kaspar030/laze)
 [![Packaging status](https://repology.org/badge/tiny-repos/laze.svg)](https://repology.org/project/laze/versions)
 [![latest packaged version(s)](https://repology.org/badge/latest-versions/laze.svg)](https://repology.org/project/laze/versions)
