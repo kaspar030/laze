@@ -9,6 +9,39 @@ on:
     - master
 
 jobs:
+  udeps:
+    runs-on: ubuntu-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+    steps:
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.2
+      with:
+        version: "v0.4.0-pre.9"
+
+    - name: rust cache
+      uses: Swatinem/rust-cache@v2
+
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+
+    - uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-binstall
+
+    - name: "installing cargo-udeps"
+      run: cargo binstall -y --no-symlinks cargo-udeps
+
+    - name: Check out repository code
+      uses: actions/checkout@v3
+
+    - name: "checking for unused dependencies"
+      run: cargo +nightly udeps
+
   test:
     runs-on: ubuntu-latest
     env:
@@ -35,13 +68,13 @@ jobs:
       run: |
         sudo apt-get install -y ninja-build python3-requests
         rustup +nightly component add llvm-tools-preview
-        cargo binstall -y --no-symlinks cargo-udeps
         git config --global init.defaultBranch main
         git config --global user.email "ci@riot-labs.de"
         git config --global user.name "CI"
 
     - name: "compiling with stable rust"
       run: cargo build
+
     - name: "stable unittests"
       run: cargo test --verbose --all
 
@@ -56,9 +89,6 @@ jobs:
 
     - name: "nightly end-to-end tests"
       run: "LAZE=$(pwd)/target/debug/laze make -C src/tests"
-
-    - name: "checking for unused dependencies"
-      run: cargo +nightly udeps
 
     - name: "collect coverage results"
       run: >
