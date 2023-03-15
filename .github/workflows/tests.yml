@@ -40,56 +40,55 @@ jobs:
       run: cargo +nightly udeps
 
   test:
+    strategy:
+      matrix:
+        toolchain: [ nightly, stable ]
     runs-on: ubuntu-latest
     env:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
 
     steps:
+    - name: Check out repository code
+      uses: actions/checkout@v3
+
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.toolchain }}
+        components: llvm-tools-preview
+
+    - name: rust cache
+      uses: Swatinem/rust-cache@v2
+
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.2
       with:
         version: "v0.4.0-pre.9"
 
-    - name: rust cache
-      uses: Swatinem/rust-cache@v2
-
     - uses: taiki-e/install-action@v2
       with:
         tool: grcov,cargo-binstall
 
-    - name: Check out repository code
-      uses: actions/checkout@v3
-
     - name: "installing prerequisites"
       run: |
         sudo apt-get install -y ninja-build python3-requests
-        rustup +nightly component add llvm-tools-preview
         git config --global init.defaultBranch main
         git config --global user.email "ci@riot-labs.de"
         git config --global user.name "CI"
 
-    - name: "compiling with stable rust"
-      run: cargo build
+    - name: "build"
+      run: "RUSTFLAGS=-Cinstrument-coverage cargo +${{ matrix.toolchain }} build"
 
-    - name: "stable unittests"
-      run: cargo test --verbose --all
+    - name: "unittests"
+      run: "RUSTFLAGS=-Cinstrument-coverage cargo +${{ matrix.toolchain }} test"
 
-    - name: "stable end-to-end tests"
-      run: "LAZE=$(pwd)/target/debug/laze make -C src/tests"
-
-    - name: "compiling with nightly rust"
-      run: "RUSTFLAGS=-Cinstrument-coverage cargo +nightly build"
-
-    - name: "nightly unittests"
-      run: "RUSTFLAGS=-Cinstrument-coverage cargo +nightly test"
-
-    - name: "nightly end-to-end tests"
+    - name: "end-to-end tests"
       run: "LAZE=$(pwd)/target/debug/laze make -C src/tests"
 
     - name: "collect coverage results"
+      if: ${{ matrix.toolchain == 'nightly' }}
       run: >
-       RUSTUP_TOOLCHAIN=nightly
+       RUSTUP_TOOLCHAIN=${{ matrix.toolchain }}
        grcov
        $(find . -name 'default*profraw' -print)
        --binary-path ./target/debug/laze
@@ -100,6 +99,7 @@ jobs:
        --ignore "/*"
 
     - name: Coveralls
+      if: ${{ matrix.toolchain == 'nightly' }}
       uses: coverallsapp/github-action@v1
       with:
         path-to-lcov: "lcov.info"
