@@ -29,13 +29,13 @@ jobs:
         tool: cargo-binstall
 
     - name: "installing cargo-udeps"
-      run: cargo binstall -y --no-symlinks cargo-udeps
+      run: cargo binstall -y --no-symlinks --force cargo-udeps
 
     - name: Check out repository code
       uses: actions/checkout@v3
 
     - name: "checking for unused dependencies"
-      run: cargo +nightly udeps
+      run: which cargo-udeps && ls ~/.cargo/bin && cargo +nightly udeps
 
   test:
     strategy:
