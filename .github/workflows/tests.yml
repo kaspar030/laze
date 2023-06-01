@@ -35,7 +35,7 @@ jobs:
       uses: actions/checkout@v3
 
     - name: "checking for unused dependencies"
-      run: which cargo-udeps && ls ~/.cargo/bin && cargo +nightly udeps
+      run: cargo +nightly udeps
 
   test:
     strategy:
