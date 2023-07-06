@@ -36,7 +36,7 @@ solvent = { version = "0.8.3", features = ["deterministic"] }
 url = "2.4.0"
 rust-embed = "6.8.1"
 task_partitioner = "0.1.1"
-clap_complete = "4.3.1"
+clap_complete = "4.3.2"
 clap_mangen = "0.2.12"
 camino = { version = "1.1.4", features = ["serde1"] }
 
