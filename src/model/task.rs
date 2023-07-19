@@ -30,6 +30,7 @@ impl Task {
             use shell_words::join;
             use std::process::Command;
             let mut command = Command::new("sh");
+            let cmd = cmd.replace("$$", "$");
             if verbose > 0 {
                 command.arg("-x");
             }
@@ -55,19 +56,15 @@ impl Task {
         Ok(())
     }
 
-    pub fn with_env(&self, env: &im::HashMap<&String, String>) -> Task {
-        Task {
+    pub fn with_env(&self, env: &im::HashMap<&String, String>) -> Result<Task, Error> {
+        Ok(Task {
             build: self.build,
             cmd: self
                 .cmd
                 .iter()
-                .map(|cmd| {
-                    nested_env::expand(cmd, env, nested_env::IfMissing::Ignore)
-                        .unwrap()
-                        .replace("$$", "$")
-                })
-                .collect(),
+                .map(|cmd| nested_env::expand(cmd, env, nested_env::IfMissing::Ignore))
+                .collect::<Result<Vec<String>, _>>()?,
             ignore_ctrl_c: self.ignore_ctrl_c,
-        }
+        })
     }
 }

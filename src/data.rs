@@ -384,8 +384,16 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             context_.tasks = Some(
                 tasks
                     .iter()
-                    .map(|(name, task)| (name.clone(), task.with_env(&flattened_early_env)))
-                    .collect(),
+                    .map(|(name, task)| {
+                        let task = task.with_env(&flattened_early_env);
+                        match task {
+                            Ok(task) => Ok((name.clone(), task)),
+                            Err(e) => Err(e),
+                        }
+                        .with_context(|| format!("task \"{}\"", name.clone()))
+                    })
+                    .collect::<Result<_, _>>()
+                    .with_context(|| format!("{:?} context \"{}\"", &filename, context.name))?,
             )
         }
 

@@ -1,3 +1,4 @@
+use anyhow::{Context as _, Error};
 use indexmap::{IndexMap, IndexSet};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -135,18 +136,22 @@ impl Context {
         &self,
         contexts: &ContextBag,
         env: &im::HashMap<&String, String>,
-    ) -> IndexMap<String, Task> {
+    ) -> Result<IndexMap<String, Task>, Error> {
         let mut result = IndexMap::new();
         let mut parents = Vec::new();
         self.get_parents(contexts, &mut parents);
         for parent in parents {
             if let Some(tasks) = &parent.tasks {
                 for (name, task) in tasks {
-                    result.insert(name.clone(), task.with_env(env));
+                    result.insert(
+                        name.clone(),
+                        task.with_env(env)
+                            .with_context(|| format!("task \"{}\"", name))?,
+                    );
                 }
             }
         }
-        result
+        Ok(result)
     }
 
     pub fn collect_disabled_modules(&self, contexts: &ContextBag) -> IndexSet<String> {
