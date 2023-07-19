@@ -1,0 +1,18 @@
+builddir = build
+build ALWAYS: phony
+rule CC_14556393563797253018
+  command = echo result = 2  ${in} > ${out}
+  description = CC
+
+build build/objects/single_app.7419491670495048065.o: $
+    CC_14556393563797253018 $
+    single_app.c
+
+rule LINK_5506617845631750009
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build/single_builder/single_app/single_app.elf: $
+    LINK_5506617845631750009 $
+    build/objects/single_app.7419491670495048065.o
+
