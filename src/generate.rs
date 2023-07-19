@@ -10,7 +10,7 @@ use std::hash::Hasher;
 use std::io::prelude::*;
 use std::time::Instant;
 
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -212,18 +212,21 @@ impl Generator {
                     self.disable.as_ref(),
                     &self.cli_env.as_ref(),
                 )
-                .unwrap()
+                .with_context(|| format!("binary \"{}\"", bin.name))
+                .with_context(|| format!("builder \"{}\"", builder.name))
                 {
-                    Some((build_info, ninja_entries)) => Some((
+                    Ok(Some((build_info, ninja_entries))) => Some(Ok((
                         builder.name.clone(),
                         bin.name.clone(),
                         build_info,
                         ninja_entries,
-                    )),
-                    _ => None,
+                    ))),
+                    Ok(None) => None,
+                    Err(e) => Some(Err(e)),
                 }
             })
-            .collect::<Vec<(String, String, BuildInfo, IndexSet<String>)>>();
+            .collect::<Result<Vec<(String, String, BuildInfo, IndexSet<String>)>, anyhow::Error>>(
+            )?;
 
         let mut combined_ninja_entries = IndexSet::new();
         let builds = builds
