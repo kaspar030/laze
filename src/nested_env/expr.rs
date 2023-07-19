@@ -2,6 +2,16 @@ use std::borrow::Cow;
 
 use evalexpr::EvalexprError;
 
+pub trait Eval {
+    fn eval(&self) -> Result<String, EvalexprError>;
+}
+
+impl Eval for String {
+    fn eval(&self) -> Result<Self, EvalexprError> {
+        Ok(eval(self)?.into())
+    }
+}
+
 pub fn eval<'a>(input: &'a str) -> Result<Cow<'a, str>, EvalexprError> {
     if input.contains("$(") {
         eval_recursive(input, false)

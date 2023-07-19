@@ -3,6 +3,7 @@ use itertools::join;
 
 mod expand;
 mod expr;
+use expr::Eval;
 
 pub use expand::{expand, IfMissing};
 
@@ -39,8 +40,8 @@ impl EnvKey {
 
     fn flatten(&self) -> String {
         match self {
-            EnvKey::Single(s) => expr::eval(s).unwrap().to_string(),
-            EnvKey::List(list) => expr::eval(&join(list, " ")).unwrap().to_string(),
+            EnvKey::Single(s) => s.eval().unwrap(),
+            EnvKey::List(list) => join(list, " ").eval().unwrap(),
         }
     }
 
@@ -90,7 +91,7 @@ impl EnvKey {
         if let Some(end) = &opts.end {
             res.push_str(&end[..]);
         }
-        res
+        res.eval().unwrap()
     }
 }
 
