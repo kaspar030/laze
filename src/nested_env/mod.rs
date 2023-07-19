@@ -39,8 +39,8 @@ impl EnvKey {
 
     fn flatten(&self) -> String {
         match self {
-            EnvKey::Single(s) => s.clone(),
-            EnvKey::List(list) => join(list, " "),
+            EnvKey::Single(s) => expr::eval(s).unwrap().to_string(),
+            EnvKey::List(list) => expr::eval(&join(list, " ")).unwrap().to_string(),
         }
     }
 

@@ -1,17 +1,14 @@
 /* this is based on "far" (https://forge.typ3.tech/charles/far) */
 
-use evalexpr::EvalexprError;
 use im::HashMap;
-use std::borrow::Cow;
 use std::error;
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExpandError {
     Missing(String),
     Unclosed(usize),
     Cycle(String),
-    Expr(EvalexprError),
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -28,7 +25,6 @@ impl fmt::Display for ExpandError {
             ExpandError::Missing(s) => write!(f, "missing variable \"{}\"", s),
             ExpandError::Cycle(s) => write!(f, "cycle involving variable \"{}\"", s),
             ExpandError::Unclosed(start) => write!(f, "unclosed brace at pos {}", start),
-            ExpandError::Expr(e) => write!(f, "expression error: {}", e),
         }
     }
 }
@@ -147,12 +143,7 @@ where
         result = result.replace("\\${", "${");
     }
 
-    let evaluated = super::expr::eval(&result);
-    match evaluated {
-        Ok(Cow::Owned(s)) => Ok(s),
-        Err(e) => Err(ExpandError::Expr(e)),
-        _ => Ok(result),
-    }
+    Ok(result)
 }
 
 #[cfg(test)]
