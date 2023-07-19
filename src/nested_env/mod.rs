@@ -2,6 +2,7 @@ use im::{vector, HashMap, Vector};
 use itertools::join;
 
 mod expand;
+mod expr;
 
 pub use expand::{expand, IfMissing};
 
