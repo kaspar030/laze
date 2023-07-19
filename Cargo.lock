@@ -366,6 +366,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "evalexpr"
+version = "11.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec3b4e80fd8edee77d6fc35d59862d5765dae7512a95f49fd7bf03847c85b26a"
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -541,6 +547,7 @@ dependencies = [
  "clap_complete",
  "clap_mangen",
  "derive_builder",
+ "evalexpr",
  "im",
  "indexmap 1.9.3",
  "itertools",
