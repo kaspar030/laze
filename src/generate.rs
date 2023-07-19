@@ -835,7 +835,7 @@ fn configure_build(
     global_env_flattened.insert(&out_string, outfile.to_string());
     let tasks = build
         .build_context
-        .collect_tasks(contexts, &global_env_flattened);
+        .collect_tasks(contexts, &global_env_flattened)?;
 
     Ok(Some((
         BuildInfo {
