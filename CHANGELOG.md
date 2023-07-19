@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- allow basic expressions in variables and task commands
+  This is using the `evalexpr` crate. Expressions are used make-style
+  by wrapping them in `$()`, e.g., `$(1+2)`.
+
 - cli: drop "tasks" cli subcommand, add tasks to "build"
   Instead of `laze task ... <task-name> [<task args>]`, just do
   `laze build ... <task-name> [<task args>]`.
