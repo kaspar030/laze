@@ -387,7 +387,8 @@ fn configure_build(
 
     let tmp = global_env.clone();
     let out_string = String::from("out");
-    let mut global_env_flattened = nested_env::flatten_with_opts_option(&tmp, merge_opts.as_ref());
+    let mut global_env_flattened =
+        nested_env::flatten_with_opts_option(&tmp, merge_opts.as_ref()).context("global env")?;
 
     // build application file name
     let outfile = Utf8PathBuf::from(
@@ -484,7 +485,8 @@ fn configure_build(
     // now handle each module
     for (module, module_env, module_build_deps) in modules_in_build_order.iter() {
         // finalize this module's environment
-        let flattened_env = nested_env::flatten_with_opts_option(module_env, merge_opts.as_ref());
+        let flattened_env = nested_env::flatten_with_opts_option(module_env, merge_opts.as_ref())
+            .with_context(|| format!("module \"{}\"", module.name))?;
 
         // handle possible remote sources
         let download_rules = download::handle_module(module, &build_dir, rules, &flattened_env)?;

@@ -62,7 +62,7 @@ impl Task {
             cmd: self
                 .cmd
                 .iter()
-                .map(|cmd| nested_env::expand(cmd, env, nested_env::IfMissing::Ignore))
+                .map(|cmd| nested_env::expand_eval(cmd, env, nested_env::IfMissing::Ignore))
                 .collect::<Result<Vec<String>, _>>()?,
             ignore_ctrl_c: self.ignore_ctrl_c,
         })

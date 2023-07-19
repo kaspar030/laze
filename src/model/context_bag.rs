@@ -128,7 +128,7 @@ impl ContextBag {
             } else {
                 None
             };
-            let mut context = &mut self.contexts[n];
+            let context = &mut self.contexts[n];
             if context.var_options.is_none() {
                 context.var_options = combined_var_opts;
             }
