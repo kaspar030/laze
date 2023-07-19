@@ -1,11 +1,13 @@
+use anyhow::{Context, Error};
+use evalexpr::EvalexprError;
 use im::{vector, HashMap, Vector};
 use itertools::join;
 
 mod expand;
 mod expr;
-use expr::Eval;
+pub use expr::Eval;
 
-pub use expand::{expand, IfMissing};
+pub use expand::{expand, expand_eval, IfMissing};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(untagged)]
@@ -38,14 +40,14 @@ impl EnvKey {
         }
     }
 
-    fn flatten(&self) -> String {
+    fn flatten(&self) -> Result<String, EvalexprError> {
         match self {
-            EnvKey::Single(s) => s.eval().unwrap(),
-            EnvKey::List(list) => join(list, " ").eval().unwrap(),
+            EnvKey::Single(s) => s.eval(),
+            EnvKey::List(list) => join(list, " ").eval(),
         }
     }
 
-    fn flatten_with_opts(&self, opts: &MergeOption) -> String {
+    fn flatten_with_opts(&self, opts: &MergeOption) -> Result<String, EvalexprError> {
         let mut res = String::new();
         if let Some(start) = &opts.start {
             res.push_str(start);
@@ -91,7 +93,7 @@ impl EnvKey {
         if let Some(end) = &opts.end {
             res.push_str(&end[..]);
         }
-        res.eval().unwrap()
+        res.eval()
     }
 }
 
@@ -103,34 +105,44 @@ pub fn merge(lower: Env, upper: Env) -> Env {
     })
 }
 
-pub fn flatten(env: &Env) -> HashMap<&String, String> {
+pub fn flatten(env: &Env) -> Result<HashMap<&String, String>, Error> {
     env.iter()
-        .map(|(key, value)| (key, value.flatten()))
-        .collect()
+        .map(|(key, value)| {
+            match value.flatten() {
+                Ok(v) => Ok((key, v)),
+                Err(e) => Err(e),
+            }
+            .with_context(|| format!("variable \"{key}\""))
+        })
+        .collect::<Result<HashMap<_, _>, Error>>()
 }
 
 pub fn flatten_with_opts<'a>(
     env: &'a Env,
     merge_opts: &HashMap<String, MergeOption>,
-) -> HashMap<&'a String, String> {
+) -> Result<HashMap<&'a String, String>, Error> {
     env.iter()
         .map(|(key, value)| {
-            (
-                key,
-                if let Some(merge_opts) = merge_opts.get(key) {
-                    value.flatten_with_opts(merge_opts)
-                } else {
-                    value.flatten()
-                },
-            )
+            if let Some(merge_opts) = merge_opts.get(key) {
+                match value.flatten_with_opts(merge_opts) {
+                    Ok(v) => Ok((key, v)),
+                    Err(e) => Err(e),
+                }
+            } else {
+                match value.flatten() {
+                    Ok(v) => Ok((key, v)),
+                    Err(e) => Err(e),
+                }
+            }
+            .with_context(|| format!("variable \"{key}\""))
         })
-        .collect()
+        .collect::<Result<_, _>>()
 }
 
 pub fn flatten_with_opts_option<'a>(
     env: &'a Env,
     merge_opts: Option<&HashMap<String, MergeOption>>,
-) -> HashMap<&'a String, String> {
+) -> Result<HashMap<&'a String, String>, Error> {
     if let Some(merge_opts) = merge_opts {
         flatten_with_opts(env, merge_opts)
     } else {
@@ -145,8 +157,8 @@ pub fn flatten_with_opts_option<'a>(
 //         .collect()
 // }
 
-pub fn expand_env(env: &Env, values: &Env) -> Env {
-    let values = flatten(values);
+pub fn expand_env(env: &Env, values: &Env) -> Result<Env, Error> {
+    let values = flatten(values)?;
 
     fn expand_envkey(envkey: &EnvKey, values: &HashMap<&String, String>) -> EnvKey {
         match envkey {
@@ -159,9 +171,10 @@ pub fn expand_env(env: &Env, values: &Env) -> Env {
         }
     }
 
-    env.iter()
+    Ok(env
+        .iter()
         .map(|(key, val)| (key.clone(), expand_envkey(val, &values)))
-        .collect()
+        .collect())
 }
 
 pub fn assign_from_string(env: Env, assignment: &str) -> Result<Env, anyhow::Error> {
@@ -358,7 +371,7 @@ mod tests {
             },
         );
 
-        let flattened = flatten_with_opts(&env, &merge_opts);
+        let flattened = flatten_with_opts(&env, &merge_opts).unwrap();
 
         assert_eq!(
             flattened.get(&"mykey".to_string()).unwrap(),
