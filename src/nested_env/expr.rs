@@ -3,7 +3,11 @@ use std::borrow::Cow;
 use evalexpr::EvalexprError;
 
 pub fn eval<'a>(input: &'a str) -> Result<Cow<'a, str>, EvalexprError> {
-    eval_recursive(input, false)
+    if input.contains("$(") {
+        eval_recursive(input, false)
+    } else {
+        Ok(input.into())
+    }
 }
 
 fn eval_recursive<'a>(input: &'a str, is_eval: bool) -> Result<Cow<'a, str>, EvalexprError> {
