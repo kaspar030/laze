@@ -1,5 +1,6 @@
 /* this is based on "far" (https://forge.typ3.tech/charles/far) */
 
+use anyhow::Error;
 use im::HashMap;
 use std::error;
 use std::fmt;
@@ -47,6 +48,20 @@ where
 {
     let seen = Vec::new();
     expand_recursive::<SI, H>(f, r, seen, if_missing)
+}
+
+pub fn expand_eval<SI, H>(
+    f: SI,
+    r: &HashMap<&String, String, H>,
+    if_missing: IfMissing,
+) -> Result<String, Error>
+where
+    SI: AsRef<str>,
+    H: std::hash::BuildHasher,
+{
+    use crate::nested_env::Eval;
+    let seen = Vec::new();
+    Ok(expand_recursive::<SI, H>(f, r, seen, if_missing)?.eval()?)
 }
 
 fn expand_recursive<'a, SI: 'a, H>(
