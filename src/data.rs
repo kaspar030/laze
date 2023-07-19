@@ -329,7 +329,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         //     context_name,
         //     context_parent,
         // );
-        let mut context_ = contexts
+        let context_ = contexts
             .add_context_or_builder(
                 Context::new(
                     context_name.clone(),
@@ -380,7 +380,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         }
 
         if let Some(tasks) = &context.tasks {
-            let flattened_early_env = crate::nested_env::flatten(&context_.env_early);
+            let flattened_early_env = crate::nested_env::flatten(&context_.env_early)?;
             context_.tasks = Some(
                 tasks
                     .iter()
@@ -397,7 +397,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             )
         }
 
-        context_.apply_early_env();
+        context_.apply_early_env()?;
 
         context_.defined_in = Some(filename.clone());
 
@@ -669,7 +669,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         );
 
         m.env_local = crate::nested_env::merge(m.env_local, m.env_early.clone());
-        m.apply_early_env();
+        m.apply_early_env()?;
 
         if is_binary {
             m.env_global

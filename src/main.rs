@@ -94,7 +94,23 @@ fn main() {
     let result = try_main();
     match result {
         Err(e) => {
-            eprintln!("laze: error: {e:#}");
+            if let Some(expr_err) = e.downcast_ref::<evalexpr::EvalexprError>() {
+                // make expression errors more readable.
+                // TODO: factor out
+                eprintln!("laze: expression error: {expr_err}");
+                eprintln!("laze: the error occured here:");
+                let mut iter = e.chain().peekable();
+                let mut i = 0;
+                while let Some(next) = iter.next() {
+                    if iter.peek().is_none() {
+                        break;
+                    }
+                    eprintln!("{i:>5}: {next}");
+                    i += 1;
+                }
+            } else {
+                eprintln!("laze: error: {e:#}");
+            }
             std::process::exit(1);
         }
         Ok(code) => std::process::exit(code),

@@ -182,10 +182,11 @@ impl Context {
         result
     }
 
-    pub fn apply_early_env(&mut self) {
+    pub fn apply_early_env(&mut self) -> Result<(), Error> {
         if let Some(env) = &self.env {
-            self.env = Some(crate::nested_env::expand_env(env, &self.env_early));
+            self.env = Some(crate::nested_env::expand_env(env, &self.env_early)?);
         }
+        Ok(())
     }
 }
 
