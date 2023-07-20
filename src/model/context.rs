@@ -143,6 +143,11 @@ impl Context {
         for parent in parents {
             if let Some(tasks) = &parent.tasks {
                 for (name, task) in tasks {
+                    if let Some(required_vars) = &task.required_vars {
+                        if required_vars.iter().any(|x| !env.contains_key(x)) {
+                            continue;
+                        }
+                    }
                     result.insert(
                         name.clone(),
                         task.with_env(env)

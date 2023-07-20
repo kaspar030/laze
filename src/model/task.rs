@@ -9,6 +9,7 @@ use crate::IGNORE_SIGINT;
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct Task {
     cmd: Vec<String>,
+    pub required_vars: Option<Vec<String>>,
     #[serde(default = "default_as_true")]
     build: bool,
     #[serde(default = "default_as_false")]
@@ -65,6 +66,7 @@ impl Task {
                 .map(|cmd| nested_env::expand_eval(cmd, env, nested_env::IfMissing::Ignore))
                 .collect::<Result<Vec<String>, _>>()?,
             ignore_ctrl_c: self.ignore_ctrl_c,
+            required_vars: self.required_vars.clone(),
         })
     }
 }
