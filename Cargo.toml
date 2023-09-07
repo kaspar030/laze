@@ -37,7 +37,7 @@ url = "2.4.1"
 rust-embed = "8.0.0"
 task_partitioner = "0.1.1"
 
-clap_complete = "4.4.0"
+clap_complete = "4.4.1"
 clap_mangen = "0.2.13"
 camino = { version = "1.1.6", features = ["serde1"] }
 evalexpr = "11.1.0"
