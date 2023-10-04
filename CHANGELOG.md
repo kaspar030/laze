@@ -9,12 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- implement task `required_vars`
-  This allows task availability depend on the existence of global variables.
-
-- allow basic expressions in variables and task commands
+- BREAKING: allow basic expressions in variables and task commands
   This is using the `evalexpr` crate. Expressions are used make-style
   by wrapping them in `$()`, e.g., `$(1+2)`.
+
+  This requires previous `$(echo foo)` meant to be subshells to be escaped:
+  `$$(echo foo)`.
+
+- implement task `required_vars`
+  This allows task availability depend on the existence of global variables.
 
 - cli: drop "tasks" cli subcommand, add tasks to "build"
   Instead of `laze task ... <task-name> [<task args>]`, just do
