@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.17] - 2023-10-06
+
 ### Fixed
 
 - fixed expression evaluation for tasks
@@ -190,7 +192,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 <!-- next-url -->
-[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.16...HEAD
+[Unreleased]: https://github.com/assert-rs/predicates-rs/compare/0.1.17...HEAD
+[0.1.17]: https://github.com/kaspar030/laze/compare/0.1.16...0.1.17
 [0.1.16]: https://github.com/kaspar030/laze/compare/0.1.15...0.1.16
 [0.1.15]: https://github.com/kaspar030/laze/compare/0.1.14...0.1.15
 [0.1.14]: https://github.com/kaspar030/laze/compare/0.1.13...0.1.14
