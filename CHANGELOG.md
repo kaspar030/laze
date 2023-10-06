@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.17]
 
 ### Changed
+
 ### Fixed
+
+- fixed expression evaluation for tasks
 
 ## [0.1.16]
 
