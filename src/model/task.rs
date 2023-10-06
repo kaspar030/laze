@@ -57,16 +57,30 @@ impl Task {
         Ok(())
     }
 
-    pub fn with_env(&self, env: &im::HashMap<&String, String>) -> Result<Task, Error> {
+    fn _with_env(&self, env: &im::HashMap<&String, String>, do_eval: bool) -> Result<Task, Error> {
         Ok(Task {
             build: self.build,
             cmd: self
                 .cmd
                 .iter()
-                .map(|cmd| nested_env::expand_eval(cmd, env, nested_env::IfMissing::Ignore))
+                .map(|cmd| {
+                    if do_eval {
+                        nested_env::expand_eval(cmd, env, nested_env::IfMissing::Ignore)
+                    } else {
+                        nested_env::expand(cmd, env, nested_env::IfMissing::Ignore)
+                    }
+                })
                 .collect::<Result<Vec<String>, _>>()?,
             ignore_ctrl_c: self.ignore_ctrl_c,
             required_vars: self.required_vars.clone(),
         })
+    }
+
+    pub fn with_env(&self, env: &im::HashMap<&String, String>) -> Result<Task, Error> {
+        self._with_env(env, false)
+    }
+
+    pub fn with_env_eval(&self, env: &im::HashMap<&String, String>) -> Result<Task, Error> {
+        self._with_env(env, true)
     }
 }
