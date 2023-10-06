@@ -42,8 +42,8 @@ impl EnvKey {
 
     fn flatten(&self) -> Result<String, EvalexprError> {
         match self {
-            EnvKey::Single(s) => s.eval(),
-            EnvKey::List(list) => join(list, " ").eval(),
+            EnvKey::Single(s) => Ok(s.clone()),
+            EnvKey::List(list) => Ok(join(list, " ")),
         }
     }
 
@@ -93,7 +93,7 @@ impl EnvKey {
         if let Some(end) = &opts.end {
             res.push_str(&end[..]);
         }
-        res.eval()
+        Ok(res)
     }
 }
 
