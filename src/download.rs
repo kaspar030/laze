@@ -91,7 +91,7 @@ impl Download {
             None => panic!("missing {} rule for module {}", rulename, module.name),
         };
 
-        let expanded = nested_env::expand(&download_rule.cmd, env, IfMissing::Ignore).unwrap();
+        let expanded = nested_env::expand_eval(&download_rule.cmd, env, IfMissing::Ignore)?;
 
         let ninja_download_rule = download_rule.to_ninja().command(expanded).build().unwrap();
 
@@ -135,7 +135,7 @@ impl Download {
             None => panic!("missing {} rule for module {}", rulename, module.name),
         };
 
-        let expanded = nested_env::expand(&patch_rule.cmd, env, IfMissing::Ignore).unwrap();
+        let expanded = nested_env::expand_eval(&patch_rule.cmd, env, IfMissing::Ignore).unwrap();
 
         let ninja_patch_rule = patch_rule.to_ninja().command(expanded).build().unwrap();
 

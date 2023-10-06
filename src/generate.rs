@@ -607,7 +607,8 @@ fn configure_build(
             //
             // ... becomes `echo foo && echo bar` as ninja build command.
             let build_cmd = &build.cmd.join(" && ");
-            let expanded = nested_env::expand(build_cmd, &flattened_env, IfMissing::Empty).unwrap();
+            let expanded =
+                nested_env::expand_eval(build_cmd, &flattened_env, IfMissing::Empty).unwrap();
 
             // create custom build ninja rule
             let rule = NinjaRuleBuilder::default()
@@ -628,7 +629,7 @@ fn configure_build(
                     let mut srcpath = srcdir.clone();
                     srcpath.push(source);
                     Utf8PathBuf::from(
-                        nested_env::expand(srcpath, &flattened_env, IfMissing::Empty).unwrap(),
+                        nested_env::expand_eval(srcpath, &flattened_env, IfMissing::Empty).unwrap(),
                     )
                 })
                 .collect_vec();
@@ -642,7 +643,7 @@ fn configure_build(
                 outs.iter()
                     .map(|out| {
                         let out = Utf8PathBuf::from(
-                            nested_env::expand(out, &flattened_env, IfMissing::Empty).unwrap(),
+                            nested_env::expand_eval(out, &flattened_env, IfMissing::Empty).unwrap(),
                         );
                         out.hash(&mut hasher);
                         Cow::from(out)
@@ -715,7 +716,8 @@ fn configure_build(
                     })?;
 
                     let expanded =
-                        nested_env::expand(&rule.cmd, &flattened_env, IfMissing::Empty).unwrap();
+                        nested_env::expand_eval(&rule.cmd, &flattened_env, IfMissing::Empty)
+                            .unwrap();
 
                     let rule = rule.to_ninja().command(expanded).build().unwrap().named();
                     ninja_entries.insert(format!("{rule}"));
@@ -731,7 +733,7 @@ fn configure_build(
 
                 // expand variables in source path
                 let srcpath = Utf8PathBuf::from(
-                    nested_env::expand(srcpath, &flattened_env, IfMissing::Empty).unwrap(),
+                    nested_env::expand_eval(srcpath, &flattened_env, IfMissing::Empty).unwrap(),
                 );
 
                 // 2. find ninja rule by lookup of the source file's extension
@@ -810,7 +812,8 @@ fn configure_build(
             .ok_or_else(|| anyhow!("missing LINK rule for builder {}", builder.name))?;
 
         let expanded =
-            nested_env::expand(&link_rule.cmd, &global_env_flattened, IfMissing::Empty).unwrap();
+            nested_env::expand_eval(&link_rule.cmd, &global_env_flattened, IfMissing::Empty)
+                .unwrap();
 
         let ninja_link_rule = link_rule
             .to_ninja()
