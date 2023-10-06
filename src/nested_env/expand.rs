@@ -1,15 +1,16 @@
 /* this is based on "far" (https://forge.typ3.tech/charles/far) */
 
-use anyhow::Error;
+use evalexpr::EvalexprError;
 use im::HashMap;
 use std::error;
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ExpandError {
     Missing(String),
     Unclosed(usize),
     Cycle(String),
+    Expr(EvalexprError),
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -26,6 +27,7 @@ impl fmt::Display for ExpandError {
             ExpandError::Missing(s) => write!(f, "missing variable \"{}\"", s),
             ExpandError::Cycle(s) => write!(f, "cycle involving variable \"{}\"", s),
             ExpandError::Unclosed(start) => write!(f, "unclosed brace at pos {}", start),
+            ExpandError::Expr(e) => write!(f, "expression error: {}", e),
         }
     }
 }
@@ -47,21 +49,23 @@ where
     H: std::hash::BuildHasher,
 {
     let seen = Vec::new();
-    expand_recursive::<SI, H>(f, r, seen, if_missing)
+    Ok(expand_recursive::<SI, H>(f, r, seen, if_missing)?)
 }
 
 pub fn expand_eval<SI, H>(
     f: SI,
     r: &HashMap<&String, String, H>,
     if_missing: IfMissing,
-) -> Result<String, Error>
+) -> Result<String, ExpandError>
 where
     SI: AsRef<str>,
     H: std::hash::BuildHasher,
 {
     use crate::nested_env::Eval;
     let seen = Vec::new();
-    Ok(expand_recursive::<SI, H>(f, r, seen, if_missing)?.eval()?)
+    Ok(expand_recursive::<SI, H>(f, r, seen, if_missing)?
+        .eval()
+        .map_err(|e| ExpandError::Expr(e)))?
 }
 
 fn expand_recursive<'a, SI: 'a, H>(
