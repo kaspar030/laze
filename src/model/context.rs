@@ -150,7 +150,7 @@ impl Context {
                     }
                     result.insert(
                         name.clone(),
-                        task.with_env(env)
+                        task.with_env_eval(env)
                             .with_context(|| format!("task \"{}\"", name))?,
                     );
                 }
