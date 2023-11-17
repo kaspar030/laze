@@ -297,7 +297,7 @@ pub fn generate_compile_commands(
 #[builder(setter(into))]
 pub struct NinjaCmd<'a> {
     #[builder(setter(into), default = "Utf8Path::new(\"ninja\")")]
-    binary: &'a Utf8Path,
+    pub binary: &'a Utf8Path,
 
     #[builder(setter(into), default = "Utf8Path::new(\"build.ninja\")")]
     build_file: &'a Utf8Path,

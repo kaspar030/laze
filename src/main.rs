@@ -79,7 +79,11 @@ fn ninja_run(
         ninja_cmd.jobs(jobs);
     }
 
-    let ninja_exit = ninja_cmd.build().unwrap().run()?;
+    let ninja_cmd = ninja_cmd.build().unwrap();
+    let ninja_binary = ninja_cmd.binary;
+    let ninja_exit = ninja_cmd
+        .run()
+        .with_context(|| format!("launching ninja binary \"{}\"", ninja_binary))?;
 
     match ninja_exit.code() {
         Some(code) => match code {
