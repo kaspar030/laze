@@ -1,15 +1,18 @@
+use std::collections::HashMap;
 use std::path::Path;
 
 use anyhow::{Error, Result};
 
 use crate::nested_env;
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
+use crate::utils::StringOrMapString;
 use crate::IGNORE_SIGINT;
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Task {
     cmd: Vec<String>,
     pub required_vars: Option<Vec<String>>,
+    pub export: Option<Vec<StringOrMapString>>,
     #[serde(default = "default_as_true")]
     build: bool,
     #[serde(default = "default_as_false")]
@@ -31,11 +34,23 @@ impl Task {
             use shell_words::join;
             use std::process::Command;
             let mut command = Command::new("sh");
+
             let cmd = cmd.replace("$$", "$");
             if verbose > 0 {
                 command.arg("-x");
             }
             command.current_dir(start_dir).arg("-c");
+
+            // handle "export:" (export laze variables to task shell environment)
+            if let Some(export) = &self.export {
+                for entry in export {
+                    if let StringOrMapString::Map(m) = entry {
+                        for (key, val) in m {
+                            command.env(key, val);
+                        }
+                    }
+                }
+            }
 
             if let Some(args) = &args {
                 command.arg(cmd.clone() + " " + &join(args).to_owned());
@@ -73,6 +88,11 @@ impl Task {
                 .collect::<Result<Vec<String>, _>>()?,
             ignore_ctrl_c: self.ignore_ctrl_c,
             required_vars: self.required_vars.clone(),
+            export: if do_eval {
+                self.expand_export(env)
+            } else {
+                self.export.clone()
+            },
         })
     }
 
@@ -82,5 +102,51 @@ impl Task {
 
     pub fn with_env_eval(&self, env: &im::HashMap<&String, String>) -> Result<Task, Error> {
         self._with_env(env, true)
+    }
+
+    fn expand_export(&self, env: &im::HashMap<&String, String>) -> Option<Vec<StringOrMapString>> {
+        // TODO: yeah, this is not a beauty ...
+        // what this does is, apply the env to the format as given by "export:"
+        //
+        // e.g., assuming `FOO=value` and FOOBAR=`other_value`:
+        // ```yaml
+        //
+        // export:
+        //   - FOO
+        //   - BAR: bar
+        //   - FOOBAR: ${foobar}
+        // ```
+        //
+        // ... to export `FOO=value`, `BAR=bar` and `FOOBAR=other_value`.
+
+        self.export.as_ref().and_then(|exports| {
+            Some(
+                exports
+                    .iter()
+                    .map(|entry| match entry {
+                        StringOrMapString::String(s) => {
+                            StringOrMapString::Map(HashMap::from_iter([(
+                                s.clone(),
+                                nested_env::expand_eval(
+                                    format!("${{{s}}}"),
+                                    env,
+                                    nested_env::IfMissing::Empty,
+                                )
+                                .unwrap(),
+                            )]))
+                        }
+                        StringOrMapString::Map(m) => {
+                            StringOrMapString::Map(HashMap::from_iter(m.iter().map(|(k, v)| {
+                                (
+                                    k.clone(),
+                                    nested_env::expand_eval(v, env, nested_env::IfMissing::Empty)
+                                        .unwrap(),
+                                )
+                            })))
+                        }
+                    })
+                    .collect(),
+            )
+        })
     }
 }
