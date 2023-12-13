@@ -41,6 +41,7 @@
     - [tasks]()
       - [cmd]()
       - [build]()
+      - [export]()
       - [ignore_ctrl_c]()
       - [required_vars]()
     - [var_options]()
