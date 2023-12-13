@@ -24,6 +24,7 @@ use super::model::CustomBuild;
 use super::nested_env::{Env, EnvKey, MergeOption};
 use super::{Context, ContextBag, Dependency, Module, Rule, Task};
 use crate::serde_bool_helpers::default_as_false;
+use crate::utils::StringOrMapString;
 
 mod import;
 use import::Import;
@@ -72,13 +73,6 @@ struct YamlContext {
     tasks: Option<HashMap<String, Task>>,
     #[serde(skip)]
     _is_builder: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-enum StringOrMapString {
-    String(String),
-    Map(HashMap<String, Vec<String>>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
