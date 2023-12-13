@@ -24,7 +24,7 @@ use super::model::CustomBuild;
 use super::nested_env::{Env, EnvKey, MergeOption};
 use super::{Context, ContextBag, Dependency, Module, Rule, Task};
 use crate::serde_bool_helpers::default_as_false;
-use crate::utils::StringOrMapString;
+use crate::utils::StringOrMapVecString;
 
 mod import;
 use import::Import;
@@ -86,7 +86,7 @@ enum StringOrVecString {
 struct YamlModule {
     name: Option<String>,
     context: Option<StringOrVecString>,
-    depends: Option<Vec<StringOrMapString>>,
+    depends: Option<Vec<StringOrMapVecString>>,
     selects: Option<Vec<String>>,
     uses: Option<Vec<String>>,
     provides: Option<Vec<String>>,
@@ -95,7 +95,7 @@ struct YamlModule {
     conflicts: Option<Vec<String>>,
     #[serde(default = "default_as_false")]
     notify_all: bool,
-    sources: Option<Vec<StringOrMapString>>,
+    sources: Option<Vec<StringOrMapVecString>>,
     build: Option<CustomBuild>,
     env: Option<YamlModuleEnv>,
     blocklist: Option<Vec<String>>,
@@ -493,12 +493,12 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             // println!("depends:");
             for dep_spec in depends {
                 match dep_spec {
-                    StringOrMapString::String(dep_name) => {
+                    StringOrMapVecString::String(dep_name) => {
                         // println!("- {}", dep_name);
                         m.selects.push(dependency_from_string(dep_name));
                         m.imports.push(dependency_from_string(dep_name));
                     }
-                    StringOrMapString::Map(dep_map) => {
+                    StringOrMapVecString::Map(dep_map) => {
                         for (k, v) in dep_map {
                             // println!("- {}:", k);
                             for dep_name in v {
@@ -569,8 +569,8 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             let mut sources_optional = IndexMap::new();
             for source in sources {
                 match source {
-                    StringOrMapString::String(source) => m.sources.push(source.clone()),
-                    StringOrMapString::Map(source) => {
+                    StringOrMapVecString::String(source) => m.sources.push(source.clone()),
+                    StringOrMapVecString::Map(source) => {
                         // collect optional sources into sources_optional
                         for (k, v) in source {
                             let list: &mut Vec<String> = sources_optional.entry(k).or_default();

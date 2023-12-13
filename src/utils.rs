@@ -7,9 +7,16 @@ pub(crate) fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum StringOrMapVecString {
+    String(String),
+    Map(std::collections::HashMap<String, Vec<String>>),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum StringOrMapString {
     String(String),
-    Map(std::collections::HashMap<String, Vec<String>>),
+    Map(std::collections::HashMap<String, String>),
 }
