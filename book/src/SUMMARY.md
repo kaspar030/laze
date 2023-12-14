@@ -18,6 +18,7 @@
 # Reference
 
 - [laze file format](./reference/laze_yaml.md)
+  - [laze_required_version](./reference/laze_required_version.md)
   - [apps](./reference/apps.md)
   - [builders](./reference/builders.md)
   - [contexts](./reference/contexts.md)

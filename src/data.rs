@@ -15,6 +15,7 @@ use std::time::Instant;
 
 use anyhow::{Context as _, Error, Result};
 use camino::{Utf8Path, Utf8PathBuf};
+use semver::Version;
 use serde::{Deserialize, Deserializer};
 
 use treestate::{FileState, TreeState};
@@ -40,6 +41,33 @@ where
     Deserialize::deserialize(deserializer).map(Some)
 }
 
+fn deserialize_version_checked<'de, D>(deserializer: D) -> Result<Option<Version>, D::Error>
+where
+    //    T: Deserialize<'de>,
+    D: Deserializer<'de>,
+{
+    use serde::de;
+
+    let version: Option<String> = Deserialize::deserialize(deserializer)?;
+    if let Some(version) = &version {
+        if let Ok(version) = Version::parse(version) {
+            let my_version = Version::parse(env!("CARGO_PKG_VERSION")).unwrap();
+            if version > my_version {
+                return Err(de::Error::custom(format!(
+                    "laze_required_version: got \"{version}\", expected any version <={my_version}"
+                )));
+            }
+            Ok(Some(version))
+        } else {
+            return Err(de::Error::custom(format!(
+                "error parsing \"{version}\" as semver version string"
+            )));
+        }
+    } else {
+        Ok(None)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlFile {
     contexts: Option<Vec<YamlContext>>,
@@ -51,6 +79,8 @@ struct YamlFile {
     imports: Option<Vec<Import>>,
     subdirs: Option<Vec<String>>,
     defaults: Option<HashMap<String, YamlModule>>,
+    #[serde(default, deserialize_with = "deserialize_version_checked")]
+    laze_required_version: Option<Version>,
     #[serde(skip)]
     filename: Option<Utf8PathBuf>,
     #[serde(skip)]
