@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+- add file-level `laze_required_version`
+
 ## [0.1.17] - 2023-10-06
 
 ### Fixed
