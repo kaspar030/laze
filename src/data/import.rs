@@ -105,15 +105,9 @@ impl Import {
             }
         }
 
-        if let Some(laze_file) =
-            get_existing_file(&path, &["laze-lib.yml", "laze.yml", "laze-project.yml"])
-        {
-            Ok(laze_file)
-        } else {
-            Err(anyhow!(
-                "no \"laze-lib.yml\", \"laze.yml\" or \"laze-project.yml\" in import"
-            ))
-        }
+        get_existing_file(&path, &["laze-lib.yml", "laze.yml", "laze-project.yml"]).ok_or(anyhow!(
+            "no \"laze-lib.yml\", \"laze.yml\" or \"laze-project.yml\" in import"
+        ))
     }
 
     pub fn get_name(&self) -> Option<String> {
