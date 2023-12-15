@@ -1,6 +1,6 @@
 TESTS = $(dir $(wildcard */test.sh))
 
-export LAZE ?= cargo run
+export LAZE ?= cargo --quiet run
 
 .PHONY: test
 
