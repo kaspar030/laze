@@ -1,5 +1,5 @@
 cleanup() {
-    rm -f single_app.o single_app.elf build.ninja .ninja_deps .ninja_log
+    rm -f single_app.o single_app.elf build.ninja .ninja_deps .ninja_log stderr stdout
     rm -rf build
 }
 
