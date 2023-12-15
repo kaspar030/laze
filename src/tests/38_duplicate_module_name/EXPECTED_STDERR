@@ -1,0 +1,1 @@
+laze: error: "laze-project.yml": module "some-module", context "default": module name already used in "laze-project.yml"
