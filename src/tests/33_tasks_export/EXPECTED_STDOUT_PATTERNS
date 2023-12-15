@@ -1,0 +1,4 @@
+^FOO=foo$
+^BAR=bar$
+^FOOBAR='1 foo bar baz'$
+^WHISKEYBAR=awesome$
