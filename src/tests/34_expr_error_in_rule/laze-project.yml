@@ -1,0 +1,22 @@
+builders:
+  - name: single_builder
+    rules:
+        - name: CC
+          in: 'c'
+          out: 'o'
+          cmd: 'echo ${LOCAL_VAR} ${GLOBAL_VAR} ${in} > ${out}'
+        - name: LINK
+          in: 'o'
+          cmd: 'cat ${in} > ${out}'
+
+    env:
+      bindir: build/${builder}/${app}
+
+apps:
+  - name: single_app
+    sources:
+      - single_app.c
+
+    env:
+      local:
+        LOCAL_VAR: "result = $(1+)"
