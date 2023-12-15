@@ -717,7 +717,9 @@ fn configure_build(
 
                     let expanded =
                         nested_env::expand_eval(&rule.cmd, &flattened_env, IfMissing::Empty)
-                            .unwrap();
+                            .with_context(|| format!("while expanding cmd \"{}\"", rule.cmd))
+                            .with_context(|| format!("rule \"{}\"", rule.name))
+                            .with_context(|| format!("module \"{}\"", module.name))?;
 
                     let rule = rule.to_ninja().command(expanded).build().unwrap().named();
                     ninja_entries.insert(format!("{rule}"));
