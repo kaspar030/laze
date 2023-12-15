@@ -1,12 +1,10 @@
-TESTS = $(dir $(wildcard */test.sh))
+TESTS = $(wildcard */test.sh)
 
 export LAZE ?= cargo --quiet run
 
-.PHONY: test
+.PHONY: $(TESTS)
 
-all: test
+all: $(TESTS)
 
-test: $(TEST_DEPS)
-	for testdir in $(TESTS); do \
-		(cd $${testdir}; echo "- testing in $${testdir}"; ./test.sh; ) || exit 1 ; \
-		done
+$(TESTS):
+	@testdir=$(dir $@); echo "- testing in $${testdir}"; cd $${testdir}; ./test.sh
