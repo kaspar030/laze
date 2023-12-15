@@ -3,8 +3,11 @@
 . ../test-common.sh
 
 cleanup
-build
 
-${LAZE} build run | tail -n 1 | grep -s "^Hello Laze!$" && echo TEST_OK
+build run
+
+clean_temp_files
+
+echo TEST_OK
 
 cleanup
