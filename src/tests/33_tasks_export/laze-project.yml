@@ -1,0 +1,34 @@
+builders:
+  - name: default
+    rules:
+        - name: LINK
+          in: 'o'
+          cmd: 'cat ${in} > ${out}'
+
+    env:
+      bindir: build/${builder}/${app}
+      FOO: foo
+      BAR:
+        - bar
+      FOOBAR:
+        - "1"
+        - foo
+        - bar
+        - baz
+
+
+    tasks:
+      foobar:
+        export:
+          - FOO
+          - BAR
+          - FOOBAR
+          - WHISKEYBAR: awesome
+
+        cmd:
+          - set | grep ^FOO=
+          - set | grep ^BAR=
+          - set | grep ^WHISKEYBAR=
+
+apps:
+  - name: app
