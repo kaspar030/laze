@@ -4,7 +4,18 @@ cleanup() {
 }
 
 build() {
+    if [ -f EXPECTED_EXIT_CODE ]; then
+        # ignore actual exit code
+        set +e
+    fi
+
     ${LAZE} build -g "$@"
+    EXIT_CODE=$?
+
+    if [ -f EXPECTED_EXIT_CODE ]; then
+        set -e
+        test "$EXIT_CODE" = "$(cat EXPECTED_EXIT_CODE)"
+    fi
 }
 
 clean_temp_files() {
