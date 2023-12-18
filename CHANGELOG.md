@@ -9,7 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
 - add file-level `laze_required_version`
+  If specified, laze checks if its own version is at least`laze_required_version`.
+
+- add `task::exports`
+  This allows laze variables to be exported to the envirenment of tasks:
+
+  ```yaml
+    context:
+    - name: foo
+      env:
+        some_variable: some_value
+      tasks:
+        some_task:
+          exports:
+          - some_variable
+        cmd:
+        # some_varialble=some_value is will be set in the _shell environment_
+        - some_command
+    ```
+
+### Internal
+
+- extended test suite, now allows to test for exit codes and stdout/stderr patterns.
+  Mostly, this allows to test errors.
+
+- dependencies:
+  - bump clap from 4.4.6 to 4.4.11
+  - bump clap_complete from 4.4.3 to 4.4.4
+  - bump clap_mangen from 0.2.14 to 0.2.15
+  - bump evalexpr from 11.1.0 to 11.3.0
+  - bump indexmap from 2.0.2 to 2.1.0
+  - bump itertools from 0.11.0 to 0.12.0
+  - bump rust-embed from 8.0.0 to 8.1.0
+  - bump serde from 1.0.188 to 1.0.193
+  - bump serde_yaml from 0.9.25 to 0.9.27
+  - bump url from 2.4.1 to 2.5.0
+  - bump uuid from 1.4.1 to 1.6.1
 
 ## [0.1.17] - 2023-10-06
 
