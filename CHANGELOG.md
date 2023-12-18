@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.18] - 2023-12-18
+
 ### Added
 
 - add file-level `laze_required_version`
@@ -232,7 +234,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 <!-- next-url -->
-[Unreleased]: https://github.com/assert-rs/predicates-rs/compare/0.1.17...HEAD
+[Unreleased]: https://github.com/assert-rs/predicates-rs/compare/0.1.18...HEAD
+[0.1.18]: https://github.com/assert-rs/predicates-rs/compare/0.1.17...0.1.18
 [0.1.17]: https://github.com/kaspar030/laze/compare/0.1.16...0.1.17
 [0.1.16]: https://github.com/kaspar030/laze/compare/0.1.15...0.1.16
 [0.1.15]: https://github.com/kaspar030/laze/compare/0.1.14...0.1.15
