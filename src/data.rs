@@ -392,16 +392,14 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         context_
             .env_early
             .insert("relpath".into(), EnvKey::Single(relpath));
-        if let Some(import_root) = import_root {
-            context_.env_early.insert(
-                "root".into(),
-                EnvKey::Single(format!("{}", import_root.path())),
-            );
-        } else {
-            context_
-                .env_early
-                .insert("root".into(), EnvKey::Single(".".into()));
-        }
+
+        context_.env_early.insert(
+            "root".into(),
+            EnvKey::Single(match import_root {
+                Some(import_root) => import_root.path().to_string(),
+                None => ".".into(),
+            }),
+        );
 
         if let Some(tasks) = &context.tasks {
             let flattened_early_env = crate::nested_env::flatten(&context_.env_early)?;
@@ -678,15 +676,13 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         // populate "early env"
         m.env_early
             .insert("relpath".into(), EnvKey::Single(relpath.clone()));
-        if let Some(import_root) = import_root {
-            m.env_early.insert(
-                "root".into(),
-                EnvKey::Single(import_root.path().to_string()),
-            );
-        } else {
-            m.env_early
-                .insert("root".into(), EnvKey::Single(".".into()));
-        }
+        m.env_early.insert(
+            "root".into(),
+            EnvKey::Single(match import_root {
+                Some(import_root) => import_root.path().to_string(),
+                None => ".".into(),
+            }),
+        );
         m.env_early.insert(
             "srcdir".into(),
             EnvKey::Single(m.srcdir.as_ref().unwrap().as_path().to_string()),
