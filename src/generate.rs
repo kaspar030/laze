@@ -567,30 +567,18 @@ fn configure_build(
         let has_build_deps = imported_build_deps.is_some() || module.build_dep_files.is_some();
         // combine local build deps and imported build deps
         let combined_build_deps_iters = [&imported_build_deps, &module.build_dep_files];
-        let combined_build_deps = {
-            if has_build_deps {
-                Some(
-                    combined_build_deps_iters
-                        .iter()
-                        .flat_map(|x| x.iter())
-                        .flatten()
-                        .map(|x| Cow::from(x.as_ref()))
-                        .collect_vec(),
-                )
-            } else {
-                None
-            }
-        };
+        let combined_build_deps = has_build_deps.then(|| {
+            combined_build_deps_iters
+                .iter()
+                .flat_map(|x| x.iter())
+                .flatten()
+                .map(|x| Cow::from(x.as_ref()))
+                .collect_vec()
+        });
 
-        let build_deps_hash = {
-            if let Some(combined_build_deps) = &combined_build_deps {
-                let mut hasher = DefaultHasher::new();
-                combined_build_deps.hash(&mut hasher);
-                hasher.finish()
-            } else {
-                0
-            }
-        };
+        let build_deps_hash = combined_build_deps
+            .as_ref()
+            .map_or(0, utils::calculate_hash);
 
         if let Some(build) = &module.build {
             // module has custom build rule
