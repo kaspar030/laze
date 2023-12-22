@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- if the srcdir of a module is equal or a descendent of a dependency, create
+  a ninja phony rule. Prevents ninja from complaining about non-existant files.
+
 ## [0.1.18] - 2023-12-18
 
 ### Added
