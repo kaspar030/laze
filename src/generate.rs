@@ -17,6 +17,8 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use solvent::DepGraph;
 
+use crate::utils::ContainingPath;
+
 use super::{
     build::Build,
     data::{load, FileTreeState},
@@ -481,6 +483,7 @@ fn configure_build(
     }
 
     let mut module_build_dep_files: IndexMap<&String, IndexSet<Utf8PathBuf>> = IndexMap::new();
+    let mut download_dirs = IndexMap::new();
 
     // now handle each module
     for (module, module_env, module_build_deps) in modules_in_build_order.iter() {
@@ -500,6 +503,27 @@ fn configure_build(
         // *or*, it was overridden using "srcdir:"
         // This is populated in data.rs, so unwrap() always succeeds.
         let srcdir = module.srcdir.as_ref().unwrap();
+
+        let mut src_tagfile = None;
+
+        if let Some(download) = module.download.as_ref() {
+            // This module is downloading, so store it's download folder in
+            // `download_dirs`. Dependees can then, if their srcdir is the same
+            // or prefixed by it, mark their sources as being created by the tagfile.
+            // This prevents ninja complaining about missing files.
+            // TODO: catch download folder clash here
+            download_dirs.insert(srcdir, download.tagfile(srcdir));
+        } else {
+            // this module is not downloading itself, so look up it's srcdir in
+            // the so-far stored `download_dirs`. Any dependency of this module
+            // would have stored it's srcdir there.
+            let srcdir = Utf8PathBuf::from(
+                nested_env::expand_eval(srcdir, &flattened_env, IfMissing::Ignore).unwrap(),
+            );
+            if let Some(tagfile) = download_dirs.get_containing_path(&srcdir) {
+                src_tagfile = Some(tagfile);
+            }
+        }
 
         //println!("{:#?}", builder.var_options);
 
@@ -771,6 +795,13 @@ fn configure_build(
                         .unwrap();
 
                     ninja_entries.insert(format!("{build}"));
+                } else {
+                    // 7. optionally create phony alias for a possibly downloaded
+                    // file
+                    if let Some(tagfile) = src_tagfile {
+                        ninja_entries
+                            .insert(crate::ninja::alias(tagfile.as_str(), srcpath.as_str()));
+                    }
                 }
             }
         }
