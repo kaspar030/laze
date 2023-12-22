@@ -336,6 +336,16 @@ impl<'a> NinjaCmd<'a> {
     }
 }
 
+pub fn alias<'a>(input: &'a str, alias: &'a str) -> String {
+    NinjaBuildBuilder::default()
+        .rule("phony")
+        .input(Cow::from(Utf8Path::new(input)))
+        .out(Cow::from(Utf8Path::new(alias)))
+        .build()
+        .unwrap()
+        .to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -435,5 +445,11 @@ mod tests {
             ),
             format!("{}", rule)
         );
+    }
+
+    #[test]
+    fn alias() {
+        let build = super::alias(Utf8Path::new("foo").as_str(), "foo_alias");
+        assert_eq!(build, "build foo_alias: $\n    phony $\n    foo\n\n");
     }
 }
