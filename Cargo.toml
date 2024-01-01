@@ -34,7 +34,7 @@ build_uuid = "0.3.0"
 uuid = { version = "1.6.1", features = ["serde"] }
 solvent = { version = "0.8.3", features = ["deterministic"] }
 url = "2.5.0"
-rust-embed = "8.1.0"
+rust-embed = "8.2.0"
 task_partitioner = "0.1.1"
 
 clap_complete = "4.4.5"
