@@ -203,6 +203,11 @@ fn try_main() -> Result<i32> {
 
     let (project_root, project_file) = determine_project_root(&cwd)?;
     let start_relpath = pathdiff::diff_utf8_paths(&cwd, &project_root).unwrap();
+    let start_relpath = if start_relpath.eq("") {
+        ".".into()
+    } else {
+        start_relpath
+    };
 
     println!(
         "laze: project root: {project_root} relpath: {start_relpath} project_file: {project_file}",
