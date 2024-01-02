@@ -1,0 +1,2 @@
+LINK build/single_builder/app/app.elf root= relpath=. relroot=..
+CC foo.c root=. relpath=. relroot=.. LOCAL_RELPATH=.

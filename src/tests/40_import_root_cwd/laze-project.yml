@@ -1,0 +1,12 @@
+imports:
+  - git:
+       url: ./testrepo
+       commit: HEAD
+
+apps:
+  - name: app
+    sources:
+      - foo.c
+    env:
+      local:
+        LOCAL_RELPATH: ${relpath}

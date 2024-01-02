@@ -1,0 +1,18 @@
+builddir = build
+build ALWAYS: phony
+rule CC_12906185565894242289
+  command = echo CC ${in} root=. relpath=. relroot=.. LOCAL_RELPATH=. > ${out}
+  description = CC
+
+build build/objects/foo.1350336948704932060.o: $
+    CC_12906185565894242289 $
+    foo.c
+
+rule LINK_11962182955076852389
+  command = echo LINK ${out} root= relpath=. relroot=.. > ${out} && cat ${in} >> ${out}
+  description = LINK
+
+build build/single_builder/app/app.elf: $
+    LINK_11962182955076852389 $
+    build/objects/foo.1350336948704932060.o
+

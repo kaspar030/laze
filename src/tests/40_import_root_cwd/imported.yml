@@ -1,0 +1,13 @@
+builders:
+  - name: single_builder
+    rules:
+        - name: CC
+          in: 'c'
+          out: 'o'
+          cmd: 'echo CC ${in} root=${root} relpath=${relpath} relroot=${relroot} LOCAL_RELPATH=${LOCAL_RELPATH} > ${out}'
+        - name: LINK
+          in: 'o'
+          cmd: echo LINK ${out} root=${root} relpath=${relpath} relroot=${relroot} > ${out} && cat ${in} >> ${out}
+
+    env:
+      bindir: build/${builder}/${app}
