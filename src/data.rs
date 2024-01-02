@@ -447,6 +447,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         defaults: Option<&Module>,
     ) -> Module {
         let relpath = filename.parent().unwrap();
+
         let name = match name {
             Some(name) => name.clone(),
             None => if let Some(import_root) = import_root {
@@ -456,7 +457,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
                     .strip_prefix(import_root.path())
                     .unwrap()
             } else {
-                relpath
+                &relpath
             }
             .to_string(),
         };
@@ -468,7 +469,11 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
         module.is_binary = is_binary;
         module.defined_in = Some(filename.to_path_buf());
-        module.relpath = Some(Utf8PathBuf::from(&relpath));
+        module.relpath = Some(if relpath.eq("") {
+            Utf8PathBuf::from(".")
+        } else {
+            Utf8PathBuf::from(&relpath)
+        });
 
         module
     }
@@ -482,8 +487,6 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         defaults: Option<&Module>,
         build_dir: &Utf8Path,
     ) -> Result<Module, Error> {
-        let relpath = filename.parent().unwrap().to_string();
-
         let mut m = init_module(
             &module.name,
             context,
@@ -642,6 +645,8 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             m.allowlist = module.allowlist.clone();
         }
 
+        let relpath = m.relpath.as_ref().unwrap().clone();
+
         m.download = module.download.clone();
         let srcdir = if let Some(download) = &m.download {
             let srcdir = download.srcdir(build_dir, &m);
@@ -656,7 +661,11 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
             srcdir
         } else {
-            Utf8PathBuf::from(relpath.clone())
+            if relpath != "." {
+                relpath.clone()
+            } else {
+                "".into()
+            }
         };
 
         m.build = module.build.clone();
@@ -675,7 +684,8 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
         // populate "early env"
         m.env_early
-            .insert("relpath".into(), EnvKey::Single(relpath.clone()));
+            .insert("relpath".into(), EnvKey::Single(relpath.to_string()));
+
         m.env_early.insert(
             "root".into(),
             EnvKey::Single(match import_root {
@@ -693,7 +703,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
         if is_binary {
             m.env_global
-                .insert("appdir".into(), EnvKey::Single(relpath));
+                .insert("appdir".into(), EnvKey::Single(relpath.to_string()));
         }
 
         Ok(m)
