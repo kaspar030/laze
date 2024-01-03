@@ -30,6 +30,14 @@ impl PathEmpty for camino::Utf8Path {
 
 pub fn from_matches(matches: &ArgMatches) -> Result<(), Error> {
     let path = matches.get_one::<Utf8PathBuf>("path").unwrap();
+    let template_name = matches.get_one::<String>("template").unwrap();
+    let _verbose = matches.get_count("verbose");
+    let quiet = matches.get_count("quiet");
+
+    let prefix = format!("{template_name}/");
+    if !TemplateFiles::iter().any(|x| x.starts_with(&prefix)) {
+        bail!("no internal template with name \"{template_name}\" available");
+    }
 
     if path.exists() {
         if !path.is_empty()? {
@@ -42,10 +50,6 @@ pub fn from_matches(matches: &ArgMatches) -> Result<(), Error> {
     let path = path
         .canonicalize_utf8()
         .with_context(|| format!("canonicalizing {path}"))?;
-
-    let template_name = "default";
-
-    let prefix = format!("{template_name}/");
 
     let context = Context {
         project_name: path.file_name().unwrap().to_string(),
@@ -74,11 +78,16 @@ pub fn from_matches(matches: &ArgMatches) -> Result<(), Error> {
                 .with_context(|| format!("rendering \"{in_filename}\""))?;
 
             file_data = Cow::from(rendered.as_bytes());
-            std::fs::write(&outfile, file_data).with_context(|| format!("creating {filename}"))?;
+            std::fs::write(&filename, file_data).with_context(|| format!("creating {filename}"))?;
         } else {
             std::fs::write(&filename, embedded_file.data)
                 .with_context(|| format!("creating {filename}"))?;
         };
     }
+
+    if quiet == 0 {
+        println!("laze: created '{}' project", context.project_name);
+    }
+
     Ok(())
 }
