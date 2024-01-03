@@ -166,6 +166,17 @@ pub fn clap() -> clap::Command {
                 ),
         )
         .subcommand(
+            Command::new("new")
+                .about("Create a new laze project at <PATH>")
+                .arg(
+                    Arg::new("path")
+                        .help("folder for new project")
+                        .value_parser(value_parser!(Utf8PathBuf))
+                        .value_hint(ValueHint::DirPath)
+                        .required(true),
+                ),
+        )
+        .subcommand(
             Command::new("completion")
                 .about("Generate laze shell completions.")
                 .arg(
