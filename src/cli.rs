@@ -56,15 +56,6 @@ pub fn clap() -> clap::Command {
             .value_delimiter(',')
     }
 
-    fn verbose() -> Arg {
-        Arg::new("verbose")
-            .help("be verbose (e.g., show command lines)")
-            .short('v')
-            .long("verbose")
-            .global(true)
-            .action(ArgAction::Count)
-    }
-
     fn partition() -> Arg {
         use std::str::FromStr;
         use task_partitioner::PartitionerBuilder;
@@ -94,6 +85,23 @@ pub fn clap() -> clap::Command {
                 .num_args(1),
         )
         .arg(
+            Arg::new("verbose")
+                .help("be verbose (e.g., show command lines)")
+                .short('v')
+                .long("verbose")
+                .global(true)
+                .action(ArgAction::Count),
+        )
+        .arg(
+            Arg::new("quiet")
+                .help("do not print laze log messages")
+                .short('q')
+                .long("quiet")
+                .global(true)
+                .action(ArgAction::Count)
+                .hide(true), // (not really supported, yet)
+        )
+        .arg(
             Arg::new("global")
                 .short('g')
                 .long("global")
@@ -102,7 +110,6 @@ pub fn clap() -> clap::Command {
                 .env("LAZE_GLOBAL")
                 .action(ArgAction::SetTrue),
         )
-        .arg(verbose())
         .subcommand(
             Command::new("build")
                 .about("generate build files and build")
@@ -174,6 +181,16 @@ pub fn clap() -> clap::Command {
                         .value_parser(value_parser!(Utf8PathBuf))
                         .value_hint(ValueHint::DirPath)
                         .required(true),
+                )
+                .arg(
+                    Arg::new("template")
+                        .short('t')
+                        .long("template")
+                        .help("template to use for new project")
+                        .required(false)
+                        .default_value("default")
+                        .value_parser(clap::value_parser!(String))
+                        .num_args(1),
                 ),
         )
         .subcommand(
