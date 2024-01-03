@@ -61,6 +61,7 @@ pub fn clap() -> clap::Command {
             .help("be verbose (e.g., show command lines)")
             .short('v')
             .long("verbose")
+            .global(true)
             .action(ArgAction::Count)
     }
 
@@ -101,13 +102,13 @@ pub fn clap() -> clap::Command {
                 .env("LAZE_GLOBAL")
                 .action(ArgAction::SetTrue),
         )
+        .arg(verbose())
         .subcommand(
             Command::new("build")
                 .about("generate build files and build")
                 .allow_external_subcommands(true)
                 .override_usage("laze build [OPTIONS] [<TASK> [ARGS]...]")
                 .next_help_heading("Build options")
-                .arg(verbose())
                 .arg(build_dir())
                 .arg(
                     Arg::new("generate-only")
@@ -154,7 +155,6 @@ pub fn clap() -> clap::Command {
             Command::new("clean")
                 .about("clean current configuration")
                 .arg(build_dir())
-                .arg(verbose())
                 .arg(
                     Arg::new("unused")
                         .short('u')

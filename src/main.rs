@@ -205,9 +205,10 @@ fn try_main() -> Result<i32> {
     let global = matches.get_flag("global");
     env::set_current_dir(&project_root).context(format!("cannot change to \"{project_root}\""))?;
 
+    let verbose = matches.get_count("verbose");
+
     match matches.subcommand() {
         Some(("build", build_matches)) => {
-            let verbose = build_matches.get_count("verbose");
             let build_dir = build_matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
 
             // collect builder names from args
@@ -350,7 +351,6 @@ fn try_main() -> Result<i32> {
             }
         }
         Some(("clean", clean_matches)) => {
-            let verbose = clean_matches.get_count("verbose");
             let unused = clean_matches.get_flag("unused");
             let build_dir = clean_matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
             let mode = match global {
