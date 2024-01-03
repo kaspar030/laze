@@ -36,6 +36,7 @@ mod download;
 mod generate;
 mod model;
 mod nested_env;
+mod new;
 mod ninja;
 mod serde_bool_helpers;
 mod utils;
@@ -139,6 +140,10 @@ fn try_main() -> Result<i32> {
     // handle completion subcommand here, so the project specific
     // stuff is skipped
     match matches.subcommand() {
+        Some(("new", matches)) => {
+            new::from_matches(matches)?;
+            return Ok(0);
+        }
         Some(("completion", matches)) => {
             fn print_completions<G: clap_complete::Generator>(gen: G, cmd: &mut clap::Command) {
                 clap_complete::generate(

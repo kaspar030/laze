@@ -1,0 +1,7 @@
+imports:
+  - laze: defaults
+
+apps:
+  - name: { project_name }
+    sources:
+      - main.c
