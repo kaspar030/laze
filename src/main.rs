@@ -284,20 +284,20 @@ fn try_main() -> Result<i32> {
             }
 
             if let Some((task, args)) = task {
-                let builds: Vec<&(String, String, BuildInfo)> = builds
+                let builds: Vec<&BuildInfo> = builds
                     .build_infos
                     .iter()
-                    .filter(|(builder, app, build_info)| {
-                        builders.selects(builder)
-                            && apps.selects(app)
+                    .filter(|build_info| {
+                        builders.selects(&build_info.builder)
+                            && apps.selects(&build_info.binary)
                             && build_info.tasks.contains_key(task)
                     })
                     .collect();
 
                 if builds.len() > 1 {
                     eprintln!("laze: multiple task targets found:");
-                    for (builder, bin, _build_info) in builds {
-                        eprintln!("{} {}", builder, bin);
+                    for build_info in builds {
+                        eprintln!("{} {}", build_info.builder, build_info.binary);
                     }
 
                     // TODO: allow running tasks for multiple targets
@@ -309,10 +309,10 @@ fn try_main() -> Result<i32> {
                 }
 
                 let build = builds[0];
-                let targets = Some(vec![build.2.out.clone()]);
+                let targets = Some(vec![build.out.clone()]);
 
                 let task_name = task;
-                let task = build.2.tasks.get(task).unwrap();
+                let task = build.tasks.get(task).unwrap();
 
                 if task.build_app() && !build_matches.get_flag("generate-only") {
                     let ninja_build_file = get_ninja_build_file(build_dir, &mode);
@@ -323,7 +323,7 @@ fn try_main() -> Result<i32> {
 
                 println!(
                     "laze: executing task {} for builder {} bin {}",
-                    task_name, build.0, build.1,
+                    task_name, build.builder, build.binary,
                 );
 
                 task.execute(project_root.as_ref(), args, verbose)?;
@@ -341,12 +341,10 @@ fn try_main() -> Result<i32> {
                         builds
                             .build_infos
                             .iter()
-                            .filter_map(|(builder, app, build_info)| {
-                                if builders.selects(builder) && apps.selects(app) {
-                                    Some(build_info.out.clone())
-                                } else {
-                                    None
-                                }
+                            .filter_map(|build_info| {
+                                (builders.selects(&build_info.builder)
+                                    && apps.selects(&build_info.binary))
+                                .then_some(build_info.out.clone())
                             })
                             .collect(),
                     )
