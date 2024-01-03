@@ -17,7 +17,7 @@ pub struct Import {
 }
 
 #[derive(RustEmbed)]
-#[folder = "assets"]
+#[folder = "assets/imports"]
 struct Asset;
 
 fn get_existing_file(path: &Utf8Path, filenames: &[&str]) -> Option<Utf8PathBuf> {
