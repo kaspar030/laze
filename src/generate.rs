@@ -32,11 +32,13 @@ use super::{
 
 #[derive(Deserialize, Serialize)]
 pub struct BuildInfo {
+    pub binary: String,
+    pub builder: String,
     pub tasks: IndexMap<String, Task>,
     pub out: Utf8PathBuf,
 }
 
-pub type BuildInfoList = Vec<(String, String, BuildInfo)>;
+pub type BuildInfoList = Vec<BuildInfo>;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum GenerateMode {
@@ -217,25 +219,21 @@ impl Generator {
                 .with_context(|| format!("binary \"{}\"", bin.name))
                 .with_context(|| format!("builder \"{}\"", builder.name))
                 {
-                    Ok(ConfigureBuildResult::Build(build_info, ninja_entries)) => Some(Ok((
-                        builder.name.clone(),
-                        bin.name.clone(),
-                        build_info,
-                        ninja_entries,
-                    ))),
+                    Ok(ConfigureBuildResult::Build(build_info, ninja_entries)) => {
+                        Some(Ok((build_info, ninja_entries)))
+                    }
                     Ok(ConfigureBuildResult::NoBuild(_)) => None,
                     Err(e) => Some(Err(e)),
                 }
             })
-            .collect::<Result<Vec<(String, String, BuildInfo, IndexSet<String>)>, anyhow::Error>>(
-            )?;
+            .collect::<Result<Vec<(BuildInfo, IndexSet<String>)>, anyhow::Error>>()?;
 
         let mut combined_ninja_entries = IndexSet::new();
         let builds = builds
             .drain(..)
-            .map(|(builder, bin, build_info, ninja_entries)| {
+            .map(|(build_info, ninja_entries)| {
                 combined_ninja_entries.extend(ninja_entries);
-                (builder, bin, build_info)
+                build_info
             })
             .collect::<Vec<_>>();
 
@@ -909,6 +907,8 @@ fn configure_build(
 
     Ok(ConfigureBuildResult::Build(
         BuildInfo {
+            binary: binary.name.clone(),
+            builder: builder.name.clone(),
             tasks,
             out: outfile,
         },
@@ -965,7 +965,7 @@ pub struct GenerateResult {
     pub mode: GenerateMode,
     pub builders: Selector,
     pub apps: Selector,
-    pub build_infos: Vec<(String, String, BuildInfo)>,
+    pub build_infos: Vec<BuildInfo>,
 
     build_uuid: uuid::Uuid,
     select: Option<Vec<Dependency<String>>>,
