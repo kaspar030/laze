@@ -217,13 +217,13 @@ impl Generator {
                 .with_context(|| format!("binary \"{}\"", bin.name))
                 .with_context(|| format!("builder \"{}\"", builder.name))
                 {
-                    Ok(Some((build_info, ninja_entries))) => Some(Ok((
+                    Ok(ConfigureBuildResult::Build(build_info, ninja_entries)) => Some(Ok((
                         builder.name.clone(),
                         bin.name.clone(),
                         build_info,
                         ninja_entries,
                     ))),
-                    Ok(None) => None,
+                    Ok(ConfigureBuildResult::NoBuild(_)) => None,
                     Err(e) => Some(Err(e)),
                 }
             })
@@ -257,6 +257,41 @@ impl Generator {
     }
 }
 
+type NinjaRuleSnippets = IndexSet<String>;
+
+#[derive(Default)]
+enum NoBuildReason {
+    #[default]
+    Unknown,
+    Msg(String),
+}
+
+impl std::fmt::Display for NoBuildReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            NoBuildReason::Unknown => f.write_str("Unknown reason"),
+            NoBuildReason::Msg(ref message) => f.write_str(message),
+        }
+    }
+}
+
+impl NoBuildReason {
+    fn msg(&mut self, reason: String) {
+        *self = NoBuildReason::Msg(reason)
+    }
+}
+
+enum ConfigureBuildResult {
+    Build(BuildInfo, NinjaRuleSnippets),
+    NoBuild(NoBuildReason),
+}
+
+impl From<NoBuildReason> for ConfigureBuildResult {
+    fn from(reason: NoBuildReason) -> Self {
+        ConfigureBuildResult::NoBuild(reason)
+    }
+}
+
 // This function "renders" a specific app/builder pair, if dependencies
 // and block/allowlists allow it.
 //
@@ -269,45 +304,52 @@ fn configure_build(
     select: Option<&Vec<Dependency<String>>>,
     disable: Option<&Vec<String>>,
     cli_env: &Option<&Env>,
-) -> Result<Option<(BuildInfo, IndexSet<String>)>> {
+) -> Result<ConfigureBuildResult> {
+    let mut reason = NoBuildReason::default();
+
     if !match contexts.is_allowed(builder, &binary.blocklist, &binary.allowlist) {
         BlockAllow::Allowed => true,
         BlockAllow::Blocked => {
-            println!("app {}: builder {} blocklisted", binary, builder.name);
+            reason.msg(format!(
+                "app {}: builder {} blocklisted",
+                binary, builder.name
+            ));
             false
         }
         BlockAllow::BlockedBy(index) => {
-            println!(
+            reason.msg(format!(
                 "app {}: parent {} of builder {} blocklisted",
                 binary.name,
                 contexts.context_by_id(index).name,
-                builder.name
-            );
+                builder.name,
+            ));
             false
         }
         BlockAllow::AllowedBy(index) => {
-            println!(
+            reason.msg(format!(
                 "app {}: parent {} of builder {} allowlisted",
                 binary.name,
                 contexts.context_by_id(index).name,
                 builder.name
-            );
+            ));
             true
         }
     } {
-        return Ok(None);
+        println!("{}", reason);
+        return Ok(reason.into());
     }
 
     if let crate::model::IsAncestor::No =
         contexts.is_ancestor(binary.context_id.unwrap(), builder.index.unwrap(), 0)
     {
-        println!(
+        reason.msg(format!(
             "app {}: builder {} is not an ancestor of {}",
             binary.name,
             builder.name,
             contexts.context_by_id(binary.context_id.unwrap()).name,
-        );
-        return Ok(None);
+        ));
+        println!("{}", reason);
+        return Ok(reason.into());
     }
 
     println!("configuring {} for {}", binary.name, builder.name);
@@ -333,8 +375,9 @@ fn configure_build(
     // this also determines if all dependencies are met
     let resolved = match build.resolve_selects(disabled_modules) {
         Err(e) => {
-            println!("laze: not building {:?}", e);
-            return Ok(None);
+            reason.msg(format!("laze: not building {:?}", e));
+            println!("{}", reason);
+            return Ok(reason.into());
         }
         Ok(val) => val,
     };
@@ -473,11 +516,12 @@ fn configure_build(
                 }
             }
             Err(_) => {
-                println!(
+                reason.msg(format!(
                     "error: {} for {}: build dependency cycle detected.",
                     binary.name, builder.name
-                );
-                return Ok(None);
+                ));
+                println!("{}", reason);
+                return Ok(reason.into());
             }
         }
     }
@@ -863,13 +907,13 @@ fn configure_build(
         .build_context
         .collect_tasks(contexts, &global_env_flattened)?;
 
-    Ok(Some((
+    Ok(ConfigureBuildResult::Build(
         BuildInfo {
             tasks,
             out: outfile,
         },
         ninja_entries,
-    )))
+    ))
 }
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq)]
