@@ -66,5 +66,6 @@ jobs:
         --if-branch "$GITHUB_REF_NAME"
         --else-if-branch "$GITHUB_BASE_REF"
         --token "${{ secrets.BENCHER_API_TOKEN }}"
+        --hash "$GITHUB_SHA"
         --err
         --file bencher.json
