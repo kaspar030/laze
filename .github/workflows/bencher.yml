@@ -1,0 +1,70 @@
+name: Benchmark
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  bencher:
+    runs-on: ubuntu-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+      BENCHER_PROJECT: laze
+      BENCHER_TESTBED: github-actions
+      BENCHER_ADAPTER: json
+
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v4
+
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: nightly
+
+    - name: rust cache
+      uses: Swatinem/rust-cache@v2
+
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.3
+
+    - name: "Configure git"
+      run: |
+        git config --global init.defaultBranch main
+        git config --global user.email "ci@riot-labs.de"
+        git config --global user.name "CI"
+
+    - uses: bencherdev/bencher@main
+
+    - name: "Build & install"
+      run: "cargo install --path ."
+
+    - name: "Open up perf"
+      run: sudo sysctl -w kernel.perf_event_paranoid=-1
+
+    - name: clone RIOT
+      run: >
+        git clone --depth 1 https://github.com/kaspar030/RIOT -b add_laze_buildfiles_bencher
+
+    - name: "Run benchmark"
+      run: perf stat -j -o perf-stat.json -- laze -C RIOT build --global -G
+
+    - name: "Convert results"
+      run: ci/perf2bencher.rs perf-stat.json "laze -C RIOT build --global --generate-only" > bencher.json
+
+    - name: Submit results to Bencher
+      run: >
+        bencher run
+        --if-branch "$GITHUB_REF_NAME"
+        --else-if-branch "$GITHUB_BASE_REF"
+        --token "${{ secrets.BENCHER_API_TOKEN }}"
+        --err
+        --file bencher.json
