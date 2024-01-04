@@ -10,6 +10,7 @@ on:
 
 jobs:
   bencher:
+    if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'push'
     runs-on: ubuntu-latest
     env:
       SCCACHE_GHA_ENABLED: "true"
@@ -60,12 +61,27 @@ jobs:
     - name: "Convert results"
       run: ci/perf2bencher.rs perf-stat.json "laze -C RIOT build --global --generate-only" > bencher.json
 
-    - name: Submit results to Bencher
+    - name: Submit results to Bencher (main)
+      if: github.event_name == 'push'
       run: >
         bencher run
         --if-branch "$GITHUB_REF_NAME"
         --else-if-branch "$GITHUB_BASE_REF"
         --token "${{ secrets.BENCHER_API_TOKEN }}"
+        --hash "$GITHUB_SHA"
+        --err
+        --file bencher.json
+
+    - name: Submit results to Bencher (PR)
+      if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      run: >
+        bencher run
+        --if-branch "$GITHUB_REF_NAME"
+        --else-if-branch "$GITHUB_BASE_REF"
+        --token "${{ secrets.BENCHER_API_TOKEN }}"
+        --github-actions "${{ secrets.GITHUB_TOKEN }}"
+        --ci-public-links
+        --ci-number "${{ github.event.pull_request.number }}"
         --hash "$GITHUB_SHA"
         --err
         --file bencher.json
