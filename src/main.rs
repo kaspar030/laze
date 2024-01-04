@@ -262,6 +262,7 @@ fn try_main() -> Result<i32> {
                 .disable(disable)
                 .cli_env(cli_env)
                 .partitioner(partitioner.as_ref().map(|x| format!("{:?}", x)))
+                .collect_insights(info_outfile.is_some())
                 .disable_cache(info_outfile.is_some())
                 .build()
                 .unwrap();
