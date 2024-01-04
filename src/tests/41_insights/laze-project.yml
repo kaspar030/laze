@@ -1,0 +1,69 @@
+builders:
+  - name: default
+    rules:
+        - name: CC
+          in: 'c'
+          out: 'o'
+          cmd: 'echo ${EXPORT_VAR} ${in} > ${out}'
+        - name: LINK
+          in: 'o'
+          cmd: 'cat ${in} > ${out}'
+    env:
+      bindir: build/${builder}/${app}
+
+
+modules:
+  - name: first_module
+    sources:
+      - module.c
+        #disable:
+        #- second_module
+    env:
+      export:
+        EXPORT_VAR:
+          - export_from_first_module
+
+  - name: second_module
+    sources:
+      - module.c
+    conflicts:
+      - third_module
+    env:
+      export:
+        EXPORT_VAR:
+          - export_from_second_module
+
+  - name: third_module
+    sources:
+      - module.c
+    env:
+      export:
+        EXPORT_VAR:
+          - export_from_third_module
+
+apps:
+  - name: app1
+    sources:
+      - app.c
+    selects:
+      - first_module
+      - ?second_module
+      - third_module
+
+  - name: app2
+    sources:
+      - app.c
+    disable:
+      - third_module
+    selects:
+      - first_module
+      - second_module
+      - ?third_module
+
+  - name: app3
+    sources:
+      - app.c
+    selects:
+      - first_module
+      - second_module
+      - third_module

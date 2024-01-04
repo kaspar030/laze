@@ -1,0 +1,20 @@
+{
+  "builds": {
+    "default": {
+      "app2": {
+        "outfile": "build/default/app2/app2.elf",
+        "modules": {
+          "app2": {
+            "deps": [
+              "first_module",
+              "second_module",
+              "third_module"
+            ]
+          },
+          "first_module": {},
+          "second_module": {}
+        }
+      }
+    }
+  }
+}
