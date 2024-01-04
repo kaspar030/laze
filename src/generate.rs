@@ -99,6 +99,9 @@ pub struct Generator {
     disable: Option<Vec<String>>,
     cli_env: Option<Env>,
     partitioner: Option<String>,
+    #[builder(default = "false")]
+    collect_insights: bool,
+    #[builder(default = "false")]
     disable_cache: bool,
 }
 
@@ -225,6 +228,7 @@ impl Generator {
                     self.select.as_ref(),
                     self.disable.as_ref(),
                     &self.cli_env.as_ref(),
+                    self.collect_insights,
                 )
                 .with_context(|| format!("binary \"{}\"", bin.name))
                 .with_context(|| format!("builder \"{}\"", builder.name))
@@ -312,6 +316,7 @@ fn configure_build(
     select: Option<&Vec<Dependency<String>>>,
     disable: Option<&Vec<String>>,
     cli_env: &Option<&Env>,
+    collect_insights: bool,
 ) -> Result<ConfigureBuildResult> {
     let mut reason = NoBuildReason::default();
 
@@ -537,7 +542,7 @@ fn configure_build(
     let mut module_build_dep_files: IndexMap<&String, IndexSet<Utf8PathBuf>> = IndexMap::new();
     let mut download_dirs = IndexMap::new();
 
-    let mut module_info = Some(IndexMap::new());
+    let mut module_info = collect_insights.then_some(IndexMap::new());
 
     // now handle each module
     for (module, module_env, module_build_deps) in modules_in_build_order.iter() {
