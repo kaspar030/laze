@@ -132,6 +132,16 @@ pub fn clap() -> clap::Command {
                         .help("generate compile_commands.json in project root")
                         .action(ArgAction::SetTrue),
                 )
+                .arg(
+                    Arg::new("info-export")
+                        .short('i')
+                        .long("info-export")
+                        .env("LAZE_DUMP_INFO")
+                        .help("export build info to file (as JSON)")
+                        .value_parser(clap::value_parser!(Utf8PathBuf))
+                        .value_hint(ValueHint::FilePath)
+                        .num_args(1),
+                )
                 .arg(jobs())
                 .next_help_heading("What to build")
                 .arg(

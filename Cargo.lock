@@ -482,6 +482,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_derive",
+ "serde_json",
  "serde_yaml",
  "shell-words",
  "signal-hook",
@@ -728,6 +729,7 @@ version = "1.0.110"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fbd975230bada99c8bb618e0c365c2eefa219158d5c6c29610fd09ff1833257"
 dependencies = [
+ "indexmap 2.1.0",
  "itoa",
  "ryu",
  "serde",

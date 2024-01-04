@@ -34,6 +34,7 @@ mod cli;
 mod data;
 mod download;
 mod generate;
+mod insights;
 mod model;
 mod nested_env;
 mod new;
@@ -234,6 +235,8 @@ fn try_main() -> Result<i32> {
                 .get_one::<task_partitioner::PartitionerBuilder>("partition")
                 .map(|v| v.build());
 
+            let info_outfile = build_matches.get_one::<Utf8PathBuf>("info-export");
+
             println!("laze: building {apps} for {builders}");
 
             // collect CLI selected/disabled modules
@@ -245,7 +248,7 @@ fn try_main() -> Result<i32> {
 
             let mode = match global {
                 true => GenerateMode::Global,
-                false => GenerateMode::Local(start_relpath),
+                false => GenerateMode::Local(start_relpath.clone()),
             };
 
             let generator = GeneratorBuilder::default()
@@ -259,11 +262,25 @@ fn try_main() -> Result<i32> {
                 .disable(disable)
                 .cli_env(cli_env)
                 .partitioner(partitioner.as_ref().map(|x| format!("{:?}", x)))
+                .disable_cache(info_outfile.is_some())
                 .build()
                 .unwrap();
 
             // arguments parsed, launch generation of ninja file(s)
             let builds = generator.execute(partitioner)?;
+
+            if let Some(info_outfile) = info_outfile {
+                use std::fs::File;
+                use std::io::BufWriter;
+                let info_outfile = start_relpath.join(info_outfile);
+                let insights = insights::Insights::from_builds(&builds.build_infos);
+                let buffer =
+                    BufWriter::new(File::create(&info_outfile).with_context(|| {
+                        format!("creating info export file \"{info_outfile}\"")
+                    })?);
+                serde_json::to_writer_pretty(buffer, &insights)
+                    .with_context(|| format!("exporting build info"))?;
+            }
 
             let ninja_build_file = get_ninja_build_file(build_dir, &mode);
 
