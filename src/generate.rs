@@ -30,12 +30,21 @@ use super::{
     utils, Context, ContextBag, Dependency, Module, Task,
 };
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct BuildInfo {
     pub binary: String,
     pub builder: String,
     pub tasks: IndexMap<String, Task>,
     pub out: Utf8PathBuf,
+
+    #[serde(skip)]
+    pub module_info: Option<IndexMap<String, ModuleInfo>>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct ModuleInfo {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    deps: Vec<String>,
 }
 
 pub type BuildInfoList = Vec<BuildInfo>;
@@ -90,6 +99,7 @@ pub struct Generator {
     disable: Option<Vec<String>>,
     cli_env: Option<Env>,
     partitioner: Option<String>,
+    disable_cache: bool,
 }
 
 impl Generator {
@@ -527,8 +537,16 @@ fn configure_build(
     let mut module_build_dep_files: IndexMap<&String, IndexSet<Utf8PathBuf>> = IndexMap::new();
     let mut download_dirs = IndexMap::new();
 
+    let mut module_info = Some(IndexMap::new());
+
     // now handle each module
     for (module, module_env, module_build_deps) in modules_in_build_order.iter() {
+        if let Some(module_info) = &mut module_info {
+            let info = ModuleInfo {
+                deps: module.selects.iter().map(|m| m.get_name()).collect(),
+            };
+            module_info.insert(module.name.clone(), info);
+        }
         // finalize this module's environment
         let flattened_env = nested_env::flatten_with_opts_option(module_env, merge_opts.as_ref())
             .with_context(|| format!("module \"{}\"", module.name))?;
@@ -911,6 +929,7 @@ fn configure_build(
             builder: builder.name.clone(),
             tasks,
             out: outfile,
+            module_info,
         },
         ninja_entries,
     ))
@@ -1020,6 +1039,9 @@ impl TryFrom<&Generator> for GenerateResult {
     type Error = anyhow::Error;
 
     fn try_from(generator: &Generator) -> Result<Self, Self::Error> {
+        if generator.disable_cache {
+            return Err(anyhow!("cache disabled"));
+        }
         let file = Self::cache_file(&generator.build_dir, &generator.mode);
         let file = File::open(file)?;
         let buffer = std::io::BufReader::new(file);
