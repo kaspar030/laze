@@ -67,6 +67,7 @@ impl<'a> From<&'a Rule> for crate::ninja::NinjaRuleBuilder<'a> {
             .rspfile(rule.rspfile.as_deref().map(Cow::from))
             .rspfile_content(rule.rspfile_content.as_deref().map(Cow::from))
             .pool(rule.pool.as_deref().map(Cow::from))
+            .always(rule.always)
             .deps(match &rule.gcc_deps {
                 None => NinjaRuleDeps::None,
                 Some(s) => NinjaRuleDeps::GCC(s.into()),
