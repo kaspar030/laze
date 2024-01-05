@@ -29,11 +29,7 @@ impl ContextBag {
     }
 
     pub fn get_by_name(&self, name: &String) -> Option<&Context> {
-        let id = self.context_map.get(name);
-        match id {
-            Some(id) => Some(&self.contexts[*id]),
-            None => None,
-        }
+        self.context_map.get(name).map(|id| &self.contexts[*id])
     }
 
     pub fn finalize(&mut self) -> Result<(), Error> {
@@ -113,21 +109,19 @@ impl ContextBag {
 
             let context = &self.contexts[n];
             let parent_var_ops = &self.contexts[context.parent_index.unwrap()].var_options;
-            let combined_var_opts = if let Some(parent_var_ops) = parent_var_ops {
-                if let Some(context_var_opts) = &context.var_options {
-                    Some(
+            let combined_var_opts = parent_var_ops.as_ref().map(|parent_var_ops| {
+                context.var_options.as_ref().map_or_else(
+                    || parent_var_ops.clone(),
+                    |context_var_opts| {
                         parent_var_ops
                             .into_iter()
                             .chain(context_var_opts)
                             .map(|(k, v)| (k.clone(), v.clone()))
-                            .collect(),
-                    )
-                } else {
-                    Some(parent_var_ops.clone())
-                }
-            } else {
-                None
-            };
+                            .collect()
+                    },
+                )
+            });
+
             let context = &mut self.contexts[n];
 
             if context.var_options.is_none() {
