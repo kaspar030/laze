@@ -163,6 +163,10 @@ impl<'a> NinjaBuildBuilder<'a> {
         }
         self
     }
+
+    pub fn with_rule(&mut self, rule: &'a NinjaRule) -> &mut Self {
+        self.rule(&*rule.name).always(rule.always)
+    }
 }
 
 impl<'a> fmt::Display for NinjaBuild<'a> {
