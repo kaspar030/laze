@@ -1,6 +1,9 @@
 name: Benchmark
 
 on:
+  schedule:
+    # run once per hr (minute chosen by fair dice roll but not full hr)
+    - cron: '18 * * * *'
   push:
     branches:
     - main
@@ -10,7 +13,7 @@ on:
 
 jobs:
   bencher:
-    if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'push'
+    if: "! (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)"
     runs-on: ubuntu-latest
     env:
       SCCACHE_GHA_ENABLED: "true"
@@ -20,7 +23,7 @@ jobs:
       BENCHER_ADAPTER: json
 
     steps:
-    - name: Check out repository code
+    - name: check out repository code
       uses: actions/checkout@v4
 
     - uses: dtolnay/rust-toolchain@master
@@ -62,7 +65,7 @@ jobs:
       run: ci/perf2bencher.rs perf-stat.json "laze -C RIOT build --global --generate-only" > bencher.json
 
     - name: Submit results to Bencher (main)
-      if: github.event_name == 'push'
+      if: github.event_name != 'pull_request'
       run: >
         bencher run
         --if-branch "$GITHUB_REF_NAME"
@@ -73,7 +76,7 @@ jobs:
         --file bencher.json
 
     - name: Submit results to Bencher (PR)
-      if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      if: github.event_name == 'pull_request'
       run: >
         bencher run
         --if-branch "$GITHUB_REF_NAME"
