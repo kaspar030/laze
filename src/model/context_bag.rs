@@ -129,6 +129,7 @@ impl ContextBag {
                 None
             };
             let context = &mut self.contexts[n];
+
             if context.var_options.is_none() {
                 context.var_options = combined_var_opts;
             }
@@ -272,14 +273,12 @@ impl ContextBag {
         blocklist: &Option<Vec<String>>,
         allowlist: &Option<Vec<String>>,
     ) -> BlockAllow {
-        let allowlist_entry = match allowlist {
-            Some(list) => self.is_ancestor_in_list(context, list),
-            None => IsAncestor::No,
-        };
-        let blocklist_entry = match blocklist {
-            Some(list) => self.is_ancestor_in_list(context, list),
-            None => IsAncestor::No,
-        };
+        let allowlist_entry = allowlist.as_ref().map_or(IsAncestor::No, |list| {
+            self.is_ancestor_in_list(context, &list)
+        });
+        let blocklist_entry = blocklist.as_ref().map_or(IsAncestor::No, |list| {
+            self.is_ancestor_in_list(context, &list)
+        });
 
         if allowlist.is_some() {
             if blocklist.is_some() {
