@@ -731,8 +731,7 @@ fn configure_build(
 
             // 4. render ninja "build:" snippet and add to this build's
             // ninja statement set
-            let build = NinjaBuildBuilder::default()
-                .with_rule(&rule)
+            let build = NinjaBuildBuilder::from_rule(&rule)
                 .inputs(sources)
                 .outs(outs.clone())
                 .deps(combined_build_deps)
@@ -830,8 +829,7 @@ fn configure_build(
 
                 // 4. render ninja "build:" snippet and add to this build's
                 // ninja statement set
-                let build = NinjaBuildBuilder::default()
-                    .with_rule(&ninja_rule)
+                let build = NinjaBuildBuilder::from_rule(&ninja_rule)
                     .input(Cow::from(srcpath.as_path()))
                     .deps(combined_build_deps.clone())
                     .out(object.as_path())
@@ -903,8 +901,7 @@ fn configure_build(
     {
         let ninja_link_rule = render_rule_with(get_rule("LINK", rules)?, &global_env_flattened);
         // build ninja link target
-        let ninja_link_build = NinjaBuildBuilder::default()
-            .with_rule(&ninja_link_rule)
+        let ninja_link_build = NinjaBuildBuilder::from_rule(&ninja_link_rule)
             .inputs(objects)
             .deps(global_build_dep_files)
             .out(outfile.as_path())
@@ -924,8 +921,7 @@ fn configure_build(
                     anyhow!("POST_LINK rule has no \"out\" extension configured")
                 })?);
                 let post_link_rule = render_rule_with(rule, &global_env_flattened);
-                let post_link_build = NinjaBuildBuilder::default()
-                    .with_rule(&post_link_rule)
+                let post_link_build = NinjaBuildBuilder::from_rule(&post_link_rule)
                     .input(outfile)
                     .out(new_outfile.as_path())
                     .build()

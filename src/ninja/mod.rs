@@ -167,6 +167,12 @@ impl<'a> NinjaBuildBuilder<'a> {
     pub fn with_rule(&mut self, rule: &'a NinjaRule) -> &mut Self {
         self.rule(&*rule.name).always(rule.always)
     }
+
+    pub fn from_rule(rule: &'a NinjaRule) -> Self {
+        let mut res = Self::default();
+        res.with_rule(rule);
+        res
+    }
 }
 
 impl<'a> fmt::Display for NinjaBuild<'a> {
