@@ -732,7 +732,7 @@ fn configure_build(
             // 4. render ninja "build:" snippet and add to this build's
             // ninja statement set
             let build = NinjaBuildBuilder::default()
-                .rule(&*rule.name)
+                .with_rule(&rule)
                 .inputs(sources)
                 .outs(outs.clone())
                 .deps(combined_build_deps)
@@ -831,7 +831,7 @@ fn configure_build(
                 // 4. render ninja "build:" snippet and add to this build's
                 // ninja statement set
                 let build = NinjaBuildBuilder::default()
-                    .rule(&*ninja_rule.name)
+                    .with_rule(&ninja_rule)
                     .input(Cow::from(srcpath.as_path()))
                     .deps(combined_build_deps.clone())
                     .out(object.as_path())
