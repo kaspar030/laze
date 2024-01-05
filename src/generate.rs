@@ -742,13 +742,8 @@ fn configure_build(
             // create an alias (phony build entry) for "outs_${hash}" of this custom build.
             // that way, dependees don't have to list all the outs, but just
             // this alias
-            let outs_alias_output = Cow::from(Utf8PathBuf::from(format!("outs_{outs_hash}")));
-            let outs_alias = NinjaBuildBuilder::default()
-                .rule("phony")
-                .inputs(outs.clone())
-                .out(outs_alias_output)
-                .build()
-                .unwrap();
+            let outs_alias =
+                crate::ninja::alias_multiple(outs.clone(), &format!("outs_{outs_hash}"));
 
             // append our outs alias to this module's exported build deps
             module_build_dep_files

@@ -346,6 +346,16 @@ pub fn alias<'a>(input: &'a str, alias: &'a str) -> String {
         .to_string()
 }
 
+pub fn alias_multiple<'a>(inputs: Vec<Cow<'a, Utf8Path>>, alias: &'a str) -> String {
+    NinjaBuildBuilder::default()
+        .rule("phony")
+        .inputs(inputs)
+        .out(Cow::from(Utf8Path::new(alias)))
+        .build()
+        .unwrap()
+        .to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
