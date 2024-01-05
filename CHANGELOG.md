@@ -9,10 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- implement `laze build --info-export <file.json> ...`, exporting some insights
+  (modules \& dependencies)
+- implement `laze new`, a way to generate laze projects from templates
+
+### Changed
+
+- cli: make "--verbose" a global flag
+
 ### Fixed
 
+- `${relpath}` now contains '.' if otherwise emtpy in more cases
+- correctly find applications in local mode when in project root
+- use buffered IO for cache. Speeds up cache read/write dramatically.
 - if the srcdir of a module is equal or a descendent of a dependency, create
   a ninja phony rule. Prevents ninja from complaining about non-existant files.
+
+### Internal
+
+- set up continuous benchmarking using bencher
+- prevent `fixup!` commits from getting merged
+- build(deps): bump anyhow from 1.0.75 to 1.0.79
+- build(deps): bump clap from 4.4.11 to 4.4.12
+- build(deps): bump clap_complete from 4.4.4 to 4.4.6
+- build(deps): bump clap_mangen from 0.2.15 to 0.2.16
+- build(deps): bump rust-embed from 8.1.0 to 8.2.0
+- build(deps): bump semver from 1.0.20 to 1.0.21
+- build(deps): bump serde from 1.0.193 to 1.0.194
+- build(deps): bump serde_yaml from 0.9.27 to 0.9.30
 
 ## [0.1.18] - 2023-12-18
 
