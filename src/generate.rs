@@ -17,7 +17,7 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use solvent::DepGraph;
 
-use crate::utils::ContainingPath;
+use crate::{model::Rule, utils::ContainingPath};
 
 use super::{
     build::Build,
@@ -885,37 +885,59 @@ fn configure_build(
     // thus, convert.
     let objects: Vec<_> = objects.iter().map(|x| Cow::from(x.as_ref())).collect();
 
+    fn get_rule<'a>(rule_name: &str, rules: &'a IndexMap<String, &Rule>) -> Result<&'a Rule> {
+        let rule = rules
+            .values()
+            .find(|rule| rule.name == rule_name)
+            .ok_or_else(|| anyhow!("missing \"{rule_name}\" rule"))?;
+        Ok(*rule)
+    }
+
+    fn render_rule_with<'a>(rule: &'a Rule, env: &im::HashMap<&String, String>) -> NinjaRule<'a> {
+        let expanded = nested_env::expand_eval(&rule.cmd, env, IfMissing::Empty).unwrap();
+
+        rule.to_ninja().command(expanded).build().unwrap().named()
+    }
+
     // linking
     {
-        let link_rule = rules
-            .values()
-            .find(|rule| rule.name == "LINK")
-            .ok_or_else(|| anyhow!("missing LINK rule for builder {}", builder.name))?;
-
-        let expanded =
-            nested_env::expand_eval(&link_rule.cmd, &global_env_flattened, IfMissing::Empty)
-                .unwrap();
-
-        let ninja_link_rule = link_rule
-            .to_ninja()
-            .command(expanded)
-            .build()
-            .unwrap()
-            .named();
-
+        let ninja_link_rule = render_rule_with(get_rule("LINK", rules)?, &global_env_flattened);
         // build ninja link target
         let ninja_link_build = NinjaBuildBuilder::default()
-            .rule(&*ninja_link_rule.name)
+            .with_rule(&ninja_link_rule)
             .inputs(objects)
             .deps(global_build_dep_files)
             .out(outfile.as_path())
-            .always(link_rule.always)
             .build()
             .unwrap();
 
         ninja_entries.insert(format!("{}", ninja_link_rule));
         ninja_entries.insert(format!("{}", ninja_link_build));
     }
+
+    // post link
+    let outfile =
+        {
+            if let Ok(rule) = get_rule("POST_LINK", rules) {
+                let mut new_outfile = outfile.clone();
+                new_outfile.set_extension(rule.out.as_ref().ok_or_else(|| {
+                    anyhow!("POST_LINK rule has no \"out\" extension configured")
+                })?);
+                let post_link_rule = render_rule_with(rule, &global_env_flattened);
+                let post_link_build = NinjaBuildBuilder::default()
+                    .with_rule(&post_link_rule)
+                    .input(outfile)
+                    .out(new_outfile.as_path())
+                    .build()
+                    .unwrap();
+
+                ninja_entries.insert(format!("{}", post_link_rule));
+                ninja_entries.insert(format!("{}", post_link_build));
+                new_outfile
+            } else {
+                outfile
+            }
+        };
 
     // collect tasks
     global_env_flattened.insert(&out_string, outfile.to_string());
