@@ -7,6 +7,7 @@ use indexmap::IndexSet;
 use super::{BlockAllow, Context, Module};
 use crate::nested_env;
 
+#[derive(Default)]
 pub struct ContextBag {
     pub contexts: Vec<Context>,
     pub context_map: HashMap<String, usize>,
@@ -20,12 +21,7 @@ pub enum IsAncestor {
 
 impl ContextBag {
     pub fn new() -> ContextBag {
-        ContextBag {
-            contexts: Vec::new(),
-            context_map: HashMap::new(),
-            contexts_topo_sorted: None,
-            //module_map: HashMap::new(),
-        }
+        Self::default()
     }
 
     pub fn get_by_name(&self, name: &String) -> Option<&Context> {
