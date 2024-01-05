@@ -78,7 +78,7 @@ pub fn from_matches(matches: &ArgMatches) -> Result<(), Error> {
                 .with_context(|| format!("rendering \"{in_filename}\""))?;
 
             file_data = Cow::from(rendered.as_bytes());
-            std::fs::write(&filename, file_data).with_context(|| format!("creating {filename}"))?;
+            std::fs::write(&outfile, file_data).with_context(|| format!("creating {outfile}"))?;
         } else {
             std::fs::write(&filename, embedded_file.data)
                 .with_context(|| format!("creating {filename}"))?;
