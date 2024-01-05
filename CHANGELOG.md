@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.19] - 2024-01-05
+
 ### Added
 
 - implement `laze build --info-export <file.json> ...`, exporting some insights
@@ -265,7 +267,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 <!-- next-url -->
-[Unreleased]: https://github.com/assert-rs/predicates-rs/compare/0.1.18...HEAD
+[Unreleased]: https://github.com/assert-rs/predicates-rs/compare/0.1.19...HEAD
+[0.1.19]: https://github.com/assert-rs/predicates-rs/compare/0.1.18...0.1.19
 [0.1.18]: https://github.com/assert-rs/predicates-rs/compare/0.1.17...0.1.18
 [0.1.17]: https://github.com/kaspar030/laze/compare/0.1.16...0.1.17
 [0.1.16]: https://github.com/kaspar030/laze/compare/0.1.15...0.1.16
