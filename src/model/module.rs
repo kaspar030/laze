@@ -176,7 +176,7 @@ impl Module {
 
         for dep in &deps {
             /* merge that dependency's exported env */
-            module_env.merge(dep.env_export.clone());
+            module_env.merge(&dep.env_export);
 
             // add all *imported (used)* dependencies to this modules "notify" env var
             // (unless it has "notify_all" set, we'll handle that later)
@@ -209,7 +209,7 @@ impl Module {
         }
 
         /* merge the module's local env */
-        module_env.merge(self.env_local.clone());
+        module_env.merge(&self.env_local);
 
         (module_env, build_dep_modules)
     }
