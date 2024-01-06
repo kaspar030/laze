@@ -43,32 +43,31 @@ pub struct NinjaRule<'a> {
 
 impl<'a> fmt::Display for NinjaRule<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "rule {}\n  command = {}\n{}{}{}{}{}\n",
-            self.name,
-            self.command,
-            match &self.description {
-                Some(description) => format!("  description = {description}\n"),
-                None => String::new(),
-            },
-            match &self.deps {
-                NinjaRuleDeps::None => String::new(),
-                NinjaRuleDeps::GCC(depfile) => format!("  deps = gcc\n  depfile = {depfile}\n"),
-            },
-            match &self.rspfile {
-                Some(rspfile) => format!("  rspfile = {rspfile}\n"),
-                None => String::new(),
-            },
-            match &self.rspfile_content {
-                Some(rspfile_content) => format!("  rspfile_content = {rspfile_content}\n"),
-                None => String::new(),
-            },
-            match &self.pool {
-                Some(pool) => format!("  pool = {pool}\n"),
-                None => String::new(),
-            },
-        )
+        write!(f, "rule {}\n  command = {}\n", self.name, self.command)?;
+
+        if let Some(description) = &self.description {
+            write!(f, "  description = {description}\n")?;
+        }
+
+        if let NinjaRuleDeps::GCC(depfile) = &self.deps {
+            write!(f, "  deps = gcc\n  depfile = {depfile}\n")?;
+        }
+
+        if let Some(rspfile) = &self.rspfile {
+            write!(f, "  rspfile = {rspfile}\n")?;
+        }
+
+        if let Some(rspfile_content) = &self.rspfile_content {
+            write!(f, "  rspfile_content = {rspfile_content}\n")?;
+        }
+
+        if let Some(pool) = &self.pool {
+            write!(f, "  pool = {pool}\n")?;
+        }
+
+        write!(f, "\n")?;
+
+        Ok(())
     }
 }
 
