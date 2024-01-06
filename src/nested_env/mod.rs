@@ -1,6 +1,6 @@
 use anyhow::{Context, Error};
 use evalexpr::EvalexprError;
-use im::{vector, HashMap, Vector};
+use im::{hashmap::Entry, vector, HashMap, Vector};
 use itertools::join;
 
 mod expand;
@@ -8,6 +8,12 @@ mod expr;
 pub use expr::Eval;
 
 pub use expand::{expand, expand_eval, IfMissing};
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
+pub struct Env {
+    #[serde(flatten)]
+    inner: HashMap<String, EnvKey>,
+}
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(untagged)]
@@ -97,104 +103,136 @@ impl EnvKey {
     }
 }
 
-pub type Env = HashMap<String, EnvKey>;
+impl Env {
+    pub fn new() -> Self {
+        Self {
+            inner: HashMap::new(),
+        }
+    }
 
-pub fn merge(lower: Env, upper: Env) -> Env {
-    lower.union_with(upper, |lower_value, upper_value| {
-        lower_value.merge(&upper_value)
-    })
-}
-
-pub fn flatten(env: &Env) -> Result<HashMap<&String, String>, Error> {
-    env.iter()
-        .map(|(key, value)| {
-            match value.flatten() {
-                Ok(v) => Ok((key, v)),
-                Err(e) => Err(e),
-            }
-            .with_context(|| format!("variable \"{key}\""))
-        })
-        .collect::<Result<HashMap<_, _>, Error>>()
-}
-
-pub fn flatten_with_opts<'a>(
-    env: &'a Env,
-    merge_opts: &HashMap<String, MergeOption>,
-) -> Result<HashMap<&'a String, String>, Error> {
-    env.iter()
-        .map(|(key, value)| {
-            if let Some(merge_opts) = merge_opts.get(key) {
-                match value.flatten_with_opts(merge_opts) {
-                    Ok(v) => Ok((key, v)),
-                    Err(e) => Err(e),
+    pub fn merge(&mut self, other: Env) {
+        for (key, value) in other.inner.iter() {
+            match self.entry(key.clone()) {
+                Entry::Vacant(e) => {
+                    e.insert(value.clone());
                 }
-            } else {
+                Entry::Occupied(mut e) => {
+                    let merged = e.get_mut().merge(&value);
+                    *e.get_mut() = merged;
+                }
+            }
+        }
+    }
+
+    pub fn flatten(&self) -> Result<HashMap<&String, String>, Error> {
+        self.inner
+            .iter()
+            .map(|(key, value)| {
                 match value.flatten() {
                     Ok(v) => Ok((key, v)),
                     Err(e) => Err(e),
                 }
-            }
-            .with_context(|| format!("variable \"{key}\""))
-        })
-        .collect::<Result<_, _>>()
-}
-
-pub fn flatten_with_opts_option<'a>(
-    env: &'a Env,
-    merge_opts: Option<&HashMap<String, MergeOption>>,
-) -> Result<HashMap<&'a String, String>, Error> {
-    if let Some(merge_opts) = merge_opts {
-        flatten_with_opts(env, merge_opts)
-    } else {
-        flatten(env)
+                .with_context(|| format!("variable \"{key}\""))
+            })
+            .collect::<Result<HashMap<_, _>, Error>>()
     }
-}
+    pub fn flatten_with_opts<'a>(
+        &'a self,
+        merge_opts: &HashMap<String, MergeOption>,
+    ) -> Result<HashMap<&'a String, String>, Error> {
+        self.inner
+            .iter()
+            .map(|(key, value)| {
+                if let Some(merge_opts) = merge_opts.get(key) {
+                    match value.flatten_with_opts(merge_opts) {
+                        Ok(v) => Ok((key, v)),
+                        Err(e) => Err(e),
+                    }
+                } else {
+                    match value.flatten() {
+                        Ok(v) => Ok((key, v)),
+                        Err(e) => Err(e),
+                    }
+                }
+                .with_context(|| format!("variable \"{key}\""))
+            })
+            .collect::<Result<_, _>>()
+    }
 
-// pub fn flatten_expand<'a>(flattened: &'a HashMap<&String, String>) -> HashMap<&'a String, String> {
-//     flattened
-//         .iter()
-//         .map(|(key, value)| (*key, expand(value, flattened, IfMissing::Error).unwrap()))
-//         .collect()
-// }
-
-pub fn expand_env(env: &Env, values: &Env) -> Result<Env, Error> {
-    let values = flatten(values)?;
-
-    fn expand_envkey(envkey: &EnvKey, values: &HashMap<&String, String>) -> EnvKey {
-        match envkey {
-            EnvKey::Single(key) => EnvKey::Single(expand(key, values, IfMissing::Ignore).unwrap()),
-            EnvKey::List(keys) => EnvKey::List({
-                keys.iter()
-                    .map(|x| expand(x, values, IfMissing::Ignore).unwrap())
-                    .collect()
-            }),
+    pub fn flatten_with_opts_option<'a>(
+        &'a self,
+        merge_opts: Option<&HashMap<String, MergeOption>>,
+    ) -> Result<HashMap<&'a String, String>, Error> {
+        if let Some(merge_opts) = merge_opts {
+            self.flatten_with_opts(merge_opts)
+        } else {
+            self.flatten()
         }
     }
 
-    Ok(env
-        .iter()
-        .map(|(key, val)| (key.clone(), expand_envkey(val, &values)))
-        .collect())
-}
+    // pub fn flatten_expand<'a>(flattened: &'a HashMap<&String, String>) -> HashMap<&'a String, String> {
+    //     flattened
+    //         .iter()
+    //         .map(|(key, value)| (*key, expand(value, flattened, IfMissing::Error).unwrap()))
+    //         .collect()
+    // }
 
-pub fn assign_from_string(env: Env, assignment: &str) -> Result<Env, anyhow::Error> {
-    let res;
-    if let Some((var, value)) = assignment.split_once("+=") {
-        let mut new = Env::new();
-        new.insert(var.to_string(), EnvKey::List(vector![value.to_owned()]));
-        res = merge(env, new);
-    } else if let Some((var, value)) = assignment.split_once('=') {
-        let mut new = Env::new();
-        new.insert(var.to_string(), EnvKey::Single(value.to_string()));
-        res = merge(env, new);
-    } else {
-        return Err(anyhow!(format!(
-            "cannot parse assignment from \"{}\"",
-            assignment
-        )));
+    pub fn expand(&mut self, values: &Env) -> Result<(), Error> {
+        let values = values.flatten()?;
+
+        fn expand_envkey(envkey: &EnvKey, values: &HashMap<&String, String>) -> EnvKey {
+            match envkey {
+                EnvKey::Single(key) => {
+                    EnvKey::Single(expand(key, values, IfMissing::Ignore).unwrap())
+                }
+                EnvKey::List(keys) => EnvKey::List({
+                    keys.iter()
+                        .map(|x| expand(x, values, IfMissing::Ignore).unwrap())
+                        .collect()
+                }),
+            }
+        }
+
+        for (_, value) in self.inner.iter_mut() {
+            *value = expand_envkey(value, &values);
+        }
+
+        Ok(())
     }
 
-    Ok(res)
+    pub fn insert(&mut self, key: String, value: EnvKey) -> Option<EnvKey> {
+        self.inner.insert(key, value)
+    }
+
+    pub fn get(&self, key: &str) -> Option<&EnvKey> {
+        self.inner.get(key)
+    }
+
+    pub fn entry(
+        &mut self,
+        key: String,
+    ) -> im::hashmap::Entry<'_, String, EnvKey, std::collections::hash_map::RandomState> {
+        self.inner.entry(key)
+    }
+
+    pub fn assign_from_string(&mut self, assignment: &str) -> Result<(), anyhow::Error> {
+        if let Some((var, value)) = assignment.split_once("+=") {
+            let mut new = Env::new();
+            new.insert(var.to_string(), EnvKey::List(vector![value.to_owned()]));
+            self.merge(new);
+        } else if let Some((var, value)) = assignment.split_once('=') {
+            let mut new = Env::new();
+            new.insert(var.to_string(), EnvKey::Single(value.to_string()));
+            self.merge(new);
+        } else {
+            return Err(anyhow!(format!(
+                "cannot parse assignment from \"{}\"",
+                assignment
+            )));
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -205,13 +243,15 @@ mod tests {
     #[test]
     fn test_merge_nonexisting_single() {
         let mut upper = Env::new();
-        let lower = Env::new();
+        let mut lower = Env::new();
         upper.insert(
             "mykey".to_string(),
             EnvKey::Single("upper_value".to_string()),
         );
 
-        let merged = merge(lower, upper);
+        lower.merge(upper);
+
+        let merged = lower;
 
         assert_eq!(
             merged.get("mykey").unwrap(),
@@ -233,10 +273,10 @@ mod tests {
             EnvKey::Single("lower_value".to_string()),
         );
 
-        let merged = merge(lower, upper);
+        lower.merge(upper);
 
         assert_eq!(
-            merged.get("mykey").unwrap(),
+            lower.get("mykey").unwrap(),
             &EnvKey::Single("upper_value".to_string())
         );
     }
@@ -257,10 +297,10 @@ mod tests {
             EnvKey::Single("upper_value".to_string()),
         );
 
-        let merged = merge(lower, upper);
+        lower.merge(upper);
 
         assert_eq!(
-            merged.get("mykey").unwrap(),
+            lower.get("mykey").unwrap(),
             &EnvKey::Single("upper_value".to_string())
         );
     }
@@ -282,10 +322,10 @@ mod tests {
             ]),
         );
 
-        let merged = merge(lower, upper);
+        lower.merge(upper);
 
         assert_eq!(
-            merged.get("mykey").unwrap(),
+            lower.get("mykey").unwrap(),
             &EnvKey::List(vector![
                 "upper_value_1".to_string(),
                 "upper_value_2".to_string(),
@@ -313,10 +353,10 @@ mod tests {
             ]),
         );
 
-        let merged = merge(lower, upper);
+        lower.merge(upper);
 
         assert_eq!(
-            merged.get("mykey").unwrap(),
+            lower.get("mykey").unwrap(),
             &EnvKey::List(vector![
                 "lower_value_1".to_string(),
                 "lower_value_2".to_string(),
@@ -339,11 +379,7 @@ mod tests {
             EnvKey::Single("lower_value".to_string()),
         );
 
-        let merged = merge(lower, upper);
-
-        for (key, value) in merged {
-            dbg!(key, value);
-        }
+        lower.merge(upper);
     }
 
     #[test]
@@ -371,7 +407,7 @@ mod tests {
             },
         );
 
-        let flattened = flatten_with_opts(&env, &merge_opts).unwrap();
+        let flattened = env.flatten_with_opts(&merge_opts).unwrap();
 
         assert_eq!(
             flattened.get(&"mykey".to_string()).unwrap(),
@@ -384,7 +420,7 @@ mod tests {
         let mut env = Env::new();
         env.insert("FOO".to_string(), EnvKey::Single("whiskeyBAR".to_string()));
 
-        let env = assign_from_string(env, "FOO=milkBAR").unwrap();
+        env.assign_from_string("FOO=milkBAR").unwrap();
 
         assert_eq!(
             env.get(&"FOO".to_string()).unwrap(),
@@ -400,7 +436,7 @@ mod tests {
             EnvKey::List(vector!["whiskeyBAR".to_string(), "beerBAR".to_string()]),
         );
 
-        let env = assign_from_string(env, "FOO=milkBAR").unwrap();
+        env.assign_from_string("FOO=milkBAR").unwrap();
 
         assert_eq!(
             env.get(&"FOO".to_string()).unwrap(),
@@ -416,7 +452,7 @@ mod tests {
             EnvKey::List(vector!["whiskeyBAR".to_string(), "beerBAR".to_string()]),
         );
 
-        let env = assign_from_string(env, "FOO+=milkBAR").unwrap();
+        env.assign_from_string("FOO+=milkBAR").unwrap();
 
         assert_eq!(
             env.get(&"FOO".to_string()).unwrap(),
