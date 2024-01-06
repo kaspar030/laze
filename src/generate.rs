@@ -402,14 +402,14 @@ fn configure_build(
 
     // create initial build context global env.
     let mut global_env = laze_env.clone();
-    global_env.merge(build.build_context.env.clone().unwrap());
+    global_env.merge(&build.build_context.env.as_ref().unwrap());
 
     // import global module environments into global build context env
     // modules contains the dependencies in order (a->b, b->c => a,b,c)
     // we want modules to override or append to env vars deeper in the tree,
     // so iterate in reverse order, merging higher envs onto the deeper ones.
     for (_, module) in resolved.modules.iter().rev() {
-        global_env.merge(module.env_global.clone());
+        global_env.merge(&module.env_global);
     }
 
     // insert global "relpath"
@@ -439,8 +439,8 @@ fn configure_build(
     );
 
     // if provided, merge CLI env overrides
-    if let Some(cli_env) = *cli_env {
-        global_env.merge(cli_env.clone());
+    if let Some(cli_env) = cli_env {
+        global_env.merge(cli_env);
     }
 
     let out_str = "out".to_string();

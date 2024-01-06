@@ -586,13 +586,13 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         // copy over environment
         if let Some(env) = &module.env {
             if let Some(local) = &env.local {
-                m.env_local.merge(local.clone());
+                m.env_local.merge(&local);
             }
             if let Some(export) = &env.export {
-                m.env_export.merge(export.clone());
+                m.env_export.merge(&export);
             }
             if let Some(global) = &env.global {
-                m.env_global.merge(global.clone());
+                m.env_global.merge(&global);
             }
         }
 
@@ -698,7 +698,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             EnvKey::Single(m.srcdir.as_ref().unwrap().as_path().to_string()),
         );
 
-        m.env_local.merge(m.env_early.clone());
+        m.env_local.merge(&m.env_early);
         m.apply_early_env()?;
 
         if is_binary {

@@ -80,7 +80,7 @@ impl ContextBag {
             if let Some(parent_env) = parent_env {
                 let mut env = parent_env.clone();
                 if let Some(context_env) = context_env {
-                    env.merge(context_env.clone());
+                    env.merge(context_env);
                 }
                 let context = &mut self.contexts[n];
                 context.env = Some(env);

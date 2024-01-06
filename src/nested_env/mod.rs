@@ -110,7 +110,7 @@ impl Env {
         }
     }
 
-    pub fn merge(&mut self, other: Env) {
+    pub fn merge(&mut self, other: &Env) {
         for (key, value) in other.inner.iter() {
             match self.entry(key.clone()) {
                 Entry::Vacant(e) => {
@@ -219,11 +219,11 @@ impl Env {
         if let Some((var, value)) = assignment.split_once("+=") {
             let mut new = Env::new();
             new.insert(var.to_string(), EnvKey::List(vector![value.to_owned()]));
-            self.merge(new);
+            self.merge(&new);
         } else if let Some((var, value)) = assignment.split_once('=') {
             let mut new = Env::new();
             new.insert(var.to_string(), EnvKey::Single(value.to_string()));
-            self.merge(new);
+            self.merge(&new);
         } else {
             return Err(anyhow!(format!(
                 "cannot parse assignment from \"{}\"",
@@ -249,7 +249,7 @@ mod tests {
             EnvKey::Single("upper_value".to_string()),
         );
 
-        lower.merge(upper);
+        lower.merge(&upper);
 
         let merged = lower;
 
@@ -273,7 +273,7 @@ mod tests {
             EnvKey::Single("lower_value".to_string()),
         );
 
-        lower.merge(upper);
+        lower.merge(&upper);
 
         assert_eq!(
             lower.get("mykey").unwrap(),
@@ -297,7 +297,7 @@ mod tests {
             EnvKey::Single("upper_value".to_string()),
         );
 
-        lower.merge(upper);
+        lower.merge(&upper);
 
         assert_eq!(
             lower.get("mykey").unwrap(),
@@ -322,7 +322,7 @@ mod tests {
             ]),
         );
 
-        lower.merge(upper);
+        lower.merge(&upper);
 
         assert_eq!(
             lower.get("mykey").unwrap(),
@@ -353,7 +353,7 @@ mod tests {
             ]),
         );
 
-        lower.merge(upper);
+        lower.merge(&upper);
 
         assert_eq!(
             lower.get("mykey").unwrap(),
@@ -379,7 +379,7 @@ mod tests {
             EnvKey::Single("lower_value".to_string()),
         );
 
-        lower.merge(upper);
+        lower.merge(&upper);
     }
 
     #[test]
