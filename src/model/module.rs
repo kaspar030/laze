@@ -176,7 +176,7 @@ impl Module {
 
         for dep in &deps {
             /* merge that dependency's exported env */
-            module_env = nested_env::merge(module_env, dep.env_export.clone());
+            module_env.merge(dep.env_export.clone());
 
             // add all *imported (used)* dependencies to this modules "notify" env var
             // (unless it has "notify_all" set, we'll handle that later)
@@ -209,7 +209,7 @@ impl Module {
         }
 
         /* merge the module's local env */
-        module_env = nested_env::merge(module_env, self.env_local.clone());
+        module_env.merge(self.env_local.clone());
 
         (module_env, build_dep_modules)
     }
@@ -228,9 +228,9 @@ impl Module {
     }
 
     pub fn apply_early_env(&mut self) -> Result<(), Error> {
-        self.env_local = nested_env::expand_env(&self.env_local, &self.env_early)?;
-        self.env_export = nested_env::expand_env(&self.env_export, &self.env_early)?;
-        self.env_global = nested_env::expand_env(&self.env_global, &self.env_early)?;
+        self.env_local.expand(&self.env_early)?;
+        self.env_export.expand(&self.env_early)?;
+        self.env_global.expand(&self.env_early)?;
         Ok(())
     }
 

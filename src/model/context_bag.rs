@@ -5,7 +5,6 @@ use anyhow::Error;
 use indexmap::IndexSet;
 
 use super::{BlockAllow, Context, Module};
-use crate::nested_env;
 
 #[derive(Default)]
 pub struct ContextBag {
@@ -79,11 +78,9 @@ impl ContextBag {
             let parent_env = &self.contexts[context.parent_index.unwrap()].env;
 
             if let Some(parent_env) = parent_env {
-                let env;
+                let mut env = parent_env.clone();
                 if let Some(context_env) = context_env {
-                    env = nested_env::merge(parent_env.clone(), context_env.clone());
-                } else {
-                    env = parent_env.clone();
+                    env.merge(context_env.clone());
                 }
                 let context = &mut self.contexts[n];
                 context.env = Some(env);

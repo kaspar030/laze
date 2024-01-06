@@ -402,7 +402,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         );
 
         if let Some(tasks) = &context.tasks {
-            let flattened_early_env = crate::nested_env::flatten(&context_.env_early)?;
+            let flattened_early_env = context_.env_early.flatten()?;
             context_.tasks = Some(
                 tasks
                     .iter()
@@ -586,13 +586,13 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         // copy over environment
         if let Some(env) = &module.env {
             if let Some(local) = &env.local {
-                m.env_local = super::nested_env::merge(m.env_local, local.clone());
+                m.env_local.merge(local.clone());
             }
             if let Some(export) = &env.export {
-                m.env_export = super::nested_env::merge(m.env_export, export.clone());
+                m.env_export.merge(export.clone());
             }
             if let Some(global) = &env.global {
-                m.env_global = super::nested_env::merge(m.env_global, global.clone());
+                m.env_global.merge(global.clone());
             }
         }
 
@@ -698,7 +698,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             EnvKey::Single(m.srcdir.as_ref().unwrap().as_path().to_string()),
         );
 
-        m.env_local = crate::nested_env::merge(m.env_local, m.env_early.clone());
+        m.env_local.merge(m.env_early.clone());
         m.apply_early_env()?;
 
         if is_binary {

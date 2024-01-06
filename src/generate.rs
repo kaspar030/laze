@@ -134,7 +134,7 @@ impl Generator {
 
         let start = Instant::now();
 
-        let mut laze_env = im::HashMap::new();
+        let mut laze_env = Env::new();
         laze_env.insert("in".to_string(), "\\${in}".into());
         laze_env.insert("out".to_string(), "\\${out}".into());
         laze_env.insert("build-dir".to_string(), self.build_dir.clone().into());
@@ -401,15 +401,15 @@ fn configure_build(
     let merge_opts = &builder.var_options;
 
     // create initial build context global env.
-    let mut global_env =
-        nested_env::merge(laze_env.clone(), build.build_context.env.clone().unwrap());
+    let mut global_env = laze_env.clone();
+    global_env.merge(build.build_context.env.clone().unwrap());
 
     // import global module environments into global build context env
     // modules contains the dependencies in order (a->b, b->c => a,b,c)
     // we want modules to override or append to env vars deeper in the tree,
     // so iterate in reverse order, merging higher envs onto the deeper ones.
     for (_, module) in resolved.modules.iter().rev() {
-        global_env = nested_env::merge(global_env, module.env_global.clone());
+        global_env.merge(module.env_global.clone());
     }
 
     // insert global "relpath"
@@ -440,13 +440,13 @@ fn configure_build(
 
     // if provided, merge CLI env overrides
     if let Some(cli_env) = *cli_env {
-        global_env = nested_env::merge(global_env, cli_env.clone());
+        global_env.merge(cli_env.clone());
     }
 
-    let tmp = global_env.clone();
-    let out_string = String::from("out");
-    let mut global_env_flattened =
-        nested_env::flatten_with_opts_option(&tmp, merge_opts.as_ref()).context("global env")?;
+    let out_str = "out".to_string();
+    let mut global_env_flattened = global_env
+        .flatten_with_opts_option(merge_opts.as_ref())
+        .context("global env")?;
 
     // build application file name
     let outfile = Utf8PathBuf::from(
@@ -553,7 +553,8 @@ fn configure_build(
             module_info.insert(module.name.clone(), info);
         }
         // finalize this module's environment
-        let flattened_env = nested_env::flatten_with_opts_option(module_env, merge_opts.as_ref())
+        let flattened_env = module_env
+            .flatten_with_opts_option(merge_opts.as_ref())
             .with_context(|| format!("module \"{}\"", module.name))?;
 
         // handle possible remote sources
@@ -936,7 +937,7 @@ fn configure_build(
         };
 
     // collect tasks
-    global_env_flattened.insert(&out_string, outfile.to_string());
+    global_env_flattened.insert(&out_str, outfile.to_string());
     let tasks = build
         .build_context
         .collect_tasks(contexts, &global_env_flattened)?;
