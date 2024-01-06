@@ -412,14 +412,12 @@ fn collect_tasks(task_matches: &clap::ArgMatches) -> Option<(&str, Option<Vec<&s
     }
 }
 
-fn get_cli_vars(
-    build_matches: &clap::ArgMatches,
-) -> Result<Option<im::HashMap<String, nested_env::EnvKey>>, Error> {
+fn get_cli_vars(build_matches: &clap::ArgMatches) -> Result<Option<Env>, Error> {
     let cli_env = if let Some(entries) = build_matches.get_many::<String>("define") {
         let mut env = Env::new();
 
         for assignment in entries {
-            env = nested_env::assign_from_string(env, assignment)?;
+            env.assign_from_string(assignment)?;
         }
 
         Some(env)
