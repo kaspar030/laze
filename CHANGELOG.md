@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- `POST_LINK` rule: added a way to post process app `.elf` files
+
+### Fixed
+
+- `laze new` now drops the `.in` extension from rendered templates
+
+### Dependencies
+
+- bump clap from 4.4.12 to 4.4.13
+
+### Internal
+
+- refactored `nested_env::Env` to be a distinct struct. This brought a nice
+  performance gain (+~5% for RIOT use case).
+
 ## [0.1.19] - 2024-01-05
 
 ### Added
