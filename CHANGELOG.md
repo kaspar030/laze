@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.20] - 2024-01-08
+
 ### Added
 
 - `POST_LINK` rule: added a way to post process app `.elf` files
@@ -284,7 +286,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 <!-- next-url -->
-[Unreleased]: https://github.com/assert-rs/predicates-rs/compare/0.1.19...HEAD
+[Unreleased]: https://github.com/assert-rs/predicates-rs/compare/0.1.20...HEAD
+[0.1.20]: https://github.com/assert-rs/predicates-rs/compare/0.1.19...0.1.20
 [0.1.19]: https://github.com/assert-rs/predicates-rs/compare/0.1.18...0.1.19
 [0.1.18]: https://github.com/assert-rs/predicates-rs/compare/0.1.17...0.1.18
 [0.1.17]: https://github.com/kaspar030/laze/compare/0.1.16...0.1.17
