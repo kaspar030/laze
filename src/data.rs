@@ -28,7 +28,7 @@ use crate::serde_bool_helpers::default_as_false;
 use crate::utils::StringOrMapVecString;
 
 mod import;
-use import::Import;
+use import::ImportEntry;
 
 pub type FileTreeState = TreeState<FileState, std::path::PathBuf>;
 
@@ -76,7 +76,7 @@ struct YamlFile {
     modules: Option<Option<Vec<YamlModule>>>,
     #[serde(default, deserialize_with = "deserialize_some")]
     apps: Option<Option<Vec<YamlModule>>>,
-    imports: Option<Vec<Import>>,
+    imports: Option<Vec<ImportEntry>>,
     subdirs: Option<Vec<String>>,
     defaults: Option<HashMap<String, YamlModule>>,
     #[serde(default, deserialize_with = "deserialize_version_checked")]
