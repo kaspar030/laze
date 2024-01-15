@@ -16,7 +16,7 @@ pub struct Env {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
-#[serde(untagged)]
+#[serde(untagged, expecting = "expected single value or array of values")]
 pub enum EnvKey {
     Single(String),
     List(Vector<String>),
