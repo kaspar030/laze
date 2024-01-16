@@ -6,6 +6,7 @@ use std::hash::{Hash, Hasher};
 use crate::serde_bool_helpers::default_as_false;
 
 #[derive(Debug, Serialize, Deserialize, Eq, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Rule {
     pub name: String,
     pub cmd: String,
