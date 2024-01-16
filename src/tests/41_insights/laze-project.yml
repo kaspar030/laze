@@ -53,7 +53,7 @@ apps:
   - name: app2
     sources:
       - app.c
-    disable:
+    disables:
       - third_module
     selects:
       - first_module

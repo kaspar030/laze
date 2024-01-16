@@ -69,6 +69,7 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct YamlFile {
     contexts: Option<Vec<YamlContext>>,
     builders: Option<Vec<YamlContext>>,
@@ -92,6 +93,7 @@ struct YamlFile {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct YamlContext {
     name: String,
     parent: Option<String>,
@@ -114,6 +116,7 @@ enum StringOrVecString {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct YamlModule {
     name: Option<String>,
     context: Option<StringOrVecString>,
@@ -181,6 +184,7 @@ impl YamlModule {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct YamlModuleEnv {
     local: Option<Env>,
     export: Option<Env>,

@@ -9,6 +9,7 @@ use crate::utils::StringOrMapString;
 use crate::IGNORE_SIGINT;
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Task {
     cmd: Vec<String>,
     pub help: Option<String>,
