@@ -117,7 +117,7 @@ impl Env {
                     e.insert(value.clone());
                 }
                 Entry::Occupied(mut e) => {
-                    let merged = e.get_mut().merge(&value);
+                    let merged = e.get_mut().merge(value);
                     *e.get_mut() = merged;
                 }
             }

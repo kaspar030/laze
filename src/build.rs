@@ -217,7 +217,7 @@ impl<'a> Resolver<'a> {
     fn add_provided_by(&mut self, name: &'a String, module: &'a Module) {
         self.provided_by
             .entry(name)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(module);
     }
 

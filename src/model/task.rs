@@ -121,9 +121,7 @@ impl Task {
         //
         // ... to export `FOO=value`, `BAR=bar` and `FOOBAR=other_value`.
 
-        self.export.as_ref().and_then(|exports| {
-            Some(
-                exports
+        self.export.as_ref().map(|exports| exports
                     .iter()
                     .map(|entry| match entry {
                         StringOrMapString::String(s) => {
@@ -147,8 +145,6 @@ impl Task {
                             })))
                         }
                     })
-                    .collect(),
-            )
-        })
+                    .collect())
     }
 }

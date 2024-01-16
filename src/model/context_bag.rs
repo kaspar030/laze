@@ -261,10 +261,10 @@ impl ContextBag {
         allowlist: &Option<Vec<String>>,
     ) -> BlockAllow {
         let allowlist_entry = allowlist.as_ref().map_or(IsAncestor::No, |list| {
-            self.is_ancestor_in_list(context, &list)
+            self.is_ancestor_in_list(context, list)
         });
         let blocklist_entry = blocklist.as_ref().map_or(IsAncestor::No, |list| {
-            self.is_ancestor_in_list(context, &list)
+            self.is_ancestor_in_list(context, list)
         });
 
         if allowlist.is_some() {

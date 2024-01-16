@@ -51,7 +51,7 @@ fn get_existing_file(path: &Utf8Path, filenames: &[&str]) -> Option<Utf8PathBuf>
 }
 
 fn get_lazefile(path: &Utf8Path) -> Result<Utf8PathBuf, Error> {
-    get_existing_file(&path, &["laze-lib.yml", "laze.yml", "laze-project.yml"]).ok_or(anyhow!(
+    get_existing_file(path, &["laze-lib.yml", "laze.yml", "laze-project.yml"]).ok_or(anyhow!(
         "no \"laze-lib.yml\", \"laze.yml\" or \"laze-project.yml\" in import"
     ))
 }

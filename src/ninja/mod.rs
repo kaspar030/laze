@@ -10,16 +10,14 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Default)]
 pub enum NinjaRuleDeps {
+    #[default]
     None,
     GCC(String),
 }
 
-impl Default for NinjaRuleDeps {
-    fn default() -> NinjaRuleDeps {
-        NinjaRuleDeps::None
-    }
-}
+
 
 #[derive(Builder, Debug, PartialEq, Eq, Clone)]
 #[builder(setter(into))]
@@ -46,7 +44,7 @@ impl<'a> fmt::Display for NinjaRule<'a> {
         write!(f, "rule {}\n  command = {}\n", self.name, self.command)?;
 
         if let Some(description) = &self.description {
-            write!(f, "  description = {description}\n")?;
+            writeln!(f, "  description = {description}")?;
         }
 
         if let NinjaRuleDeps::GCC(depfile) = &self.deps {
@@ -54,18 +52,18 @@ impl<'a> fmt::Display for NinjaRule<'a> {
         }
 
         if let Some(rspfile) = &self.rspfile {
-            write!(f, "  rspfile = {rspfile}\n")?;
+            writeln!(f, "  rspfile = {rspfile}")?;
         }
 
         if let Some(rspfile_content) = &self.rspfile_content {
-            write!(f, "  rspfile_content = {rspfile_content}\n")?;
+            writeln!(f, "  rspfile_content = {rspfile_content}")?;
         }
 
         if let Some(pool) = &self.pool {
-            write!(f, "  pool = {pool}\n")?;
+            writeln!(f, "  pool = {pool}")?;
         }
 
-        write!(f, "\n")?;
+        writeln!(f)?;
 
         Ok(())
     }
