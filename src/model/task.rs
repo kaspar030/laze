@@ -11,6 +11,7 @@ use crate::IGNORE_SIGINT;
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Task {
     cmd: Vec<String>,
+    pub help: Option<String>,
     pub required_vars: Option<Vec<String>>,
     pub export: Option<Vec<StringOrMapString>>,
     #[serde(default = "default_as_true")]
@@ -74,6 +75,7 @@ impl Task {
 
     fn _with_env(&self, env: &im::HashMap<&String, String>, do_eval: bool) -> Result<Task, Error> {
         Ok(Task {
+            help: self.help.clone(),
             build: self.build,
             cmd: self
                 .cmd

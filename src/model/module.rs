@@ -17,6 +17,8 @@ pub struct Module {
     pub name: String,
     pub context_name: String,
 
+    pub help: Option<String>,
+
     pub selects: Vec<Dependency<String>>,
     pub imports: Vec<Dependency<String>>,
     pub provides: Option<Vec<String>>,
@@ -52,6 +54,7 @@ impl Module {
         Module {
             name,
             context_name: context_name.unwrap_or_else(|| "default".to_string()),
+            help: None,
             selects: Vec::new(),
             imports: Vec::new(),
             provides: None,

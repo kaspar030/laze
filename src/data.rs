@@ -95,6 +95,7 @@ struct YamlFile {
 struct YamlContext {
     name: String,
     parent: Option<String>,
+    help: Option<String>,
     env: Option<Env>,
     selects: Option<Vec<String>>,
     disables: Option<Vec<String>>,
@@ -116,6 +117,7 @@ enum StringOrVecString {
 struct YamlModule {
     name: Option<String>,
     context: Option<StringOrVecString>,
+    help: Option<String>,
     depends: Option<Vec<StringOrMapVecString>>,
     selects: Option<Vec<String>>,
     uses: Option<Vec<String>>,
@@ -145,6 +147,7 @@ impl YamlModule {
         YamlModule {
             name: None,
             context: None,
+            help: None,
             depends: None,
             selects: None,
             uses: None,
@@ -365,6 +368,8 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
                 is_builder,
             )
             .with_context(|| format!("{:?}: adding context \"{}\"", &filename, &context_name))?;
+
+        context_.help = context.help.clone();
         context_.env = context.env.clone();
         if let Some(rules) = &context.rules {
             context_.rules = Some(IndexMap::new());
@@ -495,6 +500,8 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             import_root,
             defaults,
         );
+
+        m.help = module.help.clone();
 
         // convert module dependencies
         // "selects" means "module will be part of the build"
