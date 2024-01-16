@@ -402,7 +402,7 @@ fn configure_build(
 
     // create initial build context global env.
     let mut global_env = laze_env.clone();
-    global_env.merge(&build.build_context.env.as_ref().unwrap());
+    global_env.merge(build.build_context.env.as_ref().unwrap());
 
     // import global module environments into global build context env
     // modules contains the dependencies in order (a->b, b->c => a,b,c)
@@ -754,7 +754,7 @@ fn configure_build(
             // add ninja rule/build snippets to ninja snippets set
             ninja_entries.insert(format!("{}", &rule));
             ninja_entries.insert(format!("{}", build));
-            ninja_entries.insert(format!("{}", outs_alias));
+            ninja_entries.insert(outs_alias.to_string());
         } else {
             // module is using the default build rule
 
@@ -830,7 +830,7 @@ fn configure_build(
 
                 // 4. render ninja "build:" snippet and add to this build's
                 // ninja statement set
-                let build = NinjaBuildBuilder::from_rule(&ninja_rule)
+                let build = NinjaBuildBuilder::from_rule(ninja_rule)
                     .input(Cow::from(srcpath.as_path()))
                     .deps(combined_build_deps.clone())
                     .out(object.as_path())

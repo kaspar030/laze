@@ -12,7 +12,7 @@ impl Eval for String {
     }
 }
 
-pub fn eval<'a>(input: &'a str) -> Result<Cow<'a, str>, EvalexprError> {
+pub fn eval(input: &str) -> Result<Cow<'_, str>, EvalexprError> {
     if input.contains("$(") {
         eval_recursive(input, false)
     } else {
@@ -20,7 +20,7 @@ pub fn eval<'a>(input: &'a str) -> Result<Cow<'a, str>, EvalexprError> {
     }
 }
 
-fn eval_recursive<'a>(input: &'a str, is_eval: bool) -> Result<Cow<'a, str>, EvalexprError> {
+fn eval_recursive(input: &str, is_eval: bool) -> Result<Cow<'_, str>, EvalexprError> {
     let mut result = String::new();
     let mut start = 0;
     let mut level = 0;

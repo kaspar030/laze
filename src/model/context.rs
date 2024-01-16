@@ -103,7 +103,7 @@ impl Context {
 
     pub fn count_parents(&self, bag: &ContextBag) -> usize {
         match self.parent_index {
-            Some(id) => Some(&bag.contexts[id]).unwrap().count_parents(bag) + 1,
+            Some(id) => &bag.contexts[id].count_parents(bag) + 1,
             None => 0,
         }
     }

@@ -285,7 +285,7 @@ fn try_main() -> Result<i32> {
                         format!("creating info export file \"{info_outfile}\"")
                     })?);
                 serde_json::to_writer_pretty(buffer, &insights)
-                    .with_context(|| format!("exporting build info"))?;
+                    .with_context(|| "exporting build info".to_string())?;
             }
 
             let ninja_build_file = get_ninja_build_file(build_dir, &mode);

@@ -49,7 +49,7 @@ where
     H: std::hash::BuildHasher,
 {
     let seen = Vec::new();
-    Ok(expand_recursive::<SI, H>(f, r, seen, if_missing)?)
+    expand_recursive::<SI, H>(f, r, seen, if_missing)
 }
 
 pub fn expand_eval<SI, H>(
@@ -65,7 +65,7 @@ where
     let seen = Vec::new();
     Ok(expand_recursive::<SI, H>(f, r, seen, if_missing)?
         .eval()
-        .map_err(|e| ExpandError::Expr(e)))?
+        .map_err(ExpandError::Expr))?
 }
 
 fn expand_recursive<'a, SI: 'a, H>(

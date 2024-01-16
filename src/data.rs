@@ -59,9 +59,9 @@ where
             }
             Ok(Some(version))
         } else {
-            return Err(de::Error::custom(format!(
+            Err(de::Error::custom(format!(
                 "error parsing \"{version}\" as semver version string"
-            )));
+            )))
         }
     } else {
         Ok(None)
@@ -462,7 +462,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
                     .strip_prefix(import_root.path())
                     .unwrap()
             } else {
-                &relpath
+                relpath
             }
             .to_string(),
         };
@@ -593,13 +593,13 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         // copy over environment
         if let Some(env) = &module.env {
             if let Some(local) = &env.local {
-                m.env_local.merge(&local);
+                m.env_local.merge(local);
             }
             if let Some(export) = &env.export {
-                m.env_export.merge(&export);
+                m.env_export.merge(export);
             }
             if let Some(global) = &env.global {
-                m.env_global.merge(&global);
+                m.env_global.merge(global);
             }
         }
 
@@ -667,12 +667,10 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             m.is_build_dep = true;
 
             srcdir
+        } else if relpath != "." {
+            relpath.clone()
         } else {
-            if relpath != "." {
-                relpath.clone()
-            } else {
-                "".into()
-            }
+            "".into()
         };
 
         m.build = module.build.clone();
@@ -770,11 +768,11 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
                 let context = &module_defaults
                     .context
                     .as_ref()
-                    .and_then(|context| match context {
+                    .map(|context| match context {
                         StringOrVecString::List(_) => {
                             panic!("module defaults with context _list_")
                         }
-                        StringOrVecString::Single(context) => Some(context),
+                        StringOrVecString::Single(context) => context,
                     });
 
                 Some(
