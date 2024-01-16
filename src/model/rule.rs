@@ -10,6 +10,8 @@ pub struct Rule {
     pub name: String,
     pub cmd: String,
 
+    pub help: Option<String>,
+
     #[serde(rename = "in")]
     pub in_: Option<String>,
     pub out: Option<String>,

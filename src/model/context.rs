@@ -14,6 +14,8 @@ pub struct Context {
     pub name: String,
     pub parent_name: Option<String>,
 
+    pub help: Option<String>,
+
     pub index: Option<usize>,
     pub parent_index: Option<usize>,
     pub modules: IndexMap<String, Module>,
@@ -36,6 +38,7 @@ impl Context {
         Context {
             name,
             parent_name,
+            help: None,
             index: None,
             parent_index: None,
             modules: IndexMap::new(),
