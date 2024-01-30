@@ -23,7 +23,7 @@ pathdiff = { version = "0.2.1", features = ["camino"] }
 rayon = "1.8.1"
 serde = "1.0.196"
 serde_derive = "1.0.194"
-serde_yaml = "0.9.30"
+serde_yaml = "0.9.31"
 shell-words = "1.1.0"
 simple-error = "0.3.0"
 treestate = "0.1.1"
