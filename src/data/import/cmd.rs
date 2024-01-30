@@ -3,13 +3,18 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Hash)]
 pub struct Command {
-    pub name: Option<String>,
-    pub command: String,
+    name: Option<String>,
+    command: String,
+    dldir: Option<String>,
 }
 
 impl super::Import for Command {
     fn get_name(&self) -> Option<String> {
         self.name.clone()
+    }
+
+    fn get_dldir(&self) -> Option<&String> {
+        self.dldir.as_ref()
     }
 
     fn handle<T: AsRef<camino::Utf8Path>>(

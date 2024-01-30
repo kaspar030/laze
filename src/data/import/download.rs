@@ -78,6 +78,10 @@ impl Import for Download {
         super::get_lazefile(&path)
     }
 
+    fn get_dldir(&self) -> Option<&String> {
+        self.dldir.as_ref()
+    }
+
     fn get_name(&self) -> Option<String> {
         use crate::utils::calculate_hash;
 
