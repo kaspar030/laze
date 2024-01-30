@@ -23,6 +23,7 @@ impl ImportEntry {
 
 pub trait Import: std::hash::Hash {
     fn get_name(&self) -> Option<String>;
+    fn get_dldir(&self) -> Option<&String>;
     fn handle<T: AsRef<Utf8Path>>(&self, build_dir: T) -> Result<Utf8PathBuf, Error>;
     fn get_path<T: AsRef<Utf8Path>>(&self, build_dir: T) -> Result<Utf8PathBuf, Error> {
         use crate::utils::calculate_hash;
@@ -31,7 +32,9 @@ pub trait Import: std::hash::Hash {
 
         let mut res = Utf8PathBuf::from(build_dir.as_ref());
         res.push("imports");
-        if let Some(name) = self.get_name() {
+        if let Some(dldir) = self.get_dldir() {
+            res.push(format!("{dldir}"));
+        } else if let Some(name) = self.get_name() {
             res.push(format!("{name}-{source_hash}"));
         } else {
             res.push(format!("{source_hash}"));
