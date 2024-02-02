@@ -49,6 +49,7 @@ serde_json = { version = "1.0.113", features = ["indexmap"] }
 lto = "fat"
 incremental = false
 codegen-units = 1
+strip = true
 
 [package.metadata.release]
 sign-commit = true
