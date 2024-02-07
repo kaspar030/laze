@@ -9,6 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Allow overriding the `dldir` for (download, cmd) imports
+
+### Changed
+
+- Strip binary by default
+
+### Fixes
+
+- Fix CHANGELOG.md links, update `cargo release` pre-release-replacements
+
+### Dependencies
+
+- Bump clap from 4.4.13 to 4.4.18
+- Bump clap_complete from 4.4.6 to 4.4.10
+- Bump clap_mangen from 0.2.16 to 0.2.19
+- Bump container.yml versions
+- Bump derive_builder from 0.12.0 to 0.13.0
+- Bump indexmap from 2.1.0 to 2.2.2
+- Bump itertools from 0.12.0 to 0.12.1
+- Bump rayon from 1.8.0 to 1.8.1
+- Bump serde from 1.0.194 to 1.0.196
+- Bump serde_json from 1.0.111 to 1.0.113
+- Bump serde_yaml from 0.9.30 to 0.9.31
+- Bump treestate from 0.1.0 to 0.1.1
+- Bump uuid from 1.6.1 to 1.7.0
+
+### Internal
+
+- import: Factor out download.rs
+- nested_env: Improve error message
+
 ## [0.1.20] - 2024-01-08
 
 ### Added
