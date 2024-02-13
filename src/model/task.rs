@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use anyhow::{Error, Result};
+use serde_yaml::Value;
 
 use crate::nested_env;
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
@@ -19,6 +20,8 @@ pub struct Task {
     build: bool,
     #[serde(default = "default_as_false")]
     ignore_ctrl_c: bool,
+    #[serde(rename = "meta")]
+    _meta: Option<Value>,
 }
 
 impl Task {
@@ -96,6 +99,7 @@ impl Task {
             } else {
                 self.export.clone()
             },
+            _meta: None,
         })
     }
 
@@ -122,30 +126,30 @@ impl Task {
         //
         // ... to export `FOO=value`, `BAR=bar` and `FOOBAR=other_value`.
 
-        self.export.as_ref().map(|exports| exports
-                    .iter()
-                    .map(|entry| match entry {
-                        StringOrMapString::String(s) => {
-                            StringOrMapString::Map(HashMap::from_iter([(
-                                s.clone(),
-                                nested_env::expand_eval(
-                                    format!("${{{s}}}"),
-                                    env,
-                                    nested_env::IfMissing::Empty,
-                                )
-                                .unwrap(),
-                            )]))
-                        }
-                        StringOrMapString::Map(m) => {
-                            StringOrMapString::Map(HashMap::from_iter(m.iter().map(|(k, v)| {
-                                (
-                                    k.clone(),
-                                    nested_env::expand_eval(v, env, nested_env::IfMissing::Empty)
-                                        .unwrap(),
-                                )
-                            })))
-                        }
-                    })
-                    .collect())
+        self.export.as_ref().map(|exports| {
+            exports
+                .iter()
+                .map(|entry| match entry {
+                    StringOrMapString::String(s) => StringOrMapString::Map(HashMap::from_iter([(
+                        s.clone(),
+                        nested_env::expand_eval(
+                            format!("${{{s}}}"),
+                            env,
+                            nested_env::IfMissing::Empty,
+                        )
+                        .unwrap(),
+                    )])),
+                    StringOrMapString::Map(m) => {
+                        StringOrMapString::Map(HashMap::from_iter(m.iter().map(|(k, v)| {
+                            (
+                                k.clone(),
+                                nested_env::expand_eval(v, env, nested_env::IfMissing::Empty)
+                                    .unwrap(),
+                            )
+                        })))
+                    }
+                })
+                .collect()
+        })
     }
 }
