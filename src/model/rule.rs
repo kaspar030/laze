@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::hash::{Hash, Hasher};
 
+use serde_yaml::Value;
+
 use crate::serde_bool_helpers::default_as_false;
 
 #[derive(Debug, Serialize, Deserialize, Eq, Clone)]
@@ -26,6 +28,9 @@ pub struct Rule {
 
     #[serde(default = "default_as_false")]
     pub always: bool,
+
+    #[serde(rename = "meta")]
+    _meta: Option<Value>,
 }
 
 impl Rule {

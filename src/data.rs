@@ -9,6 +9,7 @@ extern crate serde_yaml;
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use serde_yaml::Value;
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 use std::time::Instant;
@@ -90,6 +91,8 @@ struct YamlFile {
     included_by: Option<usize>,
     #[serde(skip)]
     import_root: Option<ImportRoot>,
+    #[serde(rename = "meta")]
+    _meta: Option<Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -106,6 +109,8 @@ struct YamlContext {
     tasks: Option<HashMap<String, Task>>,
     #[serde(skip)]
     _is_builder: bool,
+    #[serde(rename = "meta")]
+    _meta: Option<Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -143,6 +148,8 @@ struct YamlModule {
     is_global_build_dep: bool,
     #[serde(skip)]
     _is_binary: bool,
+    #[serde(rename = "meta")]
+    _meta: Option<Value>,
 }
 
 impl YamlModule {
@@ -168,6 +175,7 @@ impl YamlModule {
             is_build_dep: false,
             is_global_build_dep: false,
             _is_binary: is_binary,
+            _meta: None,
         }
     }
 
