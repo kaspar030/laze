@@ -11,10 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Allow overriding the `dldir` for (download, cmd) imports
+- Allow overriding the `dldir` for (`download`, `cmd`) imports
 
 ### Changed
 
+- Make yaml parsing strict (disallow unexpected fields)
+- Introduce "meta" field on contexts, modules, rules, tasks and at file level.
+  This field will just be ignored, allowing for extra information in laze build
+  files now that the yaml parsing is strict.
 - Strip binary by default
 
 ### Fixes
