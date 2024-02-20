@@ -25,7 +25,15 @@ impl Import for Download {
 
                     let status = if Url::parse(url).is_ok() {
                         Command::new("git")
-                            .args(["cache", "clone", url, commit, path.as_str()])
+                            .args([
+                                "cache",
+                                "clone",
+                                "--commit",
+                                commit,
+                                "--",
+                                url,
+                                path.as_str(),
+                            ])
                             .status()?
                     } else {
                         let mut status = Command::new("git")
