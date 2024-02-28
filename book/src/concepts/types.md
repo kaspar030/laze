@@ -8,7 +8,7 @@ configuration for the host system.
 
 Builders are **contexts**. All contexts (and thus builders) have a parent,
 up to the root context which is called "default". A builder is just a context
-that apps can be built for.
+that apps can be built for. Any context with `buildable: true` is a builder.
 
 A context could be "linux", or "ubuntu" with parent context "linux". A builder
 could then be "amd64" with parent context "ubuntu". Builders can have other

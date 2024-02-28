@@ -13,11 +13,15 @@ builders:
    # ... possible other fields
  - name: name_of_other_builder
    # ... possible other fields
+contexts:
+ - name: name_of_another_builder
+   buildable: true
+   # ... possible other fields
 ```
 
 ## builder fields
 
-As a builder is just a special kind of context, they share all fields.
+As a builder is just a context that has `buildable: true` set, they share all fields.
 
 - [`name`](./context/name.md)
 - [`parent`](./context/parent.md)
