@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Allow overriding the `dldir` for (`download`, `cmd`) imports
+- Add `context::buildable`, allowing a context to become a builder.
 
 ### Changed
 
