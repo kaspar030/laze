@@ -107,8 +107,8 @@ struct YamlContext {
     rules: Option<Vec<Rule>>,
     var_options: Option<im::HashMap<String, MergeOption>>,
     tasks: Option<HashMap<String, Task>>,
-    #[serde(skip)]
-    _is_builder: bool,
+    #[serde(default = "default_as_false", alias = "buildable")]
+    is_builder: bool,
     #[serde(rename = "meta")]
     _meta: Option<Value>,
 }
@@ -736,7 +736,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
                     convert_context(
                         context,
                         &mut contexts,
-                        *is_builder,
+                        *is_builder | context.is_builder,
                         data.filename.as_ref().unwrap(),
                         &data.import_root,
                     )?;
