@@ -15,6 +15,7 @@ contexts:
 ## context fields
 
 - [`name`](./context/name.md)
+- [`buildable`](./context/buildable.md)
 - [`parent`](./context/parent.md)
 - [`env`](./context/env.md)
 - [`selects`](./context/selects.md)
