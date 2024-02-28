@@ -154,7 +154,7 @@ Each app/builder combination that laze configures is called a <strong>build</str
 configuration for the host system.</p>
 <p>Builders are <strong>contexts</strong>. All contexts (and thus builders) have a parent,
 up to the root context which is called &quot;default&quot;. A builder is just a context
-that apps can be built for.</p>
+that apps can be built for. Any context with <code>buildable: true</code> is a builder.</p>
 <p>A context could be &quot;linux&quot;, or &quot;ubuntu&quot; with parent context &quot;linux&quot;. A builder
 could then be &quot;amd64&quot; with parent context &quot;ubuntu&quot;. Builders can have other
 builders as parent context.</p>

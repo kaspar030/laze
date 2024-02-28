@@ -269,7 +269,7 @@ Each app/builder combination that laze configures is called a <strong>build</str
 configuration for the host system.</p>
 <p>Builders are <strong>contexts</strong>. All contexts (and thus builders) have a parent,
 up to the root context which is called &quot;default&quot;. A builder is just a context
-that apps can be built for.</p>
+that apps can be built for. Any context with <code>buildable: true</code> is a builder.</p>
 <p>A context could be &quot;linux&quot;, or &quot;ubuntu&quot; with parent context &quot;linux&quot;. A builder
 could then be &quot;amd64&quot; with parent context &quot;ubuntu&quot;. Builders can have other
 builders as parent context.</p>
@@ -375,9 +375,13 @@ its own version is smaller.</p>
    # ... possible other fields
  - name: name_of_other_builder
    # ... possible other fields
+contexts:
+ - name: name_of_another_builder
+   buildable: true
+   # ... possible other fields
 </code></pre>
 <h2 id="builder-fields"><a class="header" href="#builder-fields">builder fields</a></h2>
-<p>As a builder is just a special kind of context, they share all fields.</p>
+<p>As a builder is just a context that has <code>buildable: true</code> set, they share all fields.</p>
 <ul>
 <li><a href="reference/./context/name.html"><code>name</code></a></li>
 <li><a href="reference/./context/parent.html"><code>parent</code></a></li>
@@ -400,6 +404,7 @@ its own version is smaller.</p>
 <h2 id="context-fields"><a class="header" href="#context-fields">context fields</a></h2>
 <ul>
 <li><a href="reference/./context/name.html"><code>name</code></a></li>
+<li><a href="reference/./context/buildable.html"><code>buildable</code></a></li>
 <li><a href="reference/./context/parent.html"><code>parent</code></a></li>
 <li><a href="reference/./context/env.html"><code>env</code></a></li>
 <li><a href="reference/./context/selects.html"><code>selects</code></a></li>
