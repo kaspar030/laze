@@ -106,12 +106,16 @@ impl<'a> Resolver<'a> {
                     self.reset(state);
                     return Err(anyhow!("\"{}\" conflicts \"{}\"", module.name, conflicted));
                 }
-                if self.provided_by.contains_key(conflicted) {
+
+                if let Some(others) = self.provided_by.get(conflicted) {
+                    let others_wrapped: Vec<String> =
+                        others.iter().map(|m| format!("\"{}\"", m.name)).collect();
                     self.reset(state);
                     return Err(anyhow!(
-                        "\"{}\" conflicts already provided \"{}\"",
+                        "\"{}\" conflicts already provided \"{}\" (by {})",
                         module.name,
-                        conflicted
+                        conflicted,
+                        others_wrapped.join(", ")
                     ));
                 }
             }
@@ -215,10 +219,7 @@ impl<'a> Resolver<'a> {
     }
 
     fn add_provided_by(&mut self, name: &'a String, module: &'a Module) {
-        self.provided_by
-            .entry(name)
-            .or_default()
-            .push(module);
+        self.provided_by.entry(name).or_default().push(module);
     }
 
     fn resolve_module_list(
