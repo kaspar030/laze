@@ -353,7 +353,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         is_builder: bool,
         filename: &Utf8PathBuf,
         import_root: &Option<ImportRoot>,
-    ) -> Result<(), Error> {
+    ) -> Result<Module, Error> {
         let context_name = &context.name;
         let context_parent = match &context.parent {
             Some(x) => x.clone(),
@@ -452,7 +452,24 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             );
         }
 
-        Ok(())
+        // Each Context has an associated module.
+        // This holds:
+        // TODO:
+        // - selects
+        // - env (in global env)
+        // - rules
+        // - tasks
+        let module_name = Some(format!("context::{context_name}"));
+        let module = init_module(
+            &module_name,
+            Some(context_name),
+            false,
+            filename,
+            import_root,
+            None,
+        );
+
+        Ok(module)
     }
 
     fn init_module(
@@ -729,17 +746,19 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
     // collect and convert contexts
     // this needs to be done before collecting modules, as that requires
     // contexts to be finalized.
+    let mut context_modules = Vec::new();
     for data in &yaml_datas {
         for (list, is_builder) in [(&data.contexts, false), (&data.builders, true)].iter() {
             if let Some(context_list) = list {
                 for context in context_list {
-                    convert_context(
+                    let module = convert_context(
                         context,
                         &mut contexts,
                         *is_builder | context.is_builder,
                         data.filename.as_ref().unwrap(),
                         &data.import_root,
                     )?;
+                    context_modules.push(module);
                 }
             }
         }
