@@ -353,12 +353,15 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         is_builder: bool,
         filename: &Utf8PathBuf,
         import_root: &Option<ImportRoot>,
-    ) -> Result<(), Error> {
+    ) -> Result<Module, Error> {
         let context_name = &context.name;
         let context_parent = match &context.parent {
             Some(x) => x.clone(),
             None => "default".to_string(),
         };
+
+        let is_default = context_name.as_str() == "default";
+
         // println!(
         //     "{} {} parent {}",
         //     match is_builder {
@@ -372,9 +375,10 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             .add_context_or_builder(
                 Context::new(
                     context_name.clone(),
-                    match context_name.as_str() {
-                        "default" => None,
-                        _ => Some(context_parent),
+                    if is_default {
+                        None
+                    } else {
+                        Some(context_parent.clone())
                     },
                 ),
                 is_builder,
@@ -452,7 +456,30 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             );
         }
 
-        Ok(())
+        // Each Context has an associated module.
+        // This holds:
+        // TODO:
+        // - selects
+        // - env (in global env)
+        // - rules
+        // - tasks
+        let module_name = Some(context_.module_name());
+        let mut module = init_module(
+            &module_name,
+            Some(context_name),
+            false,
+            filename,
+            import_root,
+            None,
+        );
+
+        if !is_default {
+            module
+                .selects
+                .push(Dependency::Hard(Context::module_name_for(&context_parent)));
+        }
+
+        Ok(module)
     }
 
     fn init_module(
@@ -729,17 +756,19 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
     // collect and convert contexts
     // this needs to be done before collecting modules, as that requires
     // contexts to be finalized.
+    let mut context_modules = Vec::new();
     for data in &yaml_datas {
         for (list, is_builder) in [(&data.contexts, false), (&data.builders, true)].iter() {
             if let Some(context_list) = list {
                 for context in context_list {
-                    convert_context(
+                    let module = convert_context(
                         context,
                         &mut contexts,
                         *is_builder | context.is_builder,
                         data.filename.as_ref().unwrap(),
                         &data.import_root,
                     )?;
+                    context_modules.push(module);
                 }
             }
         }
@@ -748,6 +777,11 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
     // after this, there's a default context, context relationships and envs have been set up.
     // modules can now be processed.
     contexts.finalize()?;
+
+    // add the associated modules to their respective contexts
+    for module in context_modules.drain(..) {
+        contexts.add_module(module)?;
+    }
 
     // for context in &contexts.contexts {
     //     if let Some(env) = &context.env {

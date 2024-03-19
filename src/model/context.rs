@@ -23,7 +23,9 @@ pub struct Context {
     pub env: Option<Env>,
     pub select: Option<Vec<Dependency<String>>>,
     pub disable: Option<Vec<String>>,
-    pub provides: Option<im::HashMap<String, IndexSet<String>>>,
+
+    // map of providables that are provided in this context or its parents
+    pub provided: Option<im::HashMap<String, IndexSet<String>>>,
 
     pub var_options: Option<im::HashMap<String, MergeOption>>,
 
@@ -44,7 +46,7 @@ impl Context {
             modules: IndexMap::new(),
             select: None,
             disable: None,
-            provides: None,
+            provided: None,
             env: None,
             env_early: Env::new(),
             rules: None,
@@ -195,6 +197,14 @@ impl Context {
             env.expand(&self.env_early)?;
         }
         Ok(())
+    }
+
+    pub fn module_name(&self) -> String {
+        Self::module_name_for(&self.name)
+    }
+
+    pub(crate) fn module_name_for(context_name: &str) -> String {
+        format!("context::{}", context_name)
     }
 }
 
