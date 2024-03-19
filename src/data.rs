@@ -359,6 +359,9 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             Some(x) => x.clone(),
             None => "default".to_string(),
         };
+
+        let is_default = context_name.as_str() == "default";
+
         // println!(
         //     "{} {} parent {}",
         //     match is_builder {
@@ -372,9 +375,10 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             .add_context_or_builder(
                 Context::new(
                     context_name.clone(),
-                    match context_name.as_str() {
-                        "default" => None,
-                        _ => Some(context_parent),
+                    if is_default {
+                        None
+                    } else {
+                        Some(context_parent.clone())
                     },
                 ),
                 is_builder,
@@ -459,8 +463,8 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         // - env (in global env)
         // - rules
         // - tasks
-        let module_name = Some(format!("context::{context_name}"));
-        let module = init_module(
+        let module_name = Some(context_.module_name());
+        let mut module = init_module(
             &module_name,
             Some(context_name),
             false,
@@ -468,6 +472,12 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             import_root,
             None,
         );
+
+        if !is_default {
+            module
+                .selects
+                .push(Dependency::Hard(Context::module_name_for(&context_parent)));
+        }
 
         Ok(module)
     }
@@ -767,6 +777,11 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
     // after this, there's a default context, context relationships and envs have been set up.
     // modules can now be processed.
     contexts.finalize()?;
+
+    // add the associated modules to their respective contexts
+    for module in context_modules.drain(..) {
+        contexts.add_module(module)?;
+    }
 
     // for context in &contexts.contexts {
     //     if let Some(env) = &context.env {

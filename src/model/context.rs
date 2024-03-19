@@ -198,6 +198,14 @@ impl Context {
         }
         Ok(())
     }
+
+    pub fn module_name(&self) -> String {
+        Self::module_name_for(&self.name)
+    }
+
+    pub(crate) fn module_name_for(context_name: &str) -> String {
+        format!("context::{}", context_name)
+    }
 }
 
 impl Hash for Context {

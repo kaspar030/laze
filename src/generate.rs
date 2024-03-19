@@ -561,6 +561,16 @@ fn configure_build(
             };
             module_info.insert(module.name.clone(), info);
         }
+
+        // "srcdir" is either the folder of laze.yml that defined this module,
+        // *or* if it was downloaded, the download folder.
+        // *or*, it was overridden using "srcdir:"
+        // *or*, None if this is a "Context module"
+        let srcdir = match module.srcdir.as_ref() {
+            Some(srcdir) => srcdir,
+            None => continue, // this is a Context module, so we're done here
+        };
+
         // finalize this module's environment
         let flattened_env = module_env
             .flatten_with_opts_option(merge_opts.as_ref())
@@ -572,12 +582,6 @@ fn configure_build(
         if let Some(mut download_rules) = download_rules {
             ninja_entries.extend(download_rules.drain(..));
         }
-
-        // "srcdir" is either the folder of laze.yml that defined this module,
-        // *or* if it was downloaded, the download folder.
-        // *or*, it was overridden using "srcdir:"
-        // This is populated in data.rs, so unwrap() always succeeds.
-        let srcdir = module.srcdir.as_ref().unwrap();
 
         let mut src_tagfile = None;
 

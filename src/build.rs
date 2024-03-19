@@ -283,6 +283,7 @@ impl<'a: 'b, 'b> Build<'b> {
             .cloned()
             .chain(binary.selects.drain(..))
             .chain(build_context.collect_selected_modules(contexts).drain(..))
+            .chain(std::iter::once(Dependency::Hard(builder.module_name())))
             .collect();
 
         let mut build = Build {
