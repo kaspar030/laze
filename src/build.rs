@@ -189,8 +189,8 @@ impl<'a> Resolver<'a> {
 
             // TODO: (consistency): this should be handled *after* modules
             // which match the exact name
-            if let Some(provides) = &self.build.build_context.provides {
-                if let Some(providing_modules) = provides.get(dep_name) {
+            if let Some(provided) = &self.build.build_context.provided {
+                if let Some(providing_modules) = provided.get(dep_name) {
                     if self.resolve_module_list(providing_modules, dep_name) > 0 {
                         optional = true;
                         if self.disabled_modules.contains(dep_name) {
@@ -266,7 +266,7 @@ impl<'a: 'b, 'b> Build<'b> {
         let mut build_context = Context::new_build_context(builder.name.clone(), builder);
 
         if let Some(parent) = build_context.get_parent(contexts) {
-            build_context.provides.clone_from(&parent.provides);
+            build_context.provided.clone_from(&parent.provided);
         }
 
         // TODO: opt: see if Cow improves performance
