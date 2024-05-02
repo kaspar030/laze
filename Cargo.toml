@@ -21,7 +21,7 @@ indexmap = { version = "2.2.6", features = ["serde"] }
 itertools = "0.12.1"
 pathdiff = { version = "0.2.1", features = ["camino"] }
 rayon = "1.10.0"
-serde = "1.0.199"
+serde = "1.0.200"
 serde_derive = "1.0.194"
 serde_yaml = "0.9.34"
 shell-words = "1.1.0"
