@@ -1,5 +1,5 @@
 #!/usr/bin/env -S cargo +nightly -Zscript
-```cargo
+---
 package.edition = "2021"
 [dependencies]
 anyhow = "1.0.79"
@@ -7,7 +7,8 @@ maplit = "1.0.2"
 serde = { version = "1.0.194", features = ["derive"] }
 serde_derive = "1.0.194"
 serde_json = "1.0.111"
-```
+---
+
 use anyhow::{bail, Result};
 use maplit::hashmap;
 use serde::Deserialize;
@@ -19,7 +20,7 @@ pub fn main() -> Result<()> {
     for line in file_data.lines() {
         let line = line.trim();
         if !line.starts_with("{") {
-            continue
+            continue;
         }
         let perf: PerfJsonLine = serde_json::from_str(line)?;
         if let Some(event) = perf.event {
