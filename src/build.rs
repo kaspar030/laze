@@ -266,7 +266,7 @@ impl<'a: 'b, 'b> Build<'b> {
         let mut build_context = Context::new_build_context(builder.name.clone(), builder);
 
         if let Some(parent) = build_context.get_parent(contexts) {
-            build_context.provides = parent.provides.clone();
+            build_context.provides.clone_from(&parent.provides);
         }
 
         // TODO: opt: see if Cow improves performance
