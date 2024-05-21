@@ -244,7 +244,7 @@ fn load_all(file_include: &FileInclude, index_start: usize) -> Result<Vec<YamlFi
         parsed.filename = Some(filename.clone());
         parsed.doc_idx = Some(index_start + n);
         parsed.included_by = file_include.included_by_doc_idx;
-        parsed.import_root = file_include.import_root.clone();
+        parsed.import_root.clone_from(&file_include.import_root);
         result.push(parsed);
     }
 
@@ -381,8 +381,8 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             )
             .with_context(|| format!("{:?}: adding context \"{}\"", &filename, &context_name))?;
 
-        context_.help = context.help.clone();
-        context_.env = context.env.clone();
+        context_.help.clone_from(&context.help);
+        context_.env.clone_from(&context.env);
         if let Some(rules) = &context.rules {
             context_.rules = Some(IndexMap::new());
             for rule in rules {
@@ -395,7 +395,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
                     .insert(rule.name.clone(), rule);
             }
         }
-        context_.var_options = context.var_options.clone();
+        context_.var_options.clone_from(&context.var_options);
         // populate "early env"
         let relpath = {
             let relpath = filename.parent().unwrap().as_str();
@@ -440,7 +440,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
         context_.defined_in = Some(filename.clone());
 
-        context_.disable = context.disables.clone();
+        context_.disable.clone_from(&context.disables);
 
         // collect context level "select:"
         if let Some(select) = &context.selects {
@@ -513,7 +513,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             defaults,
         );
 
-        m.help = module.help.clone();
+        m.help.clone_from(&module.help);
 
         // convert module dependencies
         // "selects" means "module will be part of the build"
@@ -653,7 +653,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
                 defaults_blocklist.append(&mut (module_blocklist.clone()));
             }
         } else {
-            m.blocklist = module.blocklist.clone();
+            m.blocklist.clone_from(&module.blocklist);
         }
 
         if let Some(defaults_allowlist) = &mut m.allowlist {
@@ -661,12 +661,12 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
                 defaults_allowlist.append(&mut (module_allowlist.clone()));
             }
         } else {
-            m.allowlist = module.allowlist.clone();
+            m.allowlist.clone_from(&module.allowlist);
         }
 
         let relpath = m.relpath.as_ref().unwrap().clone();
 
-        m.download = module.download.clone();
+        m.download.clone_from(&module.download);
         let srcdir = if let Some(download) = &m.download {
             let srcdir = download.srcdir(build_dir, &m);
             let tagfile = download.tagfile(&srcdir);
@@ -685,7 +685,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             "".into()
         };
 
-        m.build = module.build.clone();
+        m.build.clone_from(&module.build);
         m.is_global_build_dep = module.is_global_build_dep;
 
         if m.download.is_none() {
