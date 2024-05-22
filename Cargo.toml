@@ -10,7 +10,7 @@ homepage = "https://laze-build.org"
 license = "Apache-2.0"
 readme = "README.md"
 include = ["src/**/*", "LICENSE", "README.md", "CHANGELOG.md", "!**/tests/**/*", "assets/**/*"]
-rust-version = "1.64.0"  # MSRV (clap needs recent Rust)
+rust-version = "1.70.0"
 
 [dependencies]
 anyhow = "1.0.86"

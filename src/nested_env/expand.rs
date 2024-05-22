@@ -68,14 +68,14 @@ where
         .map_err(ExpandError::Expr))?
 }
 
-fn expand_recursive<'a, SI: 'a, H>(
+fn expand_recursive<'a, SI, H>(
     f: SI,
     r: &HashMap<&String, String, H>,
     seen: Vec<&'a str>,
     if_missing: IfMissing,
 ) -> Result<String, ExpandError>
 where
-    SI: AsRef<str>,
+    SI: 'a + AsRef<str>,
     H: std::hash::BuildHasher,
 {
     let f = f.as_ref();
