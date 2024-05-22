@@ -33,7 +33,7 @@ pub trait Import: std::hash::Hash {
         let mut res = Utf8PathBuf::from(build_dir.as_ref());
         res.push("imports");
         if let Some(dldir) = self.get_dldir() {
-            res.push(format!("{dldir}"));
+            res.push(dldir);
         } else if let Some(name) = self.get_name() {
             res.push(format!("{name}-{source_hash}"));
         } else {
