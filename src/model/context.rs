@@ -206,6 +206,18 @@ impl Context {
     pub(crate) fn module_name_for(context_name: &str) -> String {
         format!("context::{}", context_name)
     }
+
+    pub(crate) fn new_default() -> Context {
+        let mut default = Context::new("default".to_string(), None);
+        let default_module =
+            Module::new("context::default".to_string(), Some("default".to_string()));
+
+        default
+            .modules
+            .insert("context::default".to_string(), default_module);
+
+        default
+    }
 }
 
 impl Hash for Context {

@@ -446,20 +446,9 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
         context_.disable.clone_from(&context.disables);
 
-        // collect context level "select:"
-        if let Some(select) = &context.selects {
-            context_.select = Some(
-                select
-                    .iter()
-                    .map(dependency_from_string)
-                    .collect::<Vec<_>>(),
-            );
-        }
-
         // Each Context has an associated module.
         // This holds:
         // TODO:
-        // - selects
         // - env (in global env)
         // - rules
         // - tasks
@@ -472,6 +461,14 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             import_root,
             None,
         );
+
+        // collect context level "select:"
+        if let Some(selects) = &context.selects {
+            for dep_name in selects {
+                // println!("- {}", dep_name);
+                module.selects.push(dependency_from_string(dep_name));
+            }
+        }
 
         if !is_default {
             module
