@@ -42,6 +42,10 @@ where
     Deserialize::deserialize(deserializer).map(Some)
 }
 
+fn default_none<T>() -> Option<T> {
+    None
+}
+
 fn deserialize_version_checked<'de, D>(deserializer: D) -> Result<Option<Version>, D::Error>
 where
     //    T: Deserialize<'de>,
@@ -95,6 +99,24 @@ struct YamlFile {
     _meta: Option<Value>,
 }
 
+fn check_module_name<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let v = Option::<String>::deserialize(deserializer)?;
+
+    if let Some(v) = v.as_ref() {
+        if v.starts_with("context::") {
+            return Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(v),
+                &"a string not starting with \"context::\"",
+            ));
+        }
+    }
+
+    Ok(v)
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct YamlContext {
@@ -123,6 +145,7 @@ enum StringOrVecString {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct YamlModule {
+    #[serde(default = "default_none", deserialize_with = "check_module_name")]
     name: Option<String>,
     context: Option<StringOrVecString>,
     help: Option<String>,
