@@ -30,8 +30,7 @@ impl ContextBag {
     pub fn finalize(&mut self) -> Result<(), Error> {
         // ensure there's a "default" context
         if self.get_by_name(&"default".to_string()).is_none() {
-            self.add_context(Context::new("default".to_string(), None))
-                .unwrap();
+            self.add_context(Context::new_default()).unwrap();
         }
 
         // set the "parent" index of each context that sets a "parent_name"
