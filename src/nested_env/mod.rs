@@ -22,8 +22,9 @@ pub enum EnvKey {
     List(Vector<String>),
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone, Default)]
 pub struct MergeOption {
+    from: Option<String>,
     joiner: Option<String>,
     prefix: Option<String>,
     suffix: Option<String>,
@@ -138,9 +139,10 @@ impl Env {
     }
     pub fn flatten_with_opts<'a>(
         &'a self,
-        merge_opts: &HashMap<String, MergeOption>,
+        merge_opts: &'a HashMap<String, MergeOption>,
     ) -> Result<HashMap<&'a String, String>, Error> {
-        self.inner
+        let mut result = self
+            .inner
             .iter()
             .map(|(key, value)| {
                 if let Some(merge_opts) = merge_opts.get(key) {
@@ -156,12 +158,34 @@ impl Env {
                 }
                 .with_context(|| format!("variable \"{key}\""))
             })
-            .collect::<Result<_, _>>()
+            .collect::<Result<HashMap<&'a String, String>, Error>>()?;
+
+        for (key, merge_opt) in merge_opts {
+            if let Some(other) = merge_opt.from.as_ref() {
+                let other_value = self.get(other).with_context(|| {
+                    format!("non-existing key \"{other}\" as `from` for \"{key}\"")
+                })?;
+
+                let flattened = other_value
+                    .flatten_with_opts(merge_opt)
+                    .with_context(|| format!("variable \"{key}\""))?;
+
+                let previous = result.insert(key, flattened);
+
+                if previous.is_some() {
+                    return Err(anyhow!(
+                        "variable \"{key}\" has both values and var_option `from`"
+                    ));
+                }
+            }
+        }
+
+        Ok(result)
     }
 
     pub fn flatten_with_opts_option<'a>(
         &'a self,
-        merge_opts: Option<&HashMap<String, MergeOption>>,
+        merge_opts: Option<&'a HashMap<String, MergeOption>>,
     ) -> Result<HashMap<&'a String, String>, Error> {
         if let Some(merge_opts) = merge_opts {
             self.flatten_with_opts(merge_opts)
@@ -404,6 +428,7 @@ mod tests {
                 suffix: Some("S".to_string()),
                 start: Some("(".to_string()),
                 end: Some(")".to_string()),
+                ..Default::default()
             },
         );
 
@@ -413,6 +438,69 @@ mod tests {
             flattened.get(&"mykey".to_string()).unwrap(),
             &"(Pvalue_1S,Pvalue_2S,Pvalue_3S,Pvalue_4S)".to_string()
         );
+    }
+
+    #[test]
+    fn test_mergeopts_ok() {
+        let mut env = Env::new();
+        env.insert(
+            "other".to_string(),
+            EnvKey::List(vector![
+                "value_1".to_string(),
+                "value_2".to_string(),
+                "value_3".to_string(),
+                "value_4".to_string(),
+            ]),
+        );
+
+        let mut merge_opts = HashMap::new();
+        merge_opts.insert(
+            "mykey".to_string(),
+            MergeOption {
+                from: Some("other".to_string()),
+                joiner: Some(",".to_string()),
+                prefix: Some("P".to_string()),
+                suffix: Some("S".to_string()),
+                start: Some("(".to_string()),
+                end: Some(")".to_string()),
+            },
+        );
+
+        let flattened = env.flatten_with_opts(&merge_opts).unwrap();
+
+        assert_eq!(
+            flattened.get(&"mykey".to_string()).unwrap(),
+            &"(Pvalue_1S,Pvalue_2S,Pvalue_3S,Pvalue_4S)".to_string()
+        );
+    }
+
+    #[test]
+    fn test_mergeopts_error() {
+        let mut env = Env::new();
+        env.insert(
+            "other".to_string(),
+            EnvKey::List(vector!["value_1".to_string(),]),
+        );
+        env.insert(
+            "mykey".to_string(),
+            EnvKey::Single("mykey_value".to_string()),
+        );
+
+        let mut merge_opts = HashMap::new();
+        merge_opts.insert(
+            "mykey".to_string(),
+            MergeOption {
+                from: Some("other".to_string()),
+                joiner: Some(",".to_string()),
+                prefix: Some("P".to_string()),
+                suffix: Some("S".to_string()),
+                start: Some("(".to_string()),
+                end: Some(")".to_string()),
+                ..Default::default()
+            },
+        );
+
+        assert_eq!(env.flatten_with_opts(&merge_opts).is_err(), true);
     }
 
     #[test]
