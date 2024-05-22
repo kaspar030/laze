@@ -305,6 +305,7 @@ impl NoBuildReason {
 
 enum ConfigureBuildResult {
     Build(BuildInfo, NinjaRuleSnippets),
+    #[allow(dead_code)]
     NoBuild(NoBuildReason),
 }
 
