@@ -33,7 +33,7 @@ mimalloc = { version = "0.1.42", default-features = false }
 build_uuid = "0.3.0"
 uuid = { version = "1.8.0", features = ["serde"] }
 solvent = { version = "0.8.3", features = ["deterministic"] }
-url = "2.5.1"
+url = "2.5.2"
 rust-embed = "8.4.0"
 task_partitioner = "0.1.1"
 
