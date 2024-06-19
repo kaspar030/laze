@@ -25,7 +25,7 @@ serde = "1.0.203"
 serde_derive = "1.0.194"
 serde_yaml = "0.9.34"
 shell-words = "1.1.0"
-simple-error = "0.3.0"
+simple-error = "0.3.1"
 treestate = "0.1.1"
 im = { version = "15.1.0", features = ["rayon", "serde"] }
 signal-hook = "0.3.17"
