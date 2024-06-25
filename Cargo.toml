@@ -43,7 +43,7 @@ camino = { version = "1.1.7", features = ["serde1"] }
 evalexpr = "11.3.0"
 semver = { version = "1.0.23", features = ["serde"] }
 tinytemplate = "1.2.1"
-serde_json = { version = "1.0.117", features = ["indexmap"] }
+serde_json = { version = "1.0.118", features = ["indexmap"] }
 
 [profile.release]
 lto = "fat"
