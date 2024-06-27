@@ -110,6 +110,7 @@ pub fn clap() -> clap::Command {
                 .env("LAZE_GLOBAL")
                 .action(ArgAction::SetTrue),
         )
+        .arg(git_cache::clap_git_cache_dir_arg())
         .subcommand(
             Command::new("build")
                 .about("generate build files and build")
@@ -226,4 +227,5 @@ pub fn clap() -> clap::Command {
                 )
                 .hide(true),
         )
+        .subcommand(git_cache::clap_clone_command("git-clone").hide(true))
 }

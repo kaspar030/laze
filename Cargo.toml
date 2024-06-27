@@ -33,7 +33,6 @@ mimalloc = { version = "0.1.43", default-features = false }
 build_uuid = "0.3.0"
 uuid = { version = "1.9.1", features = ["serde"] }
 solvent = { version = "0.8.3", features = ["deterministic"] }
-url = "2.5.2"
 rust-embed = "8.4.0"
 task_partitioner = "0.1.1"
 
@@ -44,6 +43,8 @@ evalexpr = "11.3.0"
 semver = { version = "1.0.23", features = ["serde"] }
 tinytemplate = "1.2.1"
 serde_json = { version = "1.0.118", features = ["indexmap"] }
+git-cache = "0.2.3"
+shellexpand = "3.1.0"
 
 [profile.release]
 lto = "fat"
