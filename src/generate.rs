@@ -141,6 +141,16 @@ impl Generator {
         laze_env.insert("outfile".to_string(), "${bindir}/${app}.elf".into());
         laze_env.insert("project-root".to_string(), self.project_root.clone().into());
 
+        // make our binary path available, used by e.g., the default download rules.
+        laze_env.insert(
+            "LAZE_BIN".to_string(),
+            std::env::current_exe()
+                .unwrap()
+                .to_str()
+                .expect("UTF-8 binary name for laze")
+                .into(),
+        );
+
         let laze_env = laze_env;
 
         let selected_builders = match &self.builders {

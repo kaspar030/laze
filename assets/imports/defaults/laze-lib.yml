@@ -57,11 +57,9 @@ contexts:
           ${CFLAGS_CODEGEN} ${CFLAGS}
           ${in} ${libs} -o ${out}"
 
-        #- name: GIT_DOWNLOAD
-        #cmd: 'D=$$(dirname ${out}); rm -rf $$D && git clone ${URL} $$D -n && git -C $$D reset --hard ${COMMIT} && touch ${out}'
       - name: GIT_DOWNLOAD
         description: GIT_DOWNLOAD ${URL}@${COMMIT}
-        cmd: "D=$$(dirname ${out}); rm -rf $$D && git-cache clone ${url} ${commit} $$D && echo ${commit} > ${out}"
+        cmd: "D=$$(dirname ${out}); rm -rf $$D && ${LAZE_BIN} git-clone ${url} ${commit} $$D && echo ${commit} > ${out}"
 
       - name: GIT_PATCH
         cmd: 'D=$$(dirname ${out}); PATCHES="$$(realpath --relative-to $$D ${in})"; git -C $$D --git-dir=.git --work-tree=. reset --hard $$(cat $${D}/.laze-downloaded) && git -C $$D am --ignore-whitespace $$PATCHES || (git -C $$D am --abort; false; ) && touch ${out}'

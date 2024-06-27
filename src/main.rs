@@ -15,6 +15,7 @@ use core::sync::atomic::AtomicBool;
 use std::env;
 use std::os::unix::prelude::OsStrExt;
 use std::str;
+use std::sync::OnceLock;
 use std::thread;
 
 #[macro_use]
@@ -22,6 +23,7 @@ extern crate serde_derive;
 
 use anyhow::{Context as _, Error, Result};
 use camino::{Utf8Path, Utf8PathBuf};
+use git_cache::GitCache;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use signal_hook::{consts::SIGINT, iterator::Signals};
@@ -47,6 +49,8 @@ use model::{Context, ContextBag, Dependency, Module, Rule, Task};
 use generate::{get_ninja_build_file, BuildInfo, GenerateMode, GeneratorBuilder, Selector};
 use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
+
+pub static GIT_CACHE: OnceLock<GitCache> = OnceLock::new();
 
 fn determine_project_root(start: &Utf8Path) -> Result<(Utf8PathBuf, Utf8PathBuf)> {
     let mut cwd = start.to_owned();
@@ -138,8 +142,16 @@ fn try_main() -> Result<i32> {
 
     let matches = cli::clap().get_matches();
 
-    // handle completion subcommand here, so the project specific
-    // stuff is skipped
+    let git_cache_dir = Utf8PathBuf::from(&shellexpand::tilde(
+        matches.get_one::<Utf8PathBuf>("git_cache_dir").unwrap(),
+    ));
+
+    GIT_CACHE
+        .set(GitCache::new(git_cache_dir)?)
+        .ok()
+        .expect("creating git cache folder");
+
+    // handle project independent subcommands here
     match matches.subcommand() {
         Some(("new", matches)) => {
             new::from_matches(matches)?;
@@ -189,6 +201,28 @@ fn try_main() -> Result<i32> {
                 outpath.push(format!("laze-{name}.1"));
                 create_manpage(subcommand.clone(), &outpath)?;
             }
+
+            return Ok(0);
+        }
+        Some(("git-clone", matches)) => {
+            let repository = matches.get_one::<String>("repository").unwrap();
+            let target_path = matches.get_one::<Utf8PathBuf>("target_path").cloned();
+            let wanted_commit = matches.get_one::<String>("commit");
+            let sparse_paths = matches
+                .get_many::<String>("sparse-add")
+                .map(|v| v.into_iter().cloned().collect::<Vec<String>>());
+
+            GIT_CACHE
+                .get()
+                .unwrap()
+                .cloner()
+                .commit(wanted_commit.cloned())
+                .extra_clone_args_from_matches(matches)
+                .repository_url(repository.clone())
+                .sparse_paths(sparse_paths)
+                .target_path(target_path)
+                .update(matches.get_flag("update"))
+                .do_clone()?;
 
             return Ok(0);
         }

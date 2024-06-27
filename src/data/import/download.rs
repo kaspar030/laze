@@ -1,10 +1,8 @@
 use std::fs::File;
-use std::process::Command;
 
 use anyhow::{Context as _, Error};
 use camino::{Utf8Path, Utf8PathBuf};
 use rust_embed::RustEmbed;
-use url::Url;
 
 use super::Import;
 use crate::download::{Download, Git, Source};
@@ -13,39 +11,32 @@ use crate::download::{Download, Git, Source};
 #[folder = "assets/imports"]
 struct Asset;
 
+fn git_clone(url: &String, target_path: &Utf8Path, commit: &str) -> Result<(), Error> {
+    let git_cache = crate::GIT_CACHE.get().expect("this has been set earlier");
+
+    git_cache
+        .cloner()
+        .repository_url(url.clone())
+        .target_path(Some(target_path.to_path_buf()))
+        .commit(Some(commit.into()))
+        .do_clone()
+}
+
 impl Import for Download {
     fn handle<T: AsRef<Utf8Path>>(&self, build_dir: T) -> Result<Utf8PathBuf, Error> {
-        let path = self.get_path(build_dir).unwrap();
-        let tagfile = path.join(".laze-downloaded");
+        let target_path = self.get_path(build_dir).unwrap();
+        let tagfile = target_path.join(".laze-downloaded");
 
         if !tagfile.exists() {
             match &self.source {
                 Source::Git(Git::Commit { url, commit }) => {
-                    println!("IMPORT Git {url}:{commit} -> {path}");
+                    println!("IMPORT Git {url}:{commit} -> {target_path}");
 
-                    let status = if Url::parse(url).is_ok() {
-                        Command::new("git")
-                            .args(["cache", "clone", url, commit, path.as_str()])
-                            .status()?
-                    } else {
-                        let mut status = Command::new("git")
-                            .args(["clone", "--no-checkout", url, path.as_str()])
-                            .status()?;
-                        if status.success() {
-                            status = Command::new("git")
-                                .args(["-C", path.as_str(), "checkout", commit])
-                                .status()?;
-                        }
-                        status
-                    };
+                    git_clone(url, &target_path, commit).with_context(|| {
+                        format!("cloning git url: \"{url}\" commit: \"{commit}\"")
+                    })?;
 
-                    if status.success() {
-                        File::create(tagfile)?;
-                    } else {
-                        return Err(anyhow!(
-                            "could not import from git url: {url} commit: {commit}",
-                        ));
-                    }
+                    File::create(tagfile)?;
                 }
                 Source::Laze(name) => {
                     let mut at_least_one = false;
@@ -53,15 +44,15 @@ impl Import for Download {
                     for filename in Asset::iter().filter(|x| x.starts_with(&prefix)) {
                         if !at_least_one {
                             at_least_one = true;
-                            std::fs::create_dir_all(&path)
-                                .with_context(|| format!("creating {path}"))?;
+                            std::fs::create_dir_all(&target_path)
+                                .with_context(|| format!("creating {target_path}"))?;
                         }
 
                         let embedded_file = Asset::get(&filename).unwrap();
                         let filename = filename.strip_prefix(&prefix).unwrap();
-                        let filename = path.join(filename);
-                        let parent = path.parent().unwrap();
-                        std::fs::create_dir_all(path.parent().unwrap())
+                        let filename = target_path.join(filename);
+                        let parent = target_path.parent().unwrap();
+                        std::fs::create_dir_all(target_path.parent().unwrap())
                             .with_context(|| format!("creating {parent}"))?;
                         std::fs::write(&filename, embedded_file.data)
                             .with_context(|| format!("creating {filename}"))?;
@@ -75,7 +66,7 @@ impl Import for Download {
             }
         }
 
-        super::get_lazefile(&path)
+        super::get_lazefile(&target_path)
     }
 
     fn get_dldir(&self) -> Option<&String> {
