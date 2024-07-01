@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- integrate `git-cache-rs`
 - Add `context::buildable`, allowing a context to become a builder.
 
 ## [0.1.21] - 2024-02-13
