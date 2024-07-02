@@ -7,7 +7,7 @@ use camino::Utf8PathBuf;
 
 use crate::Env;
 use crate::MergeOption;
-use crate::{ContextBag, Dependency, Module, Rule, Task};
+use crate::{ContextBag, Module, Rule, Task};
 
 #[derive(Eq)]
 pub struct Context {
@@ -21,9 +21,9 @@ pub struct Context {
     pub modules: IndexMap<String, Module>,
     pub rules: Option<IndexMap<String, Rule>>,
     pub env: Option<Env>,
-    pub select: Option<Vec<Dependency<String>>>,
-    pub disable: Option<Vec<String>>,
-    pub provides: Option<im::HashMap<String, IndexSet<String>>>,
+
+    // map of providables that are provided in this context or its parents
+    pub provided: Option<im::HashMap<String, IndexSet<String>>>,
 
     pub var_options: Option<im::HashMap<String, MergeOption>>,
 
@@ -42,9 +42,7 @@ impl Context {
             index: None,
             parent_index: None,
             modules: IndexMap::new(),
-            select: None,
-            disable: None,
-            provides: None,
+            provided: None,
             env: None,
             env_early: Env::new(),
             rules: None,
@@ -162,39 +160,31 @@ impl Context {
         Ok(result)
     }
 
-    pub fn collect_disabled_modules(&self, contexts: &ContextBag) -> IndexSet<String> {
-        let mut result = IndexSet::new();
-        let mut parents = Vec::new();
-        self.get_parents(contexts, &mut parents);
-        for parent in parents {
-            if let Some(disable) = &parent.disable {
-                for entry in disable {
-                    result.insert(entry.clone());
-                }
-            }
-        }
-        result
-    }
-
-    pub fn collect_selected_modules(&self, contexts: &ContextBag) -> Vec<Dependency<String>> {
-        let mut result = Vec::new();
-        let mut parents = Vec::new();
-        self.get_parents(contexts, &mut parents);
-        for parent in parents {
-            if let Some(select) = &parent.select {
-                for entry in select {
-                    result.push(entry.clone());
-                }
-            }
-        }
-        result
-    }
-
     pub fn apply_early_env(&mut self) -> Result<(), Error> {
         if let Some(env) = &mut self.env {
             env.expand(&self.env_early)?;
         }
         Ok(())
+    }
+
+    pub fn module_name(&self) -> String {
+        Self::module_name_for(&self.name)
+    }
+
+    pub(crate) fn module_name_for(context_name: &str) -> String {
+        format!("context::{}", context_name)
+    }
+
+    pub(crate) fn new_default() -> Context {
+        let mut default = Context::new("default".to_string(), None);
+        let default_module =
+            Module::new("context::default".to_string(), Some("default".to_string()));
+
+        default
+            .modules
+            .insert("context::default".to_string(), default_module);
+
+        default
     }
 }
 
