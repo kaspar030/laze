@@ -60,16 +60,16 @@ build build/objects/single_app.9827479472412241983.o: $
     CC_11467212919373421280 $
     single_app.c
 
-rule CC_14351074000875024094
-  command = echo -DMODULE_SINGLE_APP_USING_ANOTHER_NOTIFY_ALL -DMODULE_A -DMODULE_B -DMODULE_DASHED_MODULE -DMODULE_SLASHED_MODULE -DMODULE_NOTIFY_ALL -DMODULE_CONTEXT__SINGLE_BUILDER -DMODULE_CONTEXT__DEFAULT ${in} > ${out}
+rule CC_12216585334678901173
+  command = echo -DMODULE_SINGLE_APP_USING_ANOTHER_NOTIFY_ALL -DMODULE_CONTEXT__SINGLE_BUILDER -DMODULE_CONTEXT__DEFAULT -DMODULE_A -DMODULE_B -DMODULE_DASHED_MODULE -DMODULE_SLASHED_MODULE -DMODULE_NOTIFY_ALL ${in} > ${out}
   description = CC
 
-build build/objects/notify_all.860407989824880037.o: $
-    CC_14351074000875024094 $
+build build/objects/notify_all.13626211231724463661.o: $
+    CC_12216585334678901173 $
     notify_all.c
 
 build build/single_builder/single_app_using_another_notify_all/single_app_using_another_notify_all.elf: $
     LINK_5506617845631750009 $
     build/objects/single_app.9827479472412241983.o $
-    build/objects/notify_all.860407989824880037.o
+    build/objects/notify_all.13626211231724463661.o
 
