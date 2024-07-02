@@ -467,10 +467,10 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
         context_.defined_in = Some(filename.clone());
 
-        context_.disable.clone_from(&context.disables);
-
         // Each Context has an associated module.
         // This holds:
+        // - selects
+        // - disables
         // TODO:
         // - env (in global env)
         // - rules
@@ -493,6 +493,11 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             }
         }
 
+        if let Some(disables) = context.disables.as_ref() {
+            module.conflicts = Some(disables.clone());
+        }
+
+        // make context module depend on its parent's context module
         if !is_default {
             module
                 .selects
