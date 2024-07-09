@@ -281,8 +281,8 @@ impl<'a: 'b, 'b> Build<'b> {
             .iter()
             .flat_map(|x| x.iter())
             .cloned()
-            .chain(std::iter::once(Dependency::Hard(builder.module_name())))
             .chain(binary.selects.drain(..))
+            .chain(std::iter::once(Dependency::Hard(builder.module_name())))
             .collect();
 
         let mut build = Build {
