@@ -389,7 +389,7 @@ fn configure_build(
     };
 
     // collect disabled modules from app and build context
-    let mut disabled_modules = IndexSet::new();
+    let mut disabled_modules = build.build_context.collect_disabled_modules(contexts);
 
     // collect modules disabled on CLI
     if let Some(disable) = disable {

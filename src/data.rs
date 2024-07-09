@@ -467,6 +467,9 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
         context_.defined_in = Some(filename.clone());
 
+        // TODO(context-early-disables)
+        context_.disable.clone_from(&context.disables);
+
         // Each Context has an associated module.
         // This holds:
         // - selects
