@@ -40,11 +40,7 @@ pub struct BuildInfo {
     pub module_info: Option<IndexMap<String, ModuleInfo>>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ModuleInfo {
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    deps: Vec<String>,
-}
+pub use crate::insights::ModuleInfo;
 
 pub type BuildInfoList = Vec<BuildInfo>;
 
