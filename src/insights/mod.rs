@@ -1,6 +1,8 @@
 use camino::Utf8PathBuf;
 use indexmap::IndexMap;
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Deserialize, Serialize, Debug, Default)]
 pub struct Insights {
     builds: IndexMap<String, IndexMap<String, InsightBuildInfo>>,
@@ -18,6 +20,7 @@ pub struct ModuleInfo {
     pub deps: Vec<String>,
 }
 
+#[cfg(not(feature = "building-laze-insights"))]
 mod not_for_lib {
     use super::{InsightBuildInfo, Insights};
     use crate::generate::BuildInfo;
