@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Default)]
 pub struct Insights {
-    builds: IndexMap<String, IndexMap<String, InsightBuildInfo>>,
+    pub builds: IndexMap<String, IndexMap<String, InsightBuildInfo>>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
