@@ -1,0 +1,24 @@
+[package]
+name = "laze-insights"
+version = "0.1.21"
+authors = ["Kaspar Schleiser <kaspar@schleiser.de>"]
+edition = "2021"
+
+description = "Helper library to parse laze insight output"
+repository = "https://github.com/kaspar030/laze"
+homepage = "https://laze-build.org"
+license = "Apache-2.0"
+readme = "README.md"
+
+[dependencies]
+camino = { version = "1.1.7", features = ["serde1"] }
+indexmap = { version = "2.2.6", features = ["serde"] }
+serde = { version = "1.0.204", features = ["derive"] }
+
+[lib]
+path = "mod.rs"
+
+[features]
+default = [ "building-laze-insights" ]
+# this is *not* enabled when building the main laze binary
+building-laze-insights = []
