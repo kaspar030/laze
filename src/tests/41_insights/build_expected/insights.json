@@ -8,11 +8,13 @@
             "deps": [
               "first_module",
               "second_module",
-              "third_module"
+              "third_module",
+              "context::default"
             ]
           },
           "first_module": {},
-          "second_module": {}
+          "second_module": {},
+          "context::default": {}
         }
       }
     }
