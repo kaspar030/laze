@@ -38,7 +38,7 @@ task_partitioner = "0.1.1"
 
 clap_complete = "4.5.16"
 clap_mangen = "0.2.23"
-camino = { version = "1.1.7", features = ["serde1"] }
+camino = { version = "1.1.8", features = ["serde1"] }
 evalexpr = "11.3.0"
 semver = { version = "1.0.23", features = ["serde"] }
 tinytemplate = "1.2.1"
