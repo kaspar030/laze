@@ -36,7 +36,7 @@ solvent = { version = "0.8.3", features = ["deterministic"] }
 rust-embed = "8.5.0"
 task_partitioner = "0.1.1"
 
-clap_complete = "4.5.16"
+clap_complete = "4.5.18"
 clap_mangen = "0.2.23"
 camino = { version = "1.1.8", features = ["serde1"] }
 evalexpr = "11.3.0"
