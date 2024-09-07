@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.22] - 2024-09-07
+
 ### Added
 
 - integrate `git-cache-rs`
@@ -331,7 +333,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 <!-- next-url -->
-[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.21...HEAD
+[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.22...HEAD
+[0.1.22]: https://github.com/kaspar030/laze/compare/0.1.21...0.1.22
 [0.1.21]: https://github.com/kaspar030/laze/compare/0.1.20...0.1.21
 [0.1.20]: https://github.com/kaspar030/laze/compare/0.1.19...0.1.20
 [0.1.19]: https://github.com/kaspar030/laze/compare/0.1.18...0.1.19
