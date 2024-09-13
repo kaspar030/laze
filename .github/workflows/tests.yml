@@ -40,11 +40,15 @@ jobs:
   test:
     strategy:
       matrix:
-        toolchain: [ nightly, stable ]
+        toolchain: [ nightly-2024-09-01, stable ]
     runs-on: ubuntu-latest
     env:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
+
+    # this strips the date suffix from the github job name so we don't have to
+    # touch our required statusses list.
+    name: test (${{ startsWith(matrix.toolchain, 'nightly') && 'nightly' || matrix.toolchain }})
 
     steps:
     - name: Check out repository code
@@ -53,7 +57,7 @@ jobs:
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.toolchain }}
-        components: llvm-tools-preview
+        components: llvm-tools
 
     - name: rust cache
       uses: Swatinem/rust-cache@v2
@@ -82,7 +86,7 @@ jobs:
       run: "LAZE=$(pwd)/target/debug/laze make -C src/tests"
 
     - name: "collect coverage results"
-      if: ${{ matrix.toolchain == 'nightly' }}
+      if: ${{ startsWith(matrix.toolchain, 'nightly') }}
       run: >
        RUSTUP_TOOLCHAIN=${{ matrix.toolchain }}
        grcov
@@ -95,7 +99,7 @@ jobs:
        --ignore "/*"
 
     - name: Coveralls
-      if: ${{ matrix.toolchain == 'nightly' }}
+      if: ${{ startsWith(matrix.toolchain, 'nightly') }}
       uses: coverallsapp/github-action@v1
       with:
         path-to-lcov: "lcov.info"
