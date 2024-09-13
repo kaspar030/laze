@@ -40,7 +40,7 @@ jobs:
   test:
     strategy:
       matrix:
-        toolchain: [ nightly-2024-09-01, stable ]
+        toolchain: [ nightly, stable ]
     runs-on: ubuntu-latest
     env:
       SCCACHE_GHA_ENABLED: "true"
