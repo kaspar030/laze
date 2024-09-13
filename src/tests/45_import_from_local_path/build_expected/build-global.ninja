@@ -1,0 +1,34 @@
+builddir = build
+build ALWAYS: phony
+rule CC_7950216292150676175
+  command = cat ${in} > ${out}
+  description = CC
+
+build build/objects/testpath/foo.8352856137977294963.o: $
+    CC_7950216292150676175 $
+    testpath/foo.c
+
+rule LINK_5506617845631750009
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build/single_builder/imported_app/imported_app.elf: $
+    LINK_5506617845631750009 $
+    build/objects/testpath/foo.8352856137977294963.o
+
+build build/objects/build/imports/testpath2/foo.8352856137977294963.o: $
+    CC_7950216292150676175 $
+    build/imports/testpath2/foo.c
+
+build build/single_builder/imported_app2/imported_app2.elf: $
+    LINK_5506617845631750009 $
+    build/objects/build/imports/testpath2/foo.8352856137977294963.o
+
+build build/objects/build/imports/testpath3_renamed/foo.8352856137977294963.o: $
+    CC_7950216292150676175 $
+    build/imports/testpath3_renamed/foo.c
+
+build build/single_builder/imported_app3/imported_app3.elf: $
+    LINK_5506617845631750009 $
+    build/objects/build/imports/testpath3_renamed/foo.8352856137977294963.o
+
