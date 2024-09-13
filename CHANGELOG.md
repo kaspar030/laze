@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- implement `imports` from local paths
+
 ## [0.1.23] - 2024-09-07
 
 ## [0.1.22] - 2024-09-07

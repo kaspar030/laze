@@ -16,3 +16,4 @@ imports:
 
 - [`git`](./import/git.md)
 - [`laze`](./import/laze.md)
+- [`path`](./import/path.md)

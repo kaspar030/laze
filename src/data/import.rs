@@ -4,12 +4,14 @@ use serde::{Deserialize, Serialize};
 
 mod cmd;
 mod download;
+mod local;
 
 #[derive(Debug, Serialize, Deserialize, Hash)]
 #[serde(untagged)]
 pub enum ImportEntry {
     Download(crate::download::Download),
     Command(cmd::Command),
+    Local(local::Local),
 }
 
 impl ImportEntry {
@@ -17,6 +19,7 @@ impl ImportEntry {
         match self {
             Self::Download(download) => download.handle(build_dir),
             Self::Command(command) => command.handle(build_dir),
+            Self::Local(local) => local.handle(build_dir),
         }
     }
 }
