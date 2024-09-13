@@ -65,6 +65,7 @@
   - [imports](./reference/imports.md)
     - [git](./reference/import/git.md)
     - [laze](./reference/import/laze.md)
+    - [path](./reference/import/path.md)
   - [defaults]()
   - [variables](./reference/variables.md)
 - [Expression evaluation]()
