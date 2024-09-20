@@ -46,8 +46,7 @@ impl super::Import for Local {
             std::fs::create_dir_all(path_parent).with_context(|| format!("creating {path}"))?;
 
             let link_target = if self.path.is_relative() {
-                let relpath = pathdiff::diff_utf8_paths(&self.path, path_parent).unwrap();
-                relpath
+                pathdiff::diff_utf8_paths(&self.path, path_parent).unwrap()
             } else {
                 self.path.clone()
             };

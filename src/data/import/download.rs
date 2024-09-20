@@ -11,12 +11,12 @@ use crate::download::{Download, Git, Source};
 #[folder = "assets/imports"]
 struct Asset;
 
-fn git_clone(url: &String, target_path: &Utf8Path, commit: &str) -> Result<(), Error> {
+fn git_clone(url: &str, target_path: &Utf8Path, commit: &str) -> Result<(), Error> {
     let git_cache = crate::GIT_CACHE.get().expect("this has been set earlier");
 
     git_cache
         .cloner()
-        .repository_url(url.clone())
+        .repository_url(url.to_string())
         .target_path(Some(target_path.to_path_buf()))
         .commit(Some(commit.into()))
         .do_clone()
