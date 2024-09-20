@@ -305,6 +305,7 @@ impl NoBuildReason {
 
 enum ConfigureBuildResult {
     Build(BuildInfo, NinjaRuleSnippets),
+    #[expect(dead_code, reason = "will use soon")]
     NoBuild(NoBuildReason),
 }
 
@@ -318,6 +319,7 @@ impl From<NoBuildReason> for ConfigureBuildResult {
 // and block/allowlists allow it.
 //
 // TODO: configure_build() is approaching 300 LoC.  it should be split up.
+#[expect(clippy::too_many_arguments, reason = "yeah we know")]
 fn configure_build(
     binary: &Module,
     contexts: &ContextBag,
