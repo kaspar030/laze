@@ -104,6 +104,17 @@ impl EnvKey {
     }
 }
 
+impl From<String> for EnvKey {
+    fn from(value: String) -> Self {
+        EnvKey::Single(value)
+    }
+}
+impl From<&str> for EnvKey {
+    fn from(value: &str) -> Self {
+        EnvKey::Single(value.to_string())
+    }
+}
+
 impl Env {
     pub fn new() -> Self {
         Self {
@@ -224,8 +235,8 @@ impl Env {
         Ok(())
     }
 
-    pub fn insert(&mut self, key: String, value: EnvKey) -> Option<EnvKey> {
-        self.inner.insert(key, value)
+    pub fn insert<T: Into<EnvKey>>(&mut self, key: String, value: T) -> Option<EnvKey> {
+        self.inner.insert(key, value.into())
     }
 
     pub fn get(&self, key: &str) -> Option<&EnvKey> {
@@ -268,10 +279,7 @@ mod tests {
     fn test_merge_nonexisting_single() {
         let mut upper = Env::new();
         let mut lower = Env::new();
-        upper.insert(
-            "mykey".to_string(),
-            EnvKey::Single("upper_value".to_string()),
-        );
+        upper.insert("mykey".to_string(), "upper_value");
 
         lower.merge(&upper);
 
@@ -511,7 +519,7 @@ mod tests {
         env.assign_from_string("FOO=milkBAR").unwrap();
 
         assert_eq!(
-            env.get(&"FOO".to_string()).unwrap(),
+            env.get("FOO").unwrap(),
             &EnvKey::Single("milkBAR".to_string()),
         );
     }
