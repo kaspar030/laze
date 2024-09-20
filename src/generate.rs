@@ -127,7 +127,8 @@ impl Generator {
             get_ninja_build_file(&self.build_dir, &self.mode).as_path(),
         )?);
 
-        ninja_build_file.write_all(format!("builddir = {}\n", self.build_dir).as_bytes())?;
+        ninja_build_file
+            .write_all(format!("builddir = {}\n", self.build_dir.clone()).as_bytes())?;
 
         // add phony helper
         ninja_build_file.write_all(b"build ALWAYS: phony\n")?;
@@ -135,11 +136,11 @@ impl Generator {
         let start = Instant::now();
 
         let mut laze_env = Env::new();
-        laze_env.insert("in".to_string(), "\\${in}".into());
-        laze_env.insert("out".to_string(), "\\${out}".into());
-        laze_env.insert("build-dir".to_string(), self.build_dir.clone().into());
-        laze_env.insert("outfile".to_string(), "${bindir}/${app}.elf".into());
-        laze_env.insert("project-root".to_string(), self.project_root.clone().into());
+        laze_env.insert("in".to_string(), "\\${in}");
+        laze_env.insert("out".to_string(), "\\${out}");
+        laze_env.insert("build-dir".to_string(), self.build_dir.clone());
+        laze_env.insert("outfile".to_string(), "${bindir}/${app}.elf");
+        laze_env.insert("project-root".to_string(), self.project_root.clone());
 
         // make our binary path available, used by e.g., the default download rules.
         laze_env.insert(
@@ -147,8 +148,7 @@ impl Generator {
             std::env::current_exe()
                 .unwrap()
                 .to_str()
-                .expect("UTF-8 binary name for laze")
-                .into(),
+                .expect("UTF-8 binary name for laze"),
         );
 
         let laze_env = laze_env;
@@ -426,13 +426,10 @@ fn configure_build(
     // this will be overridden by each module's environment.
     // inserting it here (to the relpath of the app)
     // makes it available to the linking step and tasks.
-    global_env.insert("relpath".into(), binary.relpath.as_ref().unwrap().into());
+    global_env.insert("relpath".into(), binary.relpath.as_ref().unwrap().clone());
 
     // same with "relroot"
-    global_env.insert(
-        "relroot".into(),
-        relroot(binary.relpath.as_ref().unwrap()).into(),
-    );
+    global_env.insert("relroot".into(), relroot(binary.relpath.as_ref().unwrap()));
 
     // insert list of actually used modules
     global_env.insert(
@@ -1110,9 +1107,8 @@ impl TryFrom<&Generator> for GenerateResult {
     }
 }
 
-impl<T: AsRef<Utf8Path>> From<T> for EnvKey {
-    fn from(path: T) -> EnvKey {
-        let path = path.as_ref();
-        EnvKey::Single(path.to_string())
+impl From<Utf8PathBuf> for EnvKey {
+    fn from(path: Utf8PathBuf) -> EnvKey {
+        EnvKey::Single(path.into_string())
     }
 }
