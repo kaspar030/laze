@@ -352,9 +352,9 @@ dependencies = [
 
 [[package]]
 name = "evalexpr"
-version = "11.3.0"
+version = "12.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63b41cb9dd076076058a4523f009c900c582279536d0b2e45a29aa930e083cc5"
+checksum = "a34d6a32086a56f60134157499b9f397ba3a278f06b59241d17df7b90849e69c"
 
 [[package]]
 name = "fd-lock"
