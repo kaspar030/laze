@@ -150,6 +150,9 @@ struct YamlModule {
     _is_binary: bool,
     #[serde(rename = "meta")]
     _meta: Option<Value>,
+
+    relpath: Option<String>,
+    defined_in: Option<String>,
 }
 
 impl YamlModule {
@@ -176,6 +179,8 @@ impl YamlModule {
             is_global_build_dep: false,
             _is_binary: is_binary,
             _meta: None,
+            relpath: None,
+            defined_in: None,
         }
     }
 
@@ -456,14 +461,24 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
     }
 
     fn init_module(
-        name: &Option<String>,
+        yaml_module: &YamlModule,
         context: Option<&String>,
         is_binary: bool,
         filename: &Utf8Path,
         import_root: &Option<ImportRoot>,
         defaults: Option<&Module>,
     ) -> Module {
-        let relpath = filename.parent().unwrap();
+        let name = yaml_module.name.as_ref();
+
+        let relpath = yaml_module
+            .relpath
+            .as_ref()
+            .map_or_else(|| filename.parent().unwrap(), |path| path.as_str().into());
+
+        let defined_in = yaml_module
+            .defined_in
+            .as_ref()
+            .map_or_else(|| filename, |path| path.as_str().into());
 
         let name = match name {
             Some(name) => name.clone(),
@@ -485,7 +500,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         };
 
         module.is_binary = is_binary;
-        module.defined_in = Some(filename.to_path_buf());
+        module.defined_in = Some(defined_in.to_path_buf());
         module.relpath = Some(if relpath.eq("") {
             Utf8PathBuf::from(".")
         } else {
@@ -504,14 +519,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         defaults: Option<&Module>,
         build_dir: &Utf8Path,
     ) -> Result<Module, Error> {
-        let mut m = init_module(
-            &module.name,
-            context,
-            is_binary,
-            filename,
-            import_root,
-            defaults,
-        );
+        let mut m = init_module(&module, context, is_binary, filename, import_root, defaults);
 
         m.help.clone_from(&module.help);
 
