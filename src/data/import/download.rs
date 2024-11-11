@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{remove_dir_all, File};
 
 use anyhow::{Context as _, Error};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -12,12 +12,6 @@ use crate::download::{Download, Git, Source};
 #[folder = "assets/imports"]
 struct Asset;
 
-fn git_clone_commit(url: &str, target_path: &Utf8Path, commit: &str) -> Result<(), Error> {
-    git_cloner(url, target_path)
-        .commit(Some(commit.into()))
-        .do_clone()
-}
-
 fn git_cloner(url: &str, target_path: &Utf8Path) -> GitCacheClonerBuilder {
     let git_cache = crate::GIT_CACHE.get().expect("this has been set earlier");
 
@@ -28,6 +22,12 @@ fn git_cloner(url: &str, target_path: &Utf8Path) -> GitCacheClonerBuilder {
         .target_path(Some(target_path.to_path_buf()));
 
     git_cache_builder
+}
+
+fn git_clone_commit(url: &str, target_path: &Utf8Path, commit: &str) -> Result<(), Error> {
+    git_cloner(url, target_path)
+        .commit(Some(commit.into()))
+        .do_clone()
 }
 
 fn git_clone_branch(url: &str, target_path: &Utf8Path, branch: &str) -> Result<(), Error> {
@@ -41,7 +41,17 @@ impl Import for Download {
         let target_path = self.get_path(build_dir).unwrap();
         let tagfile = target_path.join(".laze-downloaded");
 
-        if !tagfile.exists() {
+        let mut skip_download = false;
+        if tagfile.exists() {
+            // TODO: check if tagfile was created with same info
+            skip_download = true;
+        }
+        if !skip_download {
+            if target_path.exists() {
+                remove_dir_all(&target_path)
+                    .with_context(|| format!("removing path \"{target_path}\""))?;
+            }
+
             match &self.source {
                 Source::Git(Git::Commit { url, commit }) => {
                     println!("IMPORT Git {url}:{commit} -> {target_path}");
