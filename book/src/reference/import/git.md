@@ -2,9 +2,8 @@
 
 A git import makes laze clone additional laze files from a git repository.
 
-`git` needs a url and one of `commit`, `tag` or `branch`.
-
-TODO: `tag` and `branch` are currently unimplmemented.
+`git` requires a url. Additionally, `commit`, `tag` or `branch` can be set. If
+neither is specified, the default branch will be checked out.
 
 Example:
 

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- wire up `imports` from branches or tags, and default branch
 - implement `imports` from local paths
 
 ## [0.1.23] - 2024-09-07
