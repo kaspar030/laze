@@ -149,8 +149,8 @@
                     <main>
                         <h1 id="git"><a class="header" href="#git"><code>git</code></a></h1>
 <p>A git import makes laze clone additional laze files from a git repository.</p>
-<p><code>git</code> needs a url and one of <code>commit</code>, <code>tag</code> or <code>branch</code>.</p>
-<p>TODO: <code>tag</code> and <code>branch</code> are currently unimplmemented.</p>
+<p><code>git</code> requires a url. Additionally, <code>commit</code>, <code>tag</code> or <code>branch</code> can be set. If
+neither is specified, the default branch will be checked out.</p>
 <p>Example:</p>
 <pre><code class="language-yaml">imports:
  - git:
