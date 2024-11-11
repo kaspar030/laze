@@ -2,6 +2,7 @@ use std::fs::File;
 
 use anyhow::{Context as _, Error};
 use camino::{Utf8Path, Utf8PathBuf};
+use git_cache::GitCacheClonerBuilder;
 use rust_embed::RustEmbed;
 
 use super::Import;
@@ -11,14 +12,27 @@ use crate::download::{Download, Git, Source};
 #[folder = "assets/imports"]
 struct Asset;
 
-fn git_clone(url: &str, target_path: &Utf8Path, commit: &str) -> Result<(), Error> {
+fn git_clone_commit(url: &str, target_path: &Utf8Path, commit: &str) -> Result<(), Error> {
+    git_cloner(url, target_path)
+        .commit(Some(commit.into()))
+        .do_clone()
+}
+
+fn git_cloner(url: &str, target_path: &Utf8Path) -> GitCacheClonerBuilder {
     let git_cache = crate::GIT_CACHE.get().expect("this has been set earlier");
 
-    git_cache
-        .cloner()
+    let mut git_cache_builder = git_cache.cloner();
+
+    git_cache_builder
         .repository_url(url.to_string())
-        .target_path(Some(target_path.to_path_buf()))
-        .commit(Some(commit.into()))
+        .target_path(Some(target_path.to_path_buf()));
+
+    git_cache_builder
+}
+
+fn git_clone_branch(url: &str, target_path: &Utf8Path, branch: &str) -> Result<(), Error> {
+    git_cloner(url, target_path)
+        .extra_clone_args(Some(vec!["--branch".into(), branch.into()]))
         .do_clone()
 }
 
@@ -32,9 +46,34 @@ impl Import for Download {
                 Source::Git(Git::Commit { url, commit }) => {
                     println!("IMPORT Git {url}:{commit} -> {target_path}");
 
-                    git_clone(url, &target_path, commit).with_context(|| {
+                    git_clone_commit(url, &target_path, commit).with_context(|| {
                         format!("cloning git url: \"{url}\" commit: \"{commit}\"")
                     })?;
+
+                    File::create(tagfile)?;
+                }
+                Source::Git(Git::Branch {
+                    url,
+                    branch: branch_or_tag,
+                })
+                | Source::Git(Git::Tag {
+                    url,
+                    tag: branch_or_tag,
+                }) => {
+                    println!("IMPORT Git {url}:{branch_or_tag} -> {target_path}");
+
+                    git_clone_branch(url, &target_path, branch_or_tag).with_context(|| {
+                        format!("cloning git url: \"{url}\" branch/tag: \"{branch_or_tag}\"")
+                    })?;
+
+                    File::create(tagfile)?;
+                }
+                Source::Git(Git::Default { url }) => {
+                    println!("IMPORT Git {url} -> {target_path}");
+
+                    git_cloner(url, &target_path)
+                        .do_clone()
+                        .with_context(|| format!("cloning git url: \"{url}\""))?;
 
                     File::create(tagfile)?;
                 }
@@ -77,7 +116,10 @@ impl Import for Download {
         use crate::utils::calculate_hash;
 
         match &self.source {
-            Source::Git(Git::Commit { url, .. }) => url.split('/').last().map(|x| x.to_string()),
+            Source::Git(Git::Commit { url, .. })
+            | Source::Git(Git::Branch { url, .. })
+            | Source::Git(Git::Tag { url, .. })
+            | Source::Git(Git::Default { url, .. }) => url.split('/').last().map(|x| x.to_string()),
             Source::Laze(name) => {
                 let prefix = format!("{}/", name);
 

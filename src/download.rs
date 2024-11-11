@@ -27,6 +27,9 @@ pub mod source {
     #[serde(untagged)]
     pub enum Git {
         Commit { url: String, commit: String },
+        Branch { url: String, branch: String },
+        Tag { url: String, tag: String },
+        Default { url: String },
     }
 }
 
