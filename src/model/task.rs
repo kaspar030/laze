@@ -32,7 +32,7 @@ impl Task {
     pub fn execute(
         &self,
         start_dir: &Path,
-        args: Option<Vec<&str>>,
+        args: Option<&Vec<&str>>,
         verbose: u8,
     ) -> Result<(), Error> {
         for cmd in &self.cmd {
@@ -57,7 +57,7 @@ impl Task {
                 }
             }
 
-            if let Some(args) = &args {
+            if let Some(args) = args {
                 command.arg(cmd.clone() + " " + &join(args).to_owned());
             } else {
                 command.arg(cmd);
@@ -68,10 +68,14 @@ impl Task {
             }
 
             // run command, wait for status
-            command.status().expect("command exited with error code");
+            let status = command.status().expect("executing command");
 
             if self.ignore_ctrl_c {
                 IGNORE_SIGINT.store(false, std::sync::atomic::Ordering::SeqCst);
+            }
+
+            if !status.success() {
+                return Err(anyhow!("task failed"));
             }
         }
         Ok(())
