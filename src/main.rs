@@ -42,6 +42,7 @@ mod nested_env;
 mod new;
 mod ninja;
 mod serde_bool_helpers;
+mod task_runner;
 mod utils;
 
 use model::{Context, ContextBag, Dependency, Module, Rule, Task};
@@ -351,39 +352,71 @@ fn try_main() -> Result<i32> {
                     })
                     .collect();
 
-                if builds.len() > 1 {
-                    eprintln!("laze: multiple task targets found:");
+                if builds.is_empty() {
+                    return Err(anyhow!("no matching target for task \"{}\" found.", task));
+                }
+
+                let multiple = build_matches.get_flag("multiple");
+
+                if builds.len() > 1 && !multiple {
+                    println!("laze: multiple task targets found:");
                     for build_info in builds {
                         eprintln!("{} {}", build_info.builder, build_info.binary);
                     }
 
                     // TODO: allow running tasks for multiple targets
-                    return Err(anyhow!("please specify one of these."));
+                    return Err(anyhow!(
+                        "please specify one of these builders, or -m/--multiple-tasks."
+                    ));
                 }
-
-                if builds.is_empty() {
-                    return Err(anyhow!("no matching target for task \"{}\" found.", task));
-                }
-
-                let build = builds[0];
-                let targets = Some(vec![build.out.clone()]);
 
                 let task_name = task;
-                let task = build.tasks.get(task).unwrap();
+                let mut targets = Vec::new();
+                let mut ninja_targets = Vec::new();
 
-                if task.build_app() && !build_matches.get_flag("generate-only") {
+                for build in builds {
+                    let task = build.tasks.get(task).unwrap();
+                    if task.build_app() {
+                        let build_target = build.out.clone();
+                        ninja_targets.push(build_target);
+                    }
+                    targets.push((build, task));
+                }
+
+                if !ninja_targets.is_empty() && !build_matches.get_flag("generate-only") {
                     let ninja_build_file = get_ninja_build_file(build_dir, &mode);
-                    if ninja_run(ninja_build_file.as_path(), verbose > 0, targets, jobs)? != 0 {
+                    if ninja_run(
+                        ninja_build_file.as_path(),
+                        verbose > 0,
+                        Some(ninja_targets),
+                        jobs,
+                    )? != 0
+                    {
                         return Err(anyhow!("build error"));
                     };
                 }
 
-                println!(
-                    "laze: executing task {} for builder {} bin {}",
-                    task_name, build.builder, build.binary,
-                );
+                let (results, errors) = task_runner::run_tasks(
+                    task_name,
+                    targets.iter(),
+                    args.as_ref(),
+                    verbose,
+                    project_root.as_std_path(),
+                )?;
 
-                task.execute(project_root.as_ref(), args, verbose)?;
+                if errors > 0 {
+                    if multiple {
+                        // multiple tasks, more than zero errors. print them
+                        println!("laze: the following tasks failed:");
+                        for result in results.iter().filter(|r| r.result.is_err()) {
+                            println!(
+                                "laze: task \"{task_name}\" on app \"{}\" for builder \"{}\"",
+                                result.build.binary, result.build.builder
+                            );
+                        }
+                    }
+                    return Ok(1);
+                }
             } else {
                 // build ninja target arguments, if necessary
                 let targets: Option<Vec<Utf8PathBuf>> = if let Selector::All = builders {

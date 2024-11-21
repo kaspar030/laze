@@ -143,6 +143,14 @@ pub fn clap() -> clap::Command {
                         .value_hint(ValueHint::FilePath)
                         .num_args(1),
                 )
+                .arg(
+                    Arg::new("multiple")
+                        .short('m')
+                        .long("multiple-tasks")
+                        .env("LAZE_MULTIPLE_TASKS")
+                        .help("if multiple tasks targets are available, execute them all")
+                        .action(ArgAction::SetTrue),
+                )
                 .arg(jobs())
                 .next_help_heading("What to build")
                 .arg(
