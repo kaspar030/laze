@@ -151,6 +151,16 @@ pub fn clap() -> clap::Command {
                         .help("if multiple tasks targets are available, execute them all")
                         .action(ArgAction::SetTrue),
                 )
+                .arg(
+                    Arg::new("keep_going")
+                        .help("keep going until N jobs / tasks fail (0 means infinity)")
+                        .short('k')
+                        .long("keep_going")
+                        .env("LAZE_KEEP_GOING")
+                        .num_args(1)
+                        .default_value("1")
+                        .value_parser(clap::value_parser!(usize)),
+                )
                 .arg(jobs())
                 .next_help_heading("What to build")
                 .arg(

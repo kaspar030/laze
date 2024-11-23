@@ -74,6 +74,7 @@ fn ninja_run(
     verbose: bool,
     targets: Option<Vec<Utf8PathBuf>>,
     jobs: Option<usize>,
+    keep_going: Option<usize>,
 ) -> Result<i32, Error> {
     let mut ninja_cmd = NinjaCmdBuilder::default();
 
@@ -84,6 +85,10 @@ fn ninja_run(
 
     if let Some(jobs) = jobs {
         ninja_cmd.jobs(jobs);
+    }
+
+    if let Some(keep_going) = keep_going {
+        ninja_cmd.keep_going(keep_going);
     }
 
     let ninja_cmd = ninja_cmd.build().unwrap();
@@ -270,6 +275,7 @@ fn try_main() -> Result<i32> {
             };
 
             let jobs = build_matches.get_one::<usize>("jobs").copied();
+            let keep_going = build_matches.get_one::<usize>("keep_going").copied();
 
             let partitioner = build_matches
                 .get_one::<task_partitioner::PartitionerBuilder>("partition")
@@ -390,6 +396,8 @@ fn try_main() -> Result<i32> {
                         verbose > 0,
                         Some(ninja_targets),
                         jobs,
+                        None, // have to fail on build error b/c no way of knowing *which* target
+                              // failed
                     )? != 0
                     {
                         return Err(anyhow!("build error"));
@@ -401,6 +409,7 @@ fn try_main() -> Result<i32> {
                     targets.iter(),
                     args.as_ref(),
                     verbose,
+                    keep_going.unwrap(),
                     project_root.as_std_path(),
                 )?;
 
@@ -440,7 +449,13 @@ fn try_main() -> Result<i32> {
                     )
                 };
 
-                ninja_run(ninja_build_file.as_path(), verbose > 0, targets, jobs)?;
+                ninja_run(
+                    ninja_build_file.as_path(),
+                    verbose > 0,
+                    targets,
+                    jobs,
+                    keep_going,
+                )?;
             }
         }
         Some(("clean", clean_matches)) => {
@@ -456,7 +471,13 @@ fn try_main() -> Result<i32> {
                 false => "clean",
             };
             let clean_target: Option<Vec<Utf8PathBuf>> = Some(vec!["-t".into(), tool.into()]);
-            ninja_run(ninja_build_file.as_path(), verbose > 0, clean_target, None)?;
+            ninja_run(
+                ninja_build_file.as_path(),
+                verbose > 0,
+                clean_target,
+                None,
+                None,
+            )?;
         }
         _ => {}
     };
