@@ -76,6 +76,15 @@ impl Context {
         result.push(self);
     }
 
+    /// Creates an iterator over a context and its parents, starting
+    /// with the context.
+    pub(crate) fn context_iter<'a>(&'a self, bag: &'a ContextBag) -> ParentIterator {
+        ParentIterator {
+            bag,
+            next_context: Some(self),
+        }
+    }
+
     pub fn resolve_module<'a: 'b, 'b>(
         &'a self,
         module_name: &String,
@@ -214,5 +223,19 @@ impl Hash for Context {
 impl PartialEq for Context {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
+    }
+}
+
+pub struct ParentIterator<'a> {
+    bag: &'a ContextBag,
+    next_context: Option<&'a Context>,
+}
+
+impl<'a> Iterator for ParentIterator<'a> {
+    type Item = &'a Context;
+    fn next(&mut self) -> Option<&'a Context> {
+        let res = self.next_context;
+        self.next_context = self.next_context.and_then(|c| c.get_parent(self.bag));
+        res
     }
 }

@@ -439,10 +439,21 @@ fn configure_build(
         EnvKey::List(
             resolved
                 .modules
-                .keys()
-                .cloned()
-                .cloned()
+                .iter()
+                .filter(|(_, m)| !m.is_context_module())
+                .map(|(n, _)| (*n).clone())
                 .sorted()
+                .collect::<_>(),
+        ),
+    );
+
+    // insert list of actually used contexts
+    global_env.insert(
+        "contexts".into(),
+        EnvKey::List(
+            builder
+                .context_iter(contexts)
+                .map(|c| c.name.clone())
                 .collect::<_>(),
         ),
     );
