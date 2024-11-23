@@ -155,7 +155,7 @@ pub fn clap() -> clap::Command {
                     Arg::new("keep_going")
                         .help("keep going until N jobs / tasks fail (0 means infinity)")
                         .short('k')
-                        .long("keep_going")
+                        .long("keep-going")
                         .env("LAZE_KEEP_GOING")
                         .num_args(1)
                         .default_value("1")
