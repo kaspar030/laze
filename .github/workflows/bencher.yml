@@ -69,10 +69,14 @@ jobs:
       if: github.event_name != 'pull_request'
       run: >
         bencher run
-        --if-branch "$GITHUB_REF_NAME"
-        --else-if-branch "$GITHUB_BASE_REF"
         --token "${{ secrets.BENCHER_API_TOKEN }}"
+        --branch "$GITHUB_REF_NAME"
         --hash "$GITHUB_SHA"
+        --threshold-measure perf-task-clock
+        --threshold-test t_test
+        --threshold-max-sample-size 64
+        --threshold-upper-boundary 0.99
+        --thresholds-reset
         --err
         --file bencher.json
 
@@ -80,12 +84,15 @@ jobs:
       if: github.event_name == 'pull_request'
       run: >
         bencher run
-        --if-branch "$GITHUB_REF_NAME"
-        --else-if-branch "$GITHUB_BASE_REF"
         --token "${{ secrets.BENCHER_API_TOKEN }}"
+        --branch "$GITHUB_REF_NAME"
+        --hash "$GITHUB_SHA"
         --github-actions "${{ secrets.GITHUB_TOKEN }}"
         --ci-public-links
         --ci-number "${{ github.event.pull_request.number }}"
-        --hash "$GITHUB_SHA"
+        --start-point "${{ github.base_ref }}"
+        --start-point-hash "${{ github.event.pull_request.base.sha }}"
+        --start-point-clone-thresholds
+        --start-point-reset
         --err
         --file bencher.json
