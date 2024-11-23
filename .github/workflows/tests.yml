@@ -37,6 +37,31 @@ jobs:
     - name: "checking for unused dependencies"
       run: cargo +nightly udeps
 
+  msrv:
+    runs-on: ubuntu-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+    steps:
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.3
+
+    - name: rust cache
+      uses: Swatinem/rust-cache@v2
+
+    - uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-binstall
+
+    - name: "Installing cargo-udeps"
+      run: cargo binstall -y --no-symlinks --force cargo-msrv
+
+    - name: Check out repository code
+      uses: actions/checkout@v3
+
+    - name: "Verifying MSRV"
+      run: cargo msrv verify
+
   test:
     strategy:
       matrix:
