@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+- allow continue-on-error (add `-k`/`--keep-going`)
 - allow executing multiple tasks (add `-m`/`--multiple-tasks`)
 
 ## [0.1.24] - 2024-09-13
