@@ -9,15 +9,12 @@ use std::process::{Command, ExitStatus, Stdio};
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-#[derive(Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub enum NinjaRuleDeps {
     #[default]
     None,
     GCC(String),
 }
-
-
 
 #[derive(Builder, Debug, PartialEq, Eq, Clone)]
 #[builder(setter(into))]
@@ -317,6 +314,9 @@ pub struct NinjaCmd<'a> {
 
     #[builder(default = "None")]
     jobs: Option<usize>,
+
+    #[builder(default = "None")]
+    keep_going: Option<usize>,
 }
 
 impl<'a> NinjaCmd<'a> {
@@ -331,6 +331,11 @@ impl<'a> NinjaCmd<'a> {
         if let Some(jobs) = self.jobs {
             cmd.arg("-j");
             cmd.arg(jobs.to_string());
+        }
+
+        if let Some(keep_going) = self.keep_going {
+            cmd.arg("-k");
+            cmd.arg(keep_going.to_string());
         }
 
         if let Some(targets) = &self.targets {
