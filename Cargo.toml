@@ -10,7 +10,7 @@ homepage = "https://laze-build.org"
 license = "Apache-2.0"
 readme = "README.md"
 include = ["src/**/*", "LICENSE", "README.md", "CHANGELOG.md", "!**/tests/**/*", "assets/**/*"]
-rust-version = "1.70.0"
+rust-version = "1.74"
 
 [dependencies]
 anyhow = "1.0.93"
