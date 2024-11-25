@@ -42,6 +42,10 @@ where
     Deserialize::deserialize(deserializer).map(Some)
 }
 
+fn default_none<T>() -> Option<T> {
+    None
+}
+
 fn deserialize_version_checked<'de, D>(deserializer: D) -> Result<Option<Version>, D::Error>
 where
     //    T: Deserialize<'de>,
@@ -95,6 +99,24 @@ struct YamlFile {
     _meta: Option<Value>,
 }
 
+fn check_module_name<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let v = Option::<String>::deserialize(deserializer)?;
+
+    if let Some(v) = v.as_ref() {
+        if v.starts_with("context::") {
+            return Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(v),
+                &"a string not starting with \"context::\"",
+            ));
+        }
+    }
+
+    Ok(v)
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct YamlContext {
@@ -123,6 +145,7 @@ enum StringOrVecString {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct YamlModule {
+    #[serde(default = "default_none", deserialize_with = "check_module_name")]
     name: Option<String>,
     context: Option<StringOrVecString>,
     help: Option<String>,
@@ -353,12 +376,15 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         is_builder: bool,
         filename: &Utf8PathBuf,
         import_root: &Option<ImportRoot>,
-    ) -> Result<(), Error> {
+    ) -> Result<Module, Error> {
         let context_name = &context.name;
         let context_parent = match &context.parent {
             Some(x) => x.clone(),
             None => "default".to_string(),
         };
+
+        let is_default = context_name.as_str() == "default";
+
         // println!(
         //     "{} {} parent {}",
         //     match is_builder {
@@ -372,9 +398,10 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
             .add_context_or_builder(
                 Context::new(
                     context_name.clone(),
-                    match context_name.as_str() {
-                        "default" => None,
-                        _ => Some(context_parent),
+                    if is_default {
+                        None
+                    } else {
+                        Some(context_parent.clone())
                     },
                 ),
                 is_builder,
@@ -440,19 +467,47 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
         context_.defined_in = Some(filename.clone());
 
+        // TODO(context-early-disables)
         context_.disable.clone_from(&context.disables);
 
+        // Each Context has an associated module.
+        // This holds:
+        // - selects
+        // - disables
+        // TODO:
+        // - env (in global env)
+        // - rules
+        // - tasks
+        let module_name = Some(context_.module_name());
+        let mut module = init_module(
+            &module_name,
+            Some(context_name),
+            false,
+            filename,
+            import_root,
+            None,
+        );
+
         // collect context level "select:"
-        if let Some(select) = &context.selects {
-            context_.select = Some(
-                select
-                    .iter()
-                    .map(dependency_from_string)
-                    .collect::<Vec<_>>(),
-            );
+        if let Some(selects) = &context.selects {
+            for dep_name in selects {
+                // println!("- {}", dep_name);
+                module.selects.push(dependency_from_string(dep_name));
+            }
         }
 
-        Ok(())
+        if let Some(disables) = context.disables.as_ref() {
+            module.conflicts = Some(disables.clone());
+        }
+
+        // make context module depend on its parent's context module
+        if !is_default {
+            module
+                .selects
+                .push(Dependency::Hard(Context::module_name_for(&context_parent)));
+        }
+
+        Ok(module)
     }
 
     fn init_module(
@@ -729,17 +784,19 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
     // collect and convert contexts
     // this needs to be done before collecting modules, as that requires
     // contexts to be finalized.
+    let mut context_modules = Vec::new();
     for data in &yaml_datas {
         for (list, is_builder) in [(&data.contexts, false), (&data.builders, true)].iter() {
             if let Some(context_list) = list {
                 for context in context_list {
-                    convert_context(
+                    let module = convert_context(
                         context,
                         &mut contexts,
                         *is_builder | context.is_builder,
                         data.filename.as_ref().unwrap(),
                         &data.import_root,
                     )?;
+                    context_modules.push(module);
                 }
             }
         }
@@ -748,6 +805,11 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
     // after this, there's a default context, context relationships and envs have been set up.
     // modules can now be processed.
     contexts.finalize()?;
+
+    // add the associated modules to their respective contexts
+    for module in context_modules.drain(..) {
+        contexts.add_module(module)?;
+    }
 
     // for context in &contexts.contexts {
     //     if let Some(env) = &context.env {

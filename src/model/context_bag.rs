@@ -30,8 +30,7 @@ impl ContextBag {
     pub fn finalize(&mut self) -> Result<(), Error> {
         // ensure there's a "default" context
         if self.get_by_name(&"default".to_string()).is_none() {
-            self.add_context(Context::new("default".to_string(), None))
-                .unwrap();
+            self.add_context(Context::new_default()).unwrap();
         }
 
         // set the "parent" index of each context that sets a "parent_name"
@@ -179,7 +178,7 @@ impl ContextBag {
             }
             indexmap::map::Entry::Vacant(entry) => {
                 if let Some(provides) = &module.provides {
-                    let context_provides = context.provides.get_or_insert_with(im::HashMap::new);
+                    let context_provides = context.provided.get_or_insert_with(im::HashMap::new);
                     for provided in provides {
                         context_provides
                             .entry(provided.clone())
@@ -304,8 +303,8 @@ impl ContextBag {
                 continue;
             }
             let context = &self.contexts[n];
-            let provides = &context.provides;
-            let parent_provides = &self.contexts[context.parent_index.unwrap()].provides;
+            let provides = &context.provided;
+            let parent_provides = &self.contexts[context.parent_index.unwrap()].provided;
             let combined_provides = {
                 if let Some(provides) = provides {
                     if let Some(parent_provides) = parent_provides {
@@ -352,7 +351,7 @@ impl ContextBag {
             });
 
             let context = &mut self.contexts[n];
-            context.provides = combined_provides;
+            context.provided = combined_provides;
         }
     }
 

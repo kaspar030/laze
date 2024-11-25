@@ -206,6 +206,7 @@ impl Module {
         if self.notify_all {
             let all_modules = modules
                 .iter()
+                .filter(|(_, dep)| !dep.is_context_module())
                 .map(|(_, dep)| dep.create_module_define())
                 .collect::<im::Vector<_>>();
             module_env.insert("notify".into(), nested_env::EnvKey::List(all_modules));
@@ -225,6 +226,7 @@ impl Module {
                 '/' => '_',
                 '.' => '_',
                 '-' => '_',
+                ':' => '_',
                 _ => x,
             })
             .collect()
@@ -245,6 +247,10 @@ impl Module {
         } else {
             self.build_dep_files = Some(indexset![dep.to_owned()]);
         }
+    }
+
+    pub fn is_context_module(&self) -> bool {
+        self.name.starts_with("context::")
     }
 
     // returns all fixed and optional sources with srcdir prepended
