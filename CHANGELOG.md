@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.25] - 2024-11-25
+
 ### Added
 
 - implement continue-on-error (add `-k`/`--keep-going`)
@@ -365,7 +367,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 <!-- next-url -->
-[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.24...HEAD
+[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.25...HEAD
+[0.1.25]: https://github.com/kaspar030/laze/compare/0.1.24...0.1.25
 [0.1.24]: https://github.com/kaspar030/laze/compare/0.1.23...0.1.24
 [0.1.23]: https://github.com/kaspar030/laze/compare/0.1.22...0.1.23
 [0.1.22]: https://github.com/kaspar030/laze/compare/0.1.21...0.1.22
