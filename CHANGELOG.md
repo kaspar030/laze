@@ -9,8 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
-- allow continue-on-error (add `-k`/`--keep-going`)
-- allow executing multiple tasks (add `-m`/`--multiple-tasks`)
+### Added
+
+- implement continue-on-error (add `-k`/`--keep-going`)
+- implement executing multiple tasks (add `-m`/`--multiple-tasks`)
+- allow contexts in `conflicts`/`disables` (prepend `context::`)
+
+### Changed
+
+- disallow module names starting with `context::`
+
+### Internal
+
+- build(deps): bump anyhow from 1.0.88 to 1.0.93
+- build(deps): bump clap from 4.5.17 to 4.5.21
+- build(deps): bump clap_complete from 4.5.26 to 4.5.38
+- build(deps): bump clap_mangen from 0.2.23 to 0.2.24
+- build(deps): bump derive_builder from 0.20.1 to 0.20.2
+- build(deps): bump indexmap from 2.5.0 to 2.6.0
+- build(deps): bump pathdiff from 0.2.1 to 0.2.2
+- build(deps): bump serde from 1.0.210 to 1.0.215
+- build(deps): bump serde_json from 1.0.128 to 1.0.133
+- build(deps): bump uuid from 1.10.0 to 1.11.0
 
 ## [0.1.24] - 2024-09-13
 
