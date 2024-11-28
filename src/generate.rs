@@ -16,6 +16,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
 use solvent::DepGraph;
+use uuid::Uuid;
 
 use crate::{model::Rule, utils::ContainingPath};
 
@@ -1029,7 +1030,6 @@ pub struct GenerateResult {
     pub apps: Selector,
     pub build_infos: Vec<BuildInfo>,
 
-    build_uuid: uuid::Uuid,
     select: Option<Vec<Dependency<String>>>,
     disable: Option<Vec<String>>,
     cli_env_hash: u64,
@@ -1044,7 +1044,6 @@ impl GenerateResult {
         treestate: FileTreeState,
     ) -> GenerateResult {
         GenerateResult {
-            build_uuid: build_uuid::get(),
             mode: generator.mode,
             builders: generator.builders,
             apps: generator.apps,
@@ -1071,7 +1070,10 @@ impl GenerateResult {
         let start = Instant::now();
         let file = Self::cache_file(build_dir, &self.mode);
         let file = File::create(file)?;
-        let buffer = std::io::BufWriter::new(file);
+        let mut buffer = std::io::BufWriter::new(file);
+
+        bincode::serialize_into(&mut buffer, &build_uuid::get())?;
+
         let result = bincode::serialize_into(buffer, self);
         println!("laze: writing cache took {:?}.", start.elapsed());
         result
@@ -1087,11 +1089,14 @@ impl TryFrom<&Generator> for GenerateResult {
         }
         let file = Self::cache_file(&generator.build_dir, &generator.mode);
         let file = File::open(file)?;
-        let buffer = std::io::BufReader::new(file);
-        let res: GenerateResult = bincode::deserialize_from(buffer)?;
-        if res.build_uuid != build_uuid::get() {
+        let mut buffer = std::io::BufReader::new(file);
+        let build_uuid: Uuid = bincode::deserialize_from(&mut buffer)?;
+        if build_uuid != build_uuid::get() {
             return Err(anyhow!("cache from different laze version"));
         }
+
+        let res: GenerateResult = bincode::deserialize_from(buffer)?;
+
         if generator.partitioner != res.partitioner {
             return Err(anyhow!("partition values don't match"));
         }
