@@ -4,6 +4,8 @@ use std::hash::{Hash, Hasher};
 use camino::Utf8PathBuf;
 use indexmap::IndexMap;
 
+use crate::model::VarExportSpec;
+
 pub(crate) fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
@@ -22,6 +24,24 @@ pub enum StringOrMapVecString {
 pub enum StringOrMapString {
     String(String),
     Map(std::collections::HashMap<String, String>),
+}
+
+impl From<StringOrMapString> for crate::model::VarExportSpec {
+    fn from(value: StringOrMapString) -> Self {
+        match value {
+            StringOrMapString::String(s) => VarExportSpec {
+                variable: s,
+                content: None,
+            },
+            StringOrMapString::Map(mut m) => {
+                let (k, v) = m.drain().last().unwrap();
+                VarExportSpec {
+                    variable: k,
+                    content: Some(v),
+                }
+            }
+        }
+    }
 }
 
 pub(crate) trait ContainingPath<T: AsRef<std::path::Path>> {

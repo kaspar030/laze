@@ -25,8 +25,8 @@ use super::download::Download;
 use super::model::CustomBuild;
 use super::nested_env::{Env, EnvKey, MergeOption};
 use super::{Context, ContextBag, Dependency, Module, Rule, Task};
-use crate::serde_bool_helpers::default_as_false;
-use crate::utils::StringOrMapVecString;
+use crate::serde_bool_helpers::{default_as_false, default_as_true};
+use crate::utils::{StringOrMapString, StringOrMapVecString};
 
 mod import;
 use import::ImportEntry;
@@ -128,7 +128,7 @@ struct YamlContext {
     disables: Option<Vec<String>>,
     rules: Option<Vec<Rule>>,
     var_options: Option<im::HashMap<String, MergeOption>>,
-    tasks: Option<HashMap<String, Task>>,
+    tasks: Option<HashMap<String, YamlTask>>,
     #[serde(default = "default_as_false", alias = "buildable")]
     is_builder: bool,
     #[serde(rename = "meta")]
@@ -220,6 +220,36 @@ struct YamlModuleEnv {
     local: Option<Env>,
     export: Option<Env>,
     global: Option<Env>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct YamlTask {
+    pub cmd: Vec<String>,
+    pub help: Option<String>,
+    pub required_vars: Option<Vec<String>>,
+    pub export: Option<Vec<StringOrMapString>>,
+    #[serde(default = "default_as_true")]
+    pub build: bool,
+    #[serde(default = "default_as_false")]
+    pub ignore_ctrl_c: bool,
+    #[serde(rename = "meta")]
+    _meta: Option<Value>,
+}
+
+impl From<YamlTask> for Task {
+    fn from(yaml_task: YamlTask) -> Self {
+        Task {
+            cmd: yaml_task.cmd,
+            help: yaml_task.help,
+            required_vars: yaml_task.required_vars,
+            export: yaml_task
+                .export
+                .map(|s| s.iter().map(|s| s.clone().into()).collect_vec()),
+            build: yaml_task.build,
+            ignore_ctrl_c: yaml_task.ignore_ctrl_c,
+        }
+    }
 }
 
 // fn load_one<'a>(filename: &Utf8PathBuf) -> Result<YamlFile> {
@@ -451,6 +481,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
                 tasks
                     .iter()
                     .map(|(name, task)| {
+                        let task = Task::from(task.clone());
                         let task = task.with_env(&flattened_early_env);
                         match task {
                             Ok(task) => Ok((name.clone(), task)),
