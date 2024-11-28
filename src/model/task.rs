@@ -1,27 +1,46 @@
-use std::collections::HashMap;
 use std::path::Path;
 
 use anyhow::{Error, Result};
-use serde_yaml::Value;
 
 use crate::nested_env;
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
-use crate::utils::StringOrMapString;
 use crate::IGNORE_SIGINT;
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Task {
-    cmd: Vec<String>,
+    pub cmd: Vec<String>,
     pub help: Option<String>,
     pub required_vars: Option<Vec<String>>,
-    pub export: Option<Vec<StringOrMapString>>,
+    pub export: Option<Vec<VarExportSpec>>,
     #[serde(default = "default_as_true")]
-    build: bool,
+    pub build: bool,
     #[serde(default = "default_as_false")]
-    ignore_ctrl_c: bool,
-    #[serde(rename = "meta")]
-    _meta: Option<Value>,
+    pub ignore_ctrl_c: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+pub struct VarExportSpec {
+    pub variable: String,
+    pub content: Option<String>,
+}
+
+impl VarExportSpec {
+    fn apply_env(&self, env: &im::HashMap<&String, String>) -> Self {
+        let content = if let Some(content) = self.content.as_ref() {
+            content.clone()
+        } else {
+            format!("${{{}}}", self.variable)
+        };
+
+        let content =
+            Some(nested_env::expand_eval(content, env, nested_env::IfMissing::Empty).unwrap());
+
+        Self {
+            variable: self.variable.clone(),
+            content,
+        }
+    }
 }
 
 impl Task {
@@ -49,10 +68,9 @@ impl Task {
             // handle "export:" (export laze variables to task shell environment)
             if let Some(export) = &self.export {
                 for entry in export {
-                    if let StringOrMapString::Map(m) = entry {
-                        for (key, val) in m {
-                            command.env(key, val);
-                        }
+                    let VarExportSpec { variable, content } = entry;
+                    if let Some(val) = content {
+                        command.env(variable, val);
                     }
                 }
             }
@@ -103,7 +121,6 @@ impl Task {
             } else {
                 self.export.clone()
             },
-            _meta: None,
         })
     }
 
@@ -115,8 +132,7 @@ impl Task {
         self._with_env(env, true)
     }
 
-    fn expand_export(&self, env: &im::HashMap<&String, String>) -> Option<Vec<StringOrMapString>> {
-        // TODO: yeah, this is not a beauty ...
+    fn expand_export(&self, env: &im::HashMap<&String, String>) -> Option<Vec<VarExportSpec>> {
         // what this does is, apply the env to the format as given by "export:"
         //
         // e.g., assuming `FOO=value` and FOOBAR=`other_value`:
@@ -130,30 +146,8 @@ impl Task {
         //
         // ... to export `FOO=value`, `BAR=bar` and `FOOBAR=other_value`.
 
-        self.export.as_ref().map(|exports| {
-            exports
-                .iter()
-                .map(|entry| match entry {
-                    StringOrMapString::String(s) => StringOrMapString::Map(HashMap::from_iter([(
-                        s.clone(),
-                        nested_env::expand_eval(
-                            format!("${{{s}}}"),
-                            env,
-                            nested_env::IfMissing::Empty,
-                        )
-                        .unwrap(),
-                    )])),
-                    StringOrMapString::Map(m) => {
-                        StringOrMapString::Map(HashMap::from_iter(m.iter().map(|(k, v)| {
-                            (
-                                k.clone(),
-                                nested_env::expand_eval(v, env, nested_env::IfMissing::Empty)
-                                    .unwrap(),
-                            )
-                        })))
-                    }
-                })
-                .collect()
-        })
+        self.export
+            .as_ref()
+            .map(|exports| exports.iter().map(|entry| entry.apply_env(env)).collect())
     }
 }

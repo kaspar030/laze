@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- fix buildfile caching (was broken by task `export`)
+
 ## [0.1.25] - 2024-11-25
 
 ### Added
