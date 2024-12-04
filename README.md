@@ -9,8 +9,8 @@
 
 # Introduction
 
-Welcome to laze, a ninja build file generator.
-Aspires to be the next goto-alternative to make.
+Welcome to laze, powerful meta build system designed to handle large build
+matrices of highly modular projects.
 
 
 # Installation
