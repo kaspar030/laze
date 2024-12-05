@@ -62,7 +62,7 @@ modules:
 
 This variable will be replaced with the relative path to the root of the main
 project. This can be used for specifying root-relative path names.
-Usually (for laze projects that were not imported), this contains `./`
+Usually (for laze projects that were not imported), this contains `.`
 If a laze file is part of an import of another laze project, `${root}` contains
 the relative path to the location where the import has been downloaded.
 

@@ -8,11 +8,11 @@ build build/objects/foo.10053017565851818003.o: $
     CC_12898610496162985655 $
     foo.c
 
-rule LINK_17967468300177441195
-  command = echo LINK ${out} root= relpath=. relroot= > ${out} && cat ${in} >> ${out}
+rule LINK_3520720391709292017
+  command = echo LINK ${out} root=. relpath=. relroot=. > ${out} && cat ${in} >> ${out}
   description = LINK
 
 build build/single_builder/app/app.elf: $
-    LINK_17967468300177441195 $
+    LINK_3520720391709292017 $
     build/objects/foo.10053017565851818003.o
 

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- fix `$root` to contain `.` (as documented)
 - fix cache laze version check
 - fix buildfile caching (was broken by task `export`)
 
