@@ -149,6 +149,7 @@ impl Generator {
         laze_env.insert("build-dir".to_string(), self.build_dir.clone());
         laze_env.insert("outfile".to_string(), "${bindir}/${app}.elf");
         laze_env.insert("project-root".to_string(), self.project_root.clone());
+        laze_env.insert("root".to_string(), ".");
 
         // make our binary path available, used by e.g., the default download rules.
         laze_env.insert(
