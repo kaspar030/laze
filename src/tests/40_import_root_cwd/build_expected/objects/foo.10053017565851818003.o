@@ -1,0 +1,1 @@
+CC foo.c root=. relpath=. relroot=. LOCAL_RELPATH=.
