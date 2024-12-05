@@ -75,8 +75,15 @@ pub fn get_ninja_build_file(build_dir: &Utf8Path, mode: &GenerateMode) -> Utf8Pa
 ///
 /// Example: src/module/foo.yml -> ../..
 fn relroot(relpath: &Utf8Path) -> Utf8PathBuf {
-    let components = relpath.components().count();
-    if components == 0 {
+    let mut components = relpath.components().count();
+
+    if relpath.starts_with("./") {
+        // Components named "." are normalized out, *except they are at the beginning (`./...`)*.
+        // Take that into account here.
+        components -= 1;
+    }
+
+    if components == 0 || relpath == "." {
         "${root}".into()
     } else {
         let mut res = Utf8PathBuf::new();
