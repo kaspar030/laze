@@ -116,9 +116,11 @@ pub struct NinjaBuild<'a> {
 
     #[builder(setter(strip_option), default = "None")]
     inputs: Option<Vec<Cow<'a, Utf8Path>>>,
+
+    #[builder(setter(prefix = "inner"))]
     outs: Vec<Cow<'a, Utf8Path>>,
 
-    #[builder(default = "None")]
+    #[builder(default = "None", setter(prefix = "inner"))]
     deps: Option<Vec<Cow<'a, Utf8Path>>>,
 
     #[builder(setter(into, strip_option), default = "None")]
@@ -130,6 +132,19 @@ pub struct NinjaBuild<'a> {
 }
 
 impl<'a> NinjaBuildBuilder<'a> {
+    pub fn outs(&mut self, mut outs: Vec<Cow<'a, Utf8Path>>) -> &mut Self {
+        outs.sort();
+        self.inner_outs(outs)
+    }
+
+    pub fn deps<T: Into<Option<Vec<Cow<'a, Utf8Path>>>>>(&mut self, deps: T) -> &mut Self {
+        let mut deps = deps.into();
+        if let Some(deps) = deps.as_mut() {
+            deps.sort();
+        }
+        self.inner_deps(deps)
+    }
+
     pub fn out<I>(&mut self, out: I) -> &mut Self
     where
         I: Into<Cow<'a, Utf8Path>>,
