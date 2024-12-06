@@ -36,7 +36,7 @@ pub struct NinjaRule<'a> {
     pub always: bool,
 }
 
-impl<'a> fmt::Display for NinjaRule<'a> {
+impl fmt::Display for NinjaRule<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "rule {}\n  command = {}\n", self.name, self.command)?;
 
@@ -95,7 +95,7 @@ impl<'a> NinjaRule<'a> {
     }
 }
 
-impl<'a> Hash for NinjaRule<'a> {
+impl Hash for NinjaRule<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.name.hash(state);
         self.command.hash(state);
@@ -169,7 +169,7 @@ impl<'a> NinjaBuildBuilder<'a> {
     }
 }
 
-impl<'a> fmt::Display for NinjaBuild<'a> {
+impl fmt::Display for NinjaBuild<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "build")?;
 
@@ -260,7 +260,7 @@ pub struct NinjaToolBase<'a> {
     args: Vec<String>,
 }
 
-impl<'a> NinjaToolBaseBuilder<'a> {
+impl NinjaToolBaseBuilder<'_> {
     pub fn arg(&mut self, arg: String) -> &mut Self {
         if let Some(args) = self.args.as_mut() {
             args.push(arg);
@@ -271,7 +271,7 @@ impl<'a> NinjaToolBaseBuilder<'a> {
     }
 }
 
-impl<'a> NinjaToolBase<'a> {
+impl NinjaToolBase<'_> {
     pub fn get_command(&self) -> Command {
         let mut cmd = Command::new(self.binary);
         cmd.arg("-f").arg(self.build_file);
@@ -319,7 +319,7 @@ pub struct NinjaCmd<'a> {
     keep_going: Option<usize>,
 }
 
-impl<'a> NinjaCmd<'a> {
+impl NinjaCmd<'_> {
     pub fn run(&self) -> std::io::Result<ExitStatus> {
         let mut cmd = Command::new(self.binary);
         cmd.arg("-f").arg(self.build_file);
