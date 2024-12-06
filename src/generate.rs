@@ -1080,7 +1080,7 @@ impl GenerateResult {
         let file = File::create(file)?;
         let mut buffer = std::io::BufWriter::new(file);
 
-        bincode::serialize_into(&mut buffer, &build_uuid::get())?;
+        bincode::serialize_into(&mut buffer, &build_uuid::get().as_bytes())?;
 
         let result = bincode::serialize_into(buffer, self);
         println!("laze: writing cache took {:?}.", start.elapsed());
@@ -1098,8 +1098,9 @@ impl TryFrom<&Generator> for GenerateResult {
         let file = Self::cache_file(&generator.build_dir, &generator.mode);
         let file = File::open(file)?;
         let mut buffer = std::io::BufReader::new(file);
-        let build_uuid: Uuid = bincode::deserialize_from(&mut buffer)?;
-        if build_uuid != build_uuid::get() {
+
+        let build_uuid: [u8; 16] = bincode::deserialize_from(&mut buffer)?;
+        if &build_uuid != build_uuid::get().as_bytes() {
             return Err(anyhow!("cache from different laze version"));
         }
 
