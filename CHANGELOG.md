@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.27] - 2024-12-06
+
 ### Fixed
 
 - fix cache laze version check again, go through bytes
@@ -388,7 +390,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 <!-- next-url -->
-[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.26...HEAD
+[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.27...HEAD
+[0.1.27]: https://github.com/kaspar030/laze/compare/0.1.26...0.1.27
 [0.1.26]: https://github.com/kaspar030/laze/compare/0.1.25...0.1.26
 [0.1.25]: https://github.com/kaspar030/laze/compare/0.1.24...0.1.25
 [0.1.24]: https://github.com/kaspar030/laze/compare/0.1.23...0.1.24
