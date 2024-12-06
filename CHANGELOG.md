@@ -11,9 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- fix `$root` to contain `.` (as documented)
-- fix cache laze version check
+- fix `$relroot` potentially having one `..` too much (#571)
+- fix `$root` to usually contain `.`, matching documentation
+- fix cache laze version check (there was a potential crash after a laze update)
 - fix buildfile caching (was broken by task `export`)
+
+### Internal
+
+- build(deps): bump clap from 4.5.21 to 4.5.22
+- build(deps): bump anyhow from 1.0.93 to 1.0.94
+- build(deps): bump indexmap from 2.6.0 to 2.7.0
+- build(deps): bump pathdiff from 0.2.2 to 0.2.3
 
 ## [0.1.25] - 2024-11-25
 
