@@ -508,7 +508,7 @@ mod tests {
             },
         );
 
-        assert_eq!(env.flatten_with_opts(&merge_opts).is_err(), true);
+        assert!(env.flatten_with_opts(&merge_opts).is_err());
     }
 
     #[test]
@@ -535,7 +535,7 @@ mod tests {
         env.assign_from_string("FOO=milkBAR").unwrap();
 
         assert_eq!(
-            env.get(&"FOO".to_string()).unwrap(),
+            env.get("FOO").unwrap(),
             &EnvKey::Single("milkBAR".to_string()),
         );
     }
@@ -551,7 +551,7 @@ mod tests {
         env.assign_from_string("FOO+=milkBAR").unwrap();
 
         assert_eq!(
-            env.get(&"FOO".to_string()).unwrap(),
+            env.get("FOO").unwrap(),
             &EnvKey::List(vector![
                 "whiskeyBAR".to_string(),
                 "beerBAR".to_string(),

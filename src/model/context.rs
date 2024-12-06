@@ -78,7 +78,7 @@ impl Context {
 
     /// Creates an iterator over a context and its parents, starting
     /// with the context.
-    pub(crate) fn context_iter<'a>(&'a self, bag: &'a ContextBag) -> ParentIterator {
+    pub(crate) fn context_iter<'a>(&'a self, bag: &'a ContextBag) -> ParentIterator<'a> {
         ParentIterator {
             bag,
             next_context: Some(self),
