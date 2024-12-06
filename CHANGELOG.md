@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- fix sorting of ninja build statements, preventing ninja errors
 - fix `$relroot` potentially having one `..` too much (#571)
 - fix `$root` to usually contain `.`, matching documentation
 - fix cache laze version check (there was a potential crash after a laze update)
