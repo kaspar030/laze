@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- always update git-cache of a branch or tag `imports` source
+- track `imports:` sources, trigger new download if source has changed
+
 ## [0.1.27] - 2024-12-06
 
 ### Fixed
