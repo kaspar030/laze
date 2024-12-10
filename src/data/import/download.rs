@@ -32,6 +32,7 @@ fn git_clone_commit(url: &str, target_path: &Utf8Path, commit: &str) -> Result<(
 
 fn git_clone_branch(url: &str, target_path: &Utf8Path, branch: &str) -> Result<(), Error> {
     git_cloner(url, target_path)
+        .update(true)
         .extra_clone_args(Some(vec!["--branch".into(), branch.into()]))
         .do_clone()
 }
