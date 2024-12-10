@@ -52,6 +52,9 @@ incremental = false
 codegen-units = 1
 strip = true
 
+[dev-dependencies]
+tempfile = "3.14.0"
+
 [package.metadata.release]
 sign-commit = true
 sign-tag = true

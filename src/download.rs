@@ -207,3 +207,29 @@ pub fn handle_module(
         Ok(None)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use tempfile::tempdir;
+
+    use super::{Download, Source};
+
+    #[test]
+    fn tagfile() {
+        let tmpdir = tempdir().unwrap();
+        let source = Source::Git(super::Git::Branch {
+            url: "foo".into(),
+            branch: "main".into(),
+        });
+
+        let download = Download {
+            source,
+            patches: None,
+            dldir: None,
+        };
+
+        let tagfile = tmpdir.path().join("tagfile.json");
+        download.create_tagfile(&tagfile).unwrap();
+        assert!(download.compare_with_tagfile(&tagfile).unwrap());
+    }
+}
