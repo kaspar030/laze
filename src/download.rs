@@ -1,6 +1,6 @@
 //! This module deals with "download:" directives
 
-use std::borrow::Cow;
+use std::{borrow::Cow, path::Path};
 
 use anyhow::Result;
 use im::HashMap;
@@ -70,6 +70,13 @@ impl Download {
         } else {
             self.tagfile_download(srcdir)
         }
+    }
+
+    pub fn create_tagfile<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+        let path = path.as_ref();
+        let contents = bincode::serialize(&self.source)?;
+        std::fs::write(path, contents)?;
+        Ok(())
     }
 
     fn render(

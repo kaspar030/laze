@@ -1,4 +1,4 @@
-use std::fs::{remove_dir_all, File};
+use std::fs::remove_dir_all;
 
 use anyhow::{Context as _, Error};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -32,6 +32,7 @@ fn git_clone_commit(url: &str, target_path: &Utf8Path, commit: &str) -> Result<(
 
 fn git_clone_branch(url: &str, target_path: &Utf8Path, branch: &str) -> Result<(), Error> {
     git_cloner(url, target_path)
+        .update(true)
         .extra_clone_args(Some(vec!["--branch".into(), branch.into()]))
         .do_clone()
 }
@@ -43,8 +44,15 @@ impl Import for Download {
 
         let mut skip_download = false;
         if tagfile.exists() {
-            // TODO: check if tagfile was created with same info
-            skip_download = true;
+            let tagfile_contents = std::fs::read_to_string(tagfile.as_path())?;
+            let tagfile_source =
+                bincode::deserialize_from::<_, Source>(tagfile_contents.as_bytes());
+
+            if let Ok(tagfile_source) = tagfile_source {
+                if tagfile_source == self.source {
+                    skip_download = true;
+                }
+            }
         }
         if !skip_download {
             if target_path.exists() {
@@ -60,7 +68,7 @@ impl Import for Download {
                         format!("cloning git url: \"{url}\" commit: \"{commit}\"")
                     })?;
 
-                    File::create(tagfile)?;
+                    self.create_tagfile(tagfile)?;
                 }
                 Source::Git(Git::Branch {
                     url,
@@ -76,7 +84,7 @@ impl Import for Download {
                         format!("cloning git url: \"{url}\" branch/tag: \"{branch_or_tag}\"")
                     })?;
 
-                    File::create(tagfile)?;
+                    self.create_tagfile(tagfile)?;
                 }
                 Source::Git(Git::Default { url }) => {
                     println!("IMPORT Git {url} -> {target_path}");
@@ -85,7 +93,7 @@ impl Import for Download {
                         .do_clone()
                         .with_context(|| format!("cloning git url: \"{url}\""))?;
 
-                    File::create(tagfile)?;
+                    self.create_tagfile(tagfile)?;
                 }
                 Source::Laze(name) => {
                     let mut at_least_one = false;
@@ -107,7 +115,8 @@ impl Import for Download {
                             .with_context(|| format!("creating {filename}"))?;
                     }
                     if at_least_one {
-                        File::create(&tagfile).with_context(|| format!("creating {tagfile}"))?;
+                        self.create_tagfile(&tagfile)
+                            .with_context(|| format!("creating {tagfile}"))?;
                     } else {
                         return Err(anyhow!("could not import from laze defaults: {name}"));
                     }
