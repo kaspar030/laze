@@ -10,7 +10,7 @@ on:
 
 jobs:
   udeps:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
