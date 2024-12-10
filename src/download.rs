@@ -74,7 +74,7 @@ impl Download {
 
     pub fn create_tagfile<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let path = path.as_ref();
-        let contents = bincode::serialize(&self.source)?;
+        let contents = serde_json::to_string(&self.source)?;
         std::fs::write(path, contents)?;
         Ok(())
     }
@@ -175,6 +175,23 @@ impl Download {
             ninja_patch_rule.to_string(),
             ninja_patch_build.to_string(),
         ])
+    }
+
+    pub(crate) fn compare_with_tagfile<P: AsRef<Path>>(&self, tagfile: P) -> Result<bool> {
+        let tagfile_contents = std::fs::read_to_string(tagfile.as_ref())?;
+        let tagfile_source = serde_json::from_reader::<_, Source>(tagfile_contents.as_bytes());
+
+        // If deserializing succeeded, and the contents match, we return true.
+        // We don't care much for the error case or its reasons, as this is basically used for
+        // caching.
+        if let Ok(tagfile_source) = tagfile_source {
+            if tagfile_source == self.source {
+                return Ok(true);
+            }
+        } else {
+            // we don't care, still, would be nice to log.
+        }
+        Ok(false)
     }
 }
 

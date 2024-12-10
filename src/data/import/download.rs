@@ -44,15 +44,7 @@ impl Import for Download {
 
         let mut skip_download = false;
         if tagfile.exists() {
-            let tagfile_contents = std::fs::read_to_string(tagfile.as_path())?;
-            let tagfile_source =
-                bincode::deserialize_from::<_, Source>(tagfile_contents.as_bytes());
-
-            if let Ok(tagfile_source) = tagfile_source {
-                if tagfile_source == self.source {
-                    skip_download = true;
-                }
-            }
+            skip_download = self.compare_with_tagfile(&tagfile).unwrap_or_default();
         }
         if !skip_download {
             if target_path.exists() {
