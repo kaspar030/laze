@@ -1,6 +1,10 @@
 use camino::Utf8PathBuf;
 
 use clap::{crate_version, value_parser, Arg, ArgAction, Command, ValueHint};
+use clap_complete::engine::{ArgValueCandidates, SubcommandCandidates};
+
+mod completer;
+use completer::{app_completer, builder_completer, module_completer, task_completer};
 
 pub fn clap() -> clap::Command {
     fn build_dir() -> Arg {
@@ -34,6 +38,7 @@ pub fn clap() -> clap::Command {
             .env("LAZE_SELECT")
             .action(ArgAction::Append)
             .value_delimiter(',')
+            .add(ArgValueCandidates::new(module_completer))
     }
 
     fn disable() -> Arg {
@@ -44,6 +49,7 @@ pub fn clap() -> clap::Command {
             .env("LAZE_DISABLE")
             .action(ArgAction::Append)
             .value_delimiter(',')
+            .add(ArgValueCandidates::new(module_completer))
     }
 
     fn define() -> Arg {
@@ -170,7 +176,8 @@ pub fn clap() -> clap::Command {
                         .help("builders to configure")
                         .env("LAZE_BUILDERS")
                         .action(ArgAction::Append)
-                        .value_delimiter(','),
+                        .value_delimiter(',')
+                        .add(ArgValueCandidates::new(builder_completer)),
                 )
                 .arg(
                     Arg::new("apps")
@@ -179,13 +186,15 @@ pub fn clap() -> clap::Command {
                         .help("apps to configure")
                         .env("LAZE_APPS")
                         .action(ArgAction::Append)
-                        .value_delimiter(','),
+                        .value_delimiter(',')
+                        .add(ArgValueCandidates::new(app_completer)),
                 )
                 .arg(partition())
                 .next_help_heading("Extra build settings")
                 .arg(select())
                 .arg(disable())
-                .arg(define()),
+                .arg(define())
+                .add(SubcommandCandidates::new(task_completer)),
         )
         .subcommand(
             Command::new("clean")
