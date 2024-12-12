@@ -258,6 +258,27 @@ impl Module {
         self.name.starts_with("context::")
     }
 
+    pub fn add_conflicts<'a, I>(&mut self, more_conflicts: I)
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        let conflicts = self.conflicts.get_or_insert_with(Vec::new);
+        for dep_name in more_conflicts {
+            conflicts.push(dep_name.as_ref().into());
+        }
+    }
+
+    pub(crate) fn add_provides<I>(&mut self, provides_unique: I)
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        let provides = self.provides.get_or_insert_with(Vec::new);
+        for module in provides_unique {
+            provides.push(module.as_ref().into());
+        }
+    }
     // returns all fixed and optional sources with srcdir prepended
     // pub fn get_all_sources(&self, srcdir: Utf8PathBuf) -> Vec<Utf8PathBuf> {
     //     let mut res = self

@@ -621,32 +621,19 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         }
 
         if let Some(conflicts) = &module.conflicts {
-            add_conflicts(&mut m, conflicts);
+            m.add_conflicts(conflicts);
         }
 
         if let Some(provides) = &module.provides {
-            if let Some(default_provides) = m.provides {
-                let mut provides = provides.clone();
-                let mut res = default_provides;
-                res.append(&mut provides);
-                m.provides = Some(res);
-            } else {
-                m.provides = Some(provides.clone());
-            }
+            m.add_provides(provides);
         }
 
         if let Some(provides_unique) = &module.provides_unique {
             // a "uniquely provided module" requires to be the only provider
             // for that module. think `provides_unique: [ libc ]`.
             // practically, it means adding to both "provides" and "conflicts"
-            add_conflicts(&mut m, provides_unique);
-            if m.provides.is_none() {
-                m.provides = Some(Vec::new());
-            }
-            m.provides
-                .as_mut()
-                .unwrap()
-                .append(&mut provides_unique.clone());
+            m.add_conflicts(provides_unique);
+            m.add_provides(provides_unique);
         }
 
         if module.notify_all {
@@ -984,13 +971,4 @@ fn convert_tasks(
                 .with_context(|| format!("task \"{}\"", name.clone()))
         })
         .collect::<Result<_, _>>()
-}
-
-fn add_conflicts(m: &mut Module, conflicts: &Vec<String>) {
-    if m.conflicts.is_none() {
-        m.conflicts = Some(Vec::new());
-    }
-    for dep_name in conflicts {
-        m.conflicts.as_mut().unwrap().push(dep_name.clone());
-    }
 }
