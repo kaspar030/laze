@@ -767,6 +767,12 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         if let Some(tasks) = &module.tasks {
             m.tasks = convert_tasks(tasks, &m.env_early)
                 .with_context(|| format!("{:?} module \"{}\"", &filename, m.name))?;
+
+            // This makes the module provide_unique a marker module `::task::<task-name>`
+            // for each task it defines, enabling the dependency resolver to sort
+            // out duplicates.
+            m.add_provides(tasks.keys().map(|name| format!("::task::{name}")));
+            m.add_conflicts(tasks.keys().map(|name| format!("::task::{name}")));
         }
 
         if is_binary {
