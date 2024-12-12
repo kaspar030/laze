@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- allow defining tasks in modules
+- implemented `task::required_modules`
+
 ### Fixed
 
 - always update git-cache of a branch or tag `imports` source
