@@ -12,5 +12,4 @@ pub use context_bag::{ContextBag, IsAncestor};
 pub use dependency::Dependency;
 pub use module::{CustomBuild, Module};
 pub use rule::Rule;
-pub use task::Task;
-pub use task::VarExportSpec;
+pub use task::{Task, TaskError, VarExportSpec};

@@ -45,7 +45,7 @@ mod serde_bool_helpers;
 mod task_runner;
 mod utils;
 
-use model::{Context, ContextBag, Dependency, Module, Rule, Task};
+use model::{Context, ContextBag, Dependency, Module, Rule, Task, TaskError};
 
 use generate::{get_ninja_build_file, BuildInfo, GenerateMode, GeneratorBuilder, Selector};
 use nested_env::{Env, MergeOption};
@@ -358,7 +358,30 @@ fn try_main() -> Result<i32> {
                     })
                     .collect();
 
-                if builds.is_empty() {
+                if !builds
+                    .iter()
+                    .any(|build_info| build_info.tasks.iter().any(|t| t.1.is_ok() && t.0 == task))
+                {
+                    let mut not_available = 0;
+                    for b in builds {
+                        for t in &b.tasks {
+                            if t.1.is_err() && t.0 == task {
+                                not_available += 1;
+                                if verbose > 0 {
+                                    eprintln!(
+                                    "laze: warn: task \"{task}\" for binary \"{}\" on builder \"{}\": {}",
+                                    b.binary,
+                                    b.builder,
+                                    t.1.as_ref().err().unwrap()
+                                );
+                                }
+                            }
+                        }
+                    }
+
+                    if not_available > 0 && verbose == 0 {
+                        println!("laze hint: {not_available} target(s) not available, try `--verbose` to list why");
+                    }
                     return Err(anyhow!("no matching target for task \"{}\" found.", task));
                 }
 
@@ -382,11 +405,13 @@ fn try_main() -> Result<i32> {
 
                 for build in builds {
                     let task = build.tasks.get(task).unwrap();
-                    if task.build_app() {
-                        let build_target = build.out.clone();
-                        ninja_targets.push(build_target);
+                    if let Ok(task) = task {
+                        if task.build_app() {
+                            let build_target = build.out.clone();
+                            ninja_targets.push(build_target);
+                        }
+                        targets.push((build, task));
                     }
-                    targets.push((build, task));
                 }
 
                 if !ninja_targets.is_empty() && !build_matches.get_flag("generate-only") {

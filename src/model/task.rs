@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use anyhow::{Error, Result};
+use thiserror::Error;
 
 use crate::nested_env;
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
@@ -18,6 +19,14 @@ pub struct Task {
     pub build: bool,
     #[serde(default = "default_as_false")]
     pub ignore_ctrl_c: bool,
+}
+
+#[derive(Error, Debug, Serialize, Deserialize)]
+pub enum TaskError {
+    #[error("required variable `{var}` not set")]
+    RequiredVarMissing { var: String },
+    #[error("required module `{module}` not selected")]
+    RequiredModuleMissing { module: String },
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
