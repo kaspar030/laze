@@ -459,20 +459,8 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         );
 
         if let Some(tasks) = &context.tasks {
-            let flattened_early_env = context_.env_early.flatten()?;
             context_.tasks = Some(
-                tasks
-                    .iter()
-                    .map(|(name, task)| {
-                        let task = Task::from(task.clone());
-                        let task = task.with_env(&flattened_early_env);
-                        match task {
-                            Ok(task) => Ok((name.clone(), task)),
-                            Err(e) => Err(e),
-                        }
-                        .with_context(|| format!("task \"{}\"", name.clone()))
-                    })
-                    .collect::<Result<_, _>>()
+                convert_tasks(tasks, &context_.env_early)
                     .with_context(|| format!("{:?} context \"{}\"", &filename, context.name))?,
             )
         }
@@ -973,6 +961,22 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
     );
 
     Ok((contexts, treestate))
+}
+
+fn convert_tasks(
+    tasks: &HashMap<String, YamlTask>,
+    env: &Env,
+) -> Result<HashMap<String, Task>, Error> {
+    let flattened_env = env.flatten()?;
+    tasks
+        .iter()
+        .map(|(name, task)| {
+            let task = Task::from(task.clone());
+            let task = task.with_env(&flattened_env);
+            task.map(|task| (name.clone(), task))
+                .with_context(|| format!("task \"{}\"", name.clone()))
+        })
+        .collect::<Result<_, _>>()
 }
 
 fn add_conflicts(m: &mut Module, conflicts: &Vec<String>) {
