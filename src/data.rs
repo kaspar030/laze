@@ -228,6 +228,7 @@ pub struct YamlTask {
     pub cmd: Vec<String>,
     pub help: Option<String>,
     pub required_vars: Option<Vec<String>>,
+    pub required_modules: Option<Vec<String>>,
     pub export: Option<Vec<StringOrMapString>>,
     #[serde(default = "default_as_true")]
     pub build: bool,
@@ -243,6 +244,7 @@ impl From<YamlTask> for Task {
             cmd: yaml_task.cmd,
             help: yaml_task.help,
             required_vars: yaml_task.required_vars,
+            required_modules: yaml_task.required_modules,
             export: yaml_task
                 .export
                 .map(|s| s.iter().map(|s| s.clone().into()).collect_vec()),

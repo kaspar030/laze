@@ -27,14 +27,14 @@ use super::{
     nested_env,
     nested_env::{Env, EnvKey, IfMissing},
     ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder},
-    utils, Context, ContextBag, Dependency, Module, Task,
+    utils, Context, ContextBag, Dependency, Module, Task, TaskError,
 };
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct BuildInfo {
     pub binary: String,
     pub builder: String,
-    pub tasks: IndexMap<String, Task>,
+    pub tasks: IndexMap<String, Result<Task, TaskError>>,
     pub out: Utf8PathBuf,
 
     #[serde(skip)]
@@ -972,7 +972,7 @@ fn configure_build(
     global_env_flattened.insert(&out_str, outfile.to_string());
     let tasks = build
         .build_context
-        .collect_tasks(contexts, &global_env_flattened)?;
+        .collect_tasks(contexts, &global_env_flattened, &modules)?;
 
     Ok(ConfigureBuildResult::Build(
         BuildInfo {

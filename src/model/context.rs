@@ -7,7 +7,7 @@ use camino::Utf8PathBuf;
 
 use crate::Env;
 use crate::MergeOption;
-use crate::{ContextBag, Module, Rule, Task};
+use crate::{ContextBag, Module, Rule, Task, TaskError};
 
 #[derive(Eq)]
 pub struct Context {
@@ -149,22 +149,43 @@ impl Context {
         &self,
         contexts: &ContextBag,
         env: &im::HashMap<&String, String>,
-    ) -> Result<IndexMap<String, Task>, Error> {
+        modules: &IndexMap<&String, (&Module, Env, std::option::Option<IndexSet<&Module>>)>,
+    ) -> Result<IndexMap<String, Result<Task, TaskError>>, Error> {
         let mut result = IndexMap::new();
         let mut parents = Vec::new();
         self.get_parents(contexts, &mut parents);
         for parent in parents {
             if let Some(tasks) = &parent.tasks {
-                for (name, task) in tasks {
+                'tasks: for (name, task) in tasks {
                     if let Some(required_vars) = &task.required_vars {
-                        if required_vars.iter().any(|x| !env.contains_key(x)) {
-                            continue;
+                        for var in required_vars {
+                            if !env.contains_key(var) {
+                                result.insert(
+                                    name.clone(),
+                                    Err(TaskError::RequiredVarMissing { var: var.clone() }),
+                                );
+                                continue 'tasks;
+                            }
+                        }
+                    }
+                    if let Some(required_modules) = &task.required_modules {
+                        for module in required_modules {
+                            if !modules.contains_key(module) {
+                                result.insert(
+                                    name.clone(),
+                                    Err(TaskError::RequiredModuleMissing {
+                                        module: module.clone(),
+                                    }),
+                                );
+                                continue 'tasks;
+                            }
                         }
                     }
                     result.insert(
                         name.clone(),
-                        task.with_env_eval(env)
-                            .with_context(|| format!("task \"{}\"", name))?,
+                        Ok(task
+                            .with_env_eval(env)
+                            .with_context(|| format!("task \"{}\"", name))?),
                     );
                 }
             }

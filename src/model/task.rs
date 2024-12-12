@@ -1,22 +1,32 @@
 use std::path::Path;
 
 use anyhow::{Error, Result};
+use thiserror::Error;
 
 use crate::nested_env;
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
 use crate::IGNORE_SIGINT;
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Task {
     pub cmd: Vec<String>,
     pub help: Option<String>,
     pub required_vars: Option<Vec<String>>,
+    pub required_modules: Option<Vec<String>>,
     pub export: Option<Vec<VarExportSpec>>,
     #[serde(default = "default_as_true")]
     pub build: bool,
     #[serde(default = "default_as_false")]
     pub ignore_ctrl_c: bool,
+}
+
+#[derive(Error, Debug, Serialize, Deserialize)]
+pub enum TaskError {
+    #[error("required variable `{var}` not set")]
+    RequiredVarMissing { var: String },
+    #[error("required module `{module}` not selected")]
+    RequiredModuleMissing { module: String },
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
@@ -101,8 +111,6 @@ impl Task {
 
     fn _with_env(&self, env: &im::HashMap<&String, String>, do_eval: bool) -> Result<Task, Error> {
         Ok(Task {
-            help: self.help.clone(),
-            build: self.build,
             cmd: self
                 .cmd
                 .iter()
@@ -114,13 +122,12 @@ impl Task {
                     }
                 })
                 .collect::<Result<Vec<String>, _>>()?,
-            ignore_ctrl_c: self.ignore_ctrl_c,
-            required_vars: self.required_vars.clone(),
             export: if do_eval {
                 self.expand_export(env)
             } else {
                 self.export.clone()
             },
+            ..(*self).clone()
         })
     }
 
