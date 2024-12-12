@@ -149,6 +149,7 @@ impl Context {
         &self,
         contexts: &ContextBag,
         env: &im::HashMap<&String, String>,
+        modules: &IndexMap<&String, (&Module, Env, std::option::Option<IndexSet<&Module>>)>,
     ) -> Result<IndexMap<String, Task>, Error> {
         let mut result = IndexMap::new();
         let mut parents = Vec::new();
@@ -158,6 +159,11 @@ impl Context {
                 for (name, task) in tasks {
                     if let Some(required_vars) = &task.required_vars {
                         if required_vars.iter().any(|x| !env.contains_key(x)) {
+                            continue;
+                        }
+                    }
+                    if let Some(required_modules) = &task.required_modules {
+                        if required_modules.iter().any(|x| !modules.contains_key(x)) {
                             continue;
                         }
                     }

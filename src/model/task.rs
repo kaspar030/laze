@@ -12,6 +12,7 @@ pub struct Task {
     pub cmd: Vec<String>,
     pub help: Option<String>,
     pub required_vars: Option<Vec<String>>,
+    pub required_modules: Option<Vec<String>>,
     pub export: Option<Vec<VarExportSpec>>,
     #[serde(default = "default_as_true")]
     pub build: bool,
