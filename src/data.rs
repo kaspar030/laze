@@ -142,7 +142,7 @@ enum StringOrVecString {
     List(Vec<String>),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct YamlModule {
     #[serde(default = "default_none", deserialize_with = "check_module_name")]
@@ -159,6 +159,7 @@ struct YamlModule {
     #[serde(default = "default_as_false")]
     notify_all: bool,
     sources: Option<Vec<StringOrMapVecString>>,
+    tasks: Option<HashMap<String, YamlTask>>,
     build: Option<CustomBuild>,
     env: Option<YamlModuleEnv>,
     blocklist: Option<Vec<String>>,
@@ -176,29 +177,10 @@ struct YamlModule {
 }
 
 impl YamlModule {
-    fn default(is_binary: bool) -> YamlModule {
+    fn default_binary() -> YamlModule {
         YamlModule {
-            name: None,
-            context: None,
-            help: None,
-            depends: None,
-            selects: None,
-            uses: None,
-            provides: None,
-            provides_unique: None,
-            conflicts: None,
-            notify_all: false,
-            sources: None,
-            srcdir: None,
-            build: None,
-            env: None,
-            blocklist: None,
-            allowlist: None,
-            download: None,
-            is_build_dep: false,
-            is_global_build_dep: false,
-            _is_binary: is_binary,
-            _meta: None,
+            _is_binary: true,
+            ..Self::default()
         }
     }
 
@@ -478,20 +460,8 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         );
 
         if let Some(tasks) = &context.tasks {
-            let flattened_early_env = context_.env_early.flatten()?;
             context_.tasks = Some(
-                tasks
-                    .iter()
-                    .map(|(name, task)| {
-                        let task = Task::from(task.clone());
-                        let task = task.with_env(&flattened_early_env);
-                        match task {
-                            Ok(task) => Ok((name.clone(), task)),
-                            Err(e) => Err(e),
-                        }
-                        .with_context(|| format!("task \"{}\"", name.clone()))
-                    })
-                    .collect::<Result<_, _>>()
+                convert_tasks(tasks, &context_.env_early)
                     .with_context(|| format!("{:?} context \"{}\"", &filename, context.name))?,
             )
         }
@@ -651,32 +621,19 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         }
 
         if let Some(conflicts) = &module.conflicts {
-            add_conflicts(&mut m, conflicts);
+            m.add_conflicts(conflicts);
         }
 
         if let Some(provides) = &module.provides {
-            if let Some(default_provides) = m.provides {
-                let mut provides = provides.clone();
-                let mut res = default_provides;
-                res.append(&mut provides);
-                m.provides = Some(res);
-            } else {
-                m.provides = Some(provides.clone());
-            }
+            m.add_provides(provides);
         }
 
         if let Some(provides_unique) = &module.provides_unique {
             // a "uniquely provided module" requires to be the only provider
             // for that module. think `provides_unique: [ libc ]`.
             // practically, it means adding to both "provides" and "conflicts"
-            add_conflicts(&mut m, provides_unique);
-            if m.provides.is_none() {
-                m.provides = Some(Vec::new());
-            }
-            m.provides
-                .as_mut()
-                .unwrap()
-                .append(&mut provides_unique.clone());
+            m.add_conflicts(provides_unique);
+            m.add_provides(provides_unique);
         }
 
         if module.notify_all {
@@ -805,6 +762,18 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
         m.env_local.merge(&m.env_early);
         m.apply_early_env()?;
+
+        // handle module tasks
+        if let Some(tasks) = &module.tasks {
+            m.tasks = convert_tasks(tasks, &m.env_early)
+                .with_context(|| format!("{:?} module \"{}\"", &filename, m.name))?;
+
+            // This makes the module provide_unique a marker module `::task::<task-name>`
+            // for each task it defines, enabling the dependency resolver to sort
+            // out duplicates.
+            m.add_provides(tasks.keys().map(|name| format!("::task::{name}")));
+            m.add_conflicts(tasks.keys().map(|name| format!("::task::{name}")));
+        }
 
         if is_binary {
             m.env_global
@@ -950,7 +919,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
                 } else if *is_binary {
                     // if an app list is empty, add a default entry.
                     // this allows a convenient file only containing "app:"
-                    let module = YamlModule::default(*is_binary);
+                    let module = YamlModule::default_binary();
                     for context in module.get_contexts() {
                         contexts.add_module(convert_module(
                             &module,
@@ -994,11 +963,18 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
     Ok((contexts, treestate))
 }
 
-fn add_conflicts(m: &mut Module, conflicts: &Vec<String>) {
-    if m.conflicts.is_none() {
-        m.conflicts = Some(Vec::new());
-    }
-    for dep_name in conflicts {
-        m.conflicts.as_mut().unwrap().push(dep_name.clone());
-    }
+fn convert_tasks(
+    tasks: &HashMap<String, YamlTask>,
+    env: &Env,
+) -> Result<HashMap<String, Task>, Error> {
+    let flattened_env = env.flatten()?;
+    tasks
+        .iter()
+        .map(|(name, task)| {
+            let task = Task::from(task.clone());
+            let task = task.with_env(&flattened_env);
+            task.map(|task| (name.clone(), task))
+                .with_context(|| format!("task \"{}\"", name.clone()))
+        })
+        .collect::<Result<_, _>>()
 }

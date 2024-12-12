@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -11,6 +11,8 @@ use crate::download;
 use crate::nested_env;
 use crate::nested_env::Env;
 use crate::Dependency;
+
+use super::Task;
 
 #[derive(Clone, Eq, Debug)]
 pub struct Module {
@@ -30,6 +32,8 @@ pub struct Module {
 
     pub sources: Vec<String>,
     pub sources_optional: Option<IndexMap<String, Vec<String>>>,
+
+    pub tasks: HashMap<String, Task>,
 
     pub build: Option<CustomBuild>,
 
@@ -62,6 +66,7 @@ impl Module {
             notify_all: false,
             // exports: Vec::new(),
             sources: Vec::new(),
+            tasks: HashMap::new(),
             build: None,
             sources_optional: None,
             env_local: Env::new(),
@@ -253,6 +258,27 @@ impl Module {
         self.name.starts_with("context::")
     }
 
+    pub fn add_conflicts<'a, I>(&mut self, more_conflicts: I)
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        let conflicts = self.conflicts.get_or_insert_with(Vec::new);
+        for dep_name in more_conflicts {
+            conflicts.push(dep_name.as_ref().into());
+        }
+    }
+
+    pub(crate) fn add_provides<I>(&mut self, provides_unique: I)
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        let provides = self.provides.get_or_insert_with(Vec::new);
+        for module in provides_unique {
+            provides.push(module.as_ref().into());
+        }
+    }
     // returns all fixed and optional sources with srcdir prepended
     // pub fn get_all_sources(&self, srcdir: Utf8PathBuf) -> Vec<Utf8PathBuf> {
     //     let mut res = self

@@ -156,30 +156,31 @@ impl Context {
         self.get_parents(contexts, &mut parents);
         for parent in parents {
             if let Some(tasks) = &parent.tasks {
-                'tasks: for (name, task) in tasks {
-                    if let Some(required_vars) = &task.required_vars {
-                        for var in required_vars {
-                            if !env.contains_key(var) {
-                                result.insert(
-                                    name.clone(),
-                                    Err(TaskError::RequiredVarMissing { var: var.clone() }),
-                                );
-                                continue 'tasks;
-                            }
-                        }
+                for (name, task) in tasks {
+                    if !task_handle_required_vars(task, env, &mut result, name) {
+                        continue;
                     }
-                    if let Some(required_modules) = &task.required_modules {
-                        for module in required_modules {
-                            if !modules.contains_key(module) {
-                                result.insert(
-                                    name.clone(),
-                                    Err(TaskError::RequiredModuleMissing {
-                                        module: module.clone(),
-                                    }),
-                                );
-                                continue 'tasks;
-                            }
-                        }
+
+                    if !task_handle_required_modules(task, modules, &mut result, name) {
+                        continue;
+                    }
+                    result.insert(
+                        name.clone(),
+                        Ok(task
+                            .with_env_eval(env)
+                            .with_context(|| format!("task \"{}\"", name))?),
+                    );
+                }
+            }
+
+            // module tasks
+            for (_module_name, (module, _module_env, _)) in modules {
+                for (name, task) in &module.tasks {
+                    if !task_handle_required_vars(task, env, &mut result, name) {
+                        continue;
+                    }
+                    if !task_handle_required_modules(task, modules, &mut result, name) {
+                        continue;
                     }
                     result.insert(
                         name.clone(),
@@ -233,6 +234,48 @@ impl Context {
 
         default
     }
+}
+
+fn task_handle_required_modules(
+    task: &Task,
+    modules: &IndexMap<&String, (&Module, Env, Option<IndexSet<&Module>>)>,
+    result: &mut IndexMap<String, Result<Task, TaskError>>,
+    name: &String,
+) -> bool {
+    if let Some(required_modules) = &task.required_modules {
+        for module in required_modules {
+            if !modules.contains_key(module) {
+                result.insert(
+                    name.clone(),
+                    Err(TaskError::RequiredModuleMissing {
+                        module: module.clone(),
+                    }),
+                );
+                return false;
+            }
+        }
+    }
+    true
+}
+
+fn task_handle_required_vars(
+    task: &Task,
+    env: &im::HashMap<&String, String>,
+    result: &mut IndexMap<String, Result<Task, TaskError>>,
+    name: &String,
+) -> bool {
+    if let Some(required_vars) = &task.required_vars {
+        for var in required_vars {
+            if !env.contains_key(var) {
+                result.insert(
+                    name.clone(),
+                    Err(TaskError::RequiredVarMissing { var: var.clone() }),
+                );
+                return false;
+            }
+        }
+    }
+    true
 }
 
 impl Hash for Context {
