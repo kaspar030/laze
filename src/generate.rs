@@ -16,7 +16,6 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
 use solvent::DepGraph;
-use uuid::Uuid;
 
 use crate::{model::Rule, utils::ContainingPath};
 
