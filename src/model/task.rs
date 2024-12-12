@@ -6,7 +6,7 @@ use crate::nested_env;
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
 use crate::IGNORE_SIGINT;
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Task {
     pub cmd: Vec<String>,
@@ -101,8 +101,6 @@ impl Task {
 
     fn _with_env(&self, env: &im::HashMap<&String, String>, do_eval: bool) -> Result<Task, Error> {
         Ok(Task {
-            help: self.help.clone(),
-            build: self.build,
             cmd: self
                 .cmd
                 .iter()
@@ -114,13 +112,12 @@ impl Task {
                     }
                 })
                 .collect::<Result<Vec<String>, _>>()?,
-            ignore_ctrl_c: self.ignore_ctrl_c,
-            required_vars: self.required_vars.clone(),
             export: if do_eval {
                 self.expand_export(env)
             } else {
                 self.export.clone()
             },
+            ..(*self).clone()
         })
     }
 
