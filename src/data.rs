@@ -142,7 +142,7 @@ enum StringOrVecString {
     List(Vec<String>),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct YamlModule {
     #[serde(default = "default_none", deserialize_with = "check_module_name")]
@@ -176,29 +176,10 @@ struct YamlModule {
 }
 
 impl YamlModule {
-    fn default(is_binary: bool) -> YamlModule {
+    fn default_binary() -> YamlModule {
         YamlModule {
-            name: None,
-            context: None,
-            help: None,
-            depends: None,
-            selects: None,
-            uses: None,
-            provides: None,
-            provides_unique: None,
-            conflicts: None,
-            notify_all: false,
-            sources: None,
-            srcdir: None,
-            build: None,
-            env: None,
-            blocklist: None,
-            allowlist: None,
-            download: None,
-            is_build_dep: false,
-            is_global_build_dep: false,
-            _is_binary: is_binary,
-            _meta: None,
+            _is_binary: true,
+            ..Self::default()
         }
     }
 
@@ -950,7 +931,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
                 } else if *is_binary {
                     // if an app list is empty, add a default entry.
                     // this allows a convenient file only containing "app:"
-                    let module = YamlModule::default(*is_binary);
+                    let module = YamlModule::default_binary();
                     for context in module.get_contexts() {
                         contexts.add_module(convert_module(
                             &module,
