@@ -159,6 +159,7 @@ struct YamlModule {
     #[serde(default = "default_as_false")]
     notify_all: bool,
     sources: Option<Vec<StringOrMapVecString>>,
+    tasks: Option<HashMap<String, YamlTask>>,
     build: Option<CustomBuild>,
     env: Option<YamlModuleEnv>,
     blocklist: Option<Vec<String>>,
@@ -774,6 +775,12 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
         m.env_local.merge(&m.env_early);
         m.apply_early_env()?;
+
+        // handle module tasks
+        if let Some(tasks) = &module.tasks {
+            m.tasks = convert_tasks(tasks, &m.env_early)
+                .with_context(|| format!("{:?} module \"{}\"", &filename, m.name))?;
+        }
 
         if is_binary {
             m.env_global

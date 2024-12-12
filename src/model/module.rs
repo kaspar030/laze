@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -11,6 +11,8 @@ use crate::download;
 use crate::nested_env;
 use crate::nested_env::Env;
 use crate::Dependency;
+
+use super::Task;
 
 #[derive(Clone, Eq, Debug)]
 pub struct Module {
@@ -30,6 +32,8 @@ pub struct Module {
 
     pub sources: Vec<String>,
     pub sources_optional: Option<IndexMap<String, Vec<String>>>,
+
+    pub tasks: HashMap<String, Task>,
 
     pub build: Option<CustomBuild>,
 
@@ -62,6 +66,7 @@ impl Module {
             notify_all: false,
             // exports: Vec::new(),
             sources: Vec::new(),
+            tasks: HashMap::new(),
             build: None,
             sources_optional: None,
             env_local: Env::new(),
