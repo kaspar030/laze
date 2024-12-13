@@ -13,6 +13,9 @@
 ARG DEBIAN_FROM=ubuntu:latest
 FROM ${DEBIAN_FROM} AS builder
 
+# docker needs this here *again*
+ARG DEBIAN_FROM
+
 LABEL maintainer="Kaspar Schleiser <kaspar@schleiser.de>"
 
 ENV DEBIAN_FRONTEND noninteractive
