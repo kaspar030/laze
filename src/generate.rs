@@ -321,6 +321,7 @@ impl NoBuildReason {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 enum ConfigureBuildResult {
     Build(BuildInfo, NinjaRuleSnippets),
     #[allow(dead_code)]

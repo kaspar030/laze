@@ -240,13 +240,13 @@ fn task_handle_required_modules(
     task: &Task,
     modules: &IndexMap<&String, (&Module, Env, Option<IndexSet<&Module>>)>,
     result: &mut IndexMap<String, Result<Task, TaskError>>,
-    name: &String,
+    name: &str,
 ) -> bool {
     if let Some(required_modules) = &task.required_modules {
         for module in required_modules {
             if !modules.contains_key(module) {
                 result.insert(
-                    name.clone(),
+                    name.to_string(),
                     Err(TaskError::RequiredModuleMissing {
                         module: module.clone(),
                     }),
@@ -262,13 +262,13 @@ fn task_handle_required_vars(
     task: &Task,
     env: &im::HashMap<&String, String>,
     result: &mut IndexMap<String, Result<Task, TaskError>>,
-    name: &String,
+    name: &str,
 ) -> bool {
     if let Some(required_vars) = &task.required_vars {
         for var in required_vars {
             if !env.contains_key(var) {
                 result.insert(
-                    name.clone(),
+                    name.to_string(),
                     Err(TaskError::RequiredVarMissing { var: var.clone() }),
                 );
                 return false;
