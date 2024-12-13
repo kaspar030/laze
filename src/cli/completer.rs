@@ -1,6 +1,6 @@
 use std::{
     env,
-    sync::{LazyLock, Mutex},
+    sync::{atomic::AtomicBool, LazyLock, Mutex},
 };
 
 use camino::Utf8PathBuf;
@@ -8,7 +8,15 @@ use clap_complete::CompletionCandidate;
 
 use crate::model::ContextBag;
 
-static STATE: LazyLock<Mutex<CompleterState>> = LazyLock::new(|| Mutex::new(CompleterState::new()));
+static COMPLETING: AtomicBool = AtomicBool::new(false);
+static STATE: LazyLock<Mutex<CompleterState>> = LazyLock::new(|| {
+    COMPLETING.store(true, std::sync::atomic::Ordering::Release);
+    Mutex::new(CompleterState::new())
+});
+
+pub fn completing() -> bool {
+    COMPLETING.load(std::sync::atomic::Ordering::Acquire)
+}
 
 #[derive(Default)]
 struct CompleterState {
@@ -21,11 +29,11 @@ impl CompleterState {
         let project_root = crate::determine_project_root(&cwd);
         if let Ok((project_root, project_file)) = project_root {
             let build_dir = project_root.join("build");
-            let (contexts, _treestate, _stats) =
-                crate::data::load(&project_file, &build_dir).unwrap();
-            Self {
-                contexts: Some(contexts),
-            }
+            let project_file = project_root.join(project_file);
+            let res = crate::data::load(&project_file, &build_dir);
+            // TODO: this is where the error is eaten, when this fails. log?
+            let contexts = res.ok().map(|(contexts, _, _)| contexts);
+            Self { contexts }
         } else {
             Self { contexts: None }
         }

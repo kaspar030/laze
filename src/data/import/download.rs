@@ -12,8 +12,10 @@ use crate::download::{Download, Git, Source};
 #[folder = "assets/imports"]
 struct Asset;
 
-fn git_cloner(url: &str, target_path: &Utf8Path) -> GitCacheClonerBuilder {
-    let git_cache = crate::GIT_CACHE.get().expect("this has been set earlier");
+fn git_cloner(url: &str, target_path: &Utf8Path) -> Result<GitCacheClonerBuilder, Error> {
+    let git_cache = crate::GIT_CACHE
+        .get()
+        .ok_or(anyhow!("git cache not available"))?;
 
     let mut git_cache_builder = git_cache.cloner();
 
@@ -21,17 +23,17 @@ fn git_cloner(url: &str, target_path: &Utf8Path) -> GitCacheClonerBuilder {
         .repository_url(url.to_string())
         .target_path(Some(target_path.to_path_buf()));
 
-    git_cache_builder
+    Ok(git_cache_builder)
 }
 
 fn git_clone_commit(url: &str, target_path: &Utf8Path, commit: &str) -> Result<(), Error> {
-    git_cloner(url, target_path)
+    git_cloner(url, target_path)?
         .commit(Some(commit.into()))
         .do_clone()
 }
 
 fn git_clone_branch(url: &str, target_path: &Utf8Path, branch: &str) -> Result<(), Error> {
-    git_cloner(url, target_path)
+    git_cloner(url, target_path)?
         .update(true)
         .extra_clone_args(Some(vec!["--branch".into(), branch.into()]))
         .do_clone()
@@ -47,6 +49,14 @@ impl Import for Download {
             skip_download = self.compare_with_tagfile(&tagfile).unwrap_or_default();
         }
         if !skip_download {
+            if crate::cli::completing() {
+                // TODO: downloading causes output (e.g., from git), need to
+                // silence that somehow. Also, as completions don't (yet) take
+                // `--build-dir` or `--chdir` into account, we shouldn't be
+                // writing into hardcoded `build`.
+                return Err(anyhow!("cannot download when completing"));
+            }
+
             if target_path.exists() {
                 remove_dir_all(&target_path)
                     .with_context(|| format!("removing path \"{target_path}\""))?;
@@ -81,7 +91,7 @@ impl Import for Download {
                 Source::Git(Git::Default { url }) => {
                     println!("IMPORT Git {url} -> {target_path}");
 
-                    git_cloner(url, &target_path)
+                    git_cloner(url, &target_path)?
                         .do_clone()
                         .with_context(|| format!("cloning git url: \"{url}\""))?;
 

@@ -4,6 +4,7 @@ use clap::{crate_version, value_parser, Arg, ArgAction, Command, ValueHint};
 use clap_complete::engine::{ArgValueCandidates, SubcommandCandidates};
 
 mod completer;
+pub use completer::completing;
 use completer::{app_completer, builder_completer, module_completer, task_completer};
 
 pub fn clap() -> clap::Command {
