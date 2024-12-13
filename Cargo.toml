@@ -10,12 +10,12 @@ homepage = "https://laze-build.org"
 license = "Apache-2.0"
 readme = "README.md"
 include = ["src/**/*", "LICENSE", "README.md", "CHANGELOG.md", "!**/tests/**/*", "assets/**/*"]
-rust-version = "1.74"
+rust-version = "1.80"
 
 [dependencies]
 anyhow = "1.0.94"
 bincode = "1.3.3"
-clap = { version = "4.5.23", features = ["cargo", "env" ] }
+clap = { version = "4.5.23", features = ["cargo", "env", "unstable-ext" ] }
 derive_builder = "0.20.2"
 indexmap = { version = "2.7.0", features = ["serde"] }
 itertools = "0.13.0"
@@ -36,7 +36,7 @@ solvent = { version = "0.8.3", features = ["deterministic"] }
 rust-embed = "8.5.0"
 task_partitioner = "0.1.1"
 
-clap_complete = "4.5.38"
+clap_complete = { version = "4.5.38", features = [ "unstable-dynamic" ] }
 clap_mangen = "0.2.24"
 camino = { version = "1.1.9", features = ["serde1"] }
 evalexpr = "11.3.1"

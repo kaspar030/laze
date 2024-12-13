@@ -53,7 +53,7 @@ use ninja::NinjaCmdBuilder;
 
 pub static GIT_CACHE: OnceLock<GitCache> = OnceLock::new();
 
-fn determine_project_root(start: &Utf8Path) -> Result<(Utf8PathBuf, Utf8PathBuf)> {
+pub(crate) fn determine_project_root(start: &Utf8Path) -> Result<(Utf8PathBuf, Utf8PathBuf)> {
     let mut cwd = start.to_owned();
 
     loop {
@@ -145,6 +145,8 @@ fn try_main() -> Result<i32> {
             }
         }
     });
+
+    clap_complete::env::CompleteEnv::with_factory(cli::clap).complete();
 
     let matches = cli::clap().get_matches();
 

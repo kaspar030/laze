@@ -127,7 +127,17 @@ impl Generator {
             Err(x) => println!("laze: reading cache: {x}"),
         }
 
-        let (contexts, treestate) = load(&self.project_file, &self.build_dir)?;
+        let (contexts, treestate, load_stats) = load(&self.project_file, &self.build_dir)?;
+
+        println!(
+            "laze: parsing {} files took {:?}",
+            load_stats.files, load_stats.parsing_time,
+        );
+
+        println!(
+            "laze: stat'ing {} files took {:?}",
+            load_stats.files, load_stats.stat_time
+        );
 
         std::fs::create_dir_all(&self.build_dir)?;
         let mut ninja_build_file = std::io::BufWriter::new(std::fs::File::create(

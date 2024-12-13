@@ -12,7 +12,7 @@ use itertools::Itertools;
 use serde_yaml::Value;
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use anyhow::{Context as _, Error, Result};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -32,6 +32,12 @@ mod import;
 use import::ImportEntry;
 
 pub type FileTreeState = TreeState<FileState, std::path::PathBuf>;
+
+pub struct LoadStats {
+    pub files: usize,
+    pub parsing_time: Duration,
+    pub stat_time: Duration,
+}
 
 // Any value that is present is considered Some value, including null.
 fn deserialize_some<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
@@ -329,7 +335,10 @@ impl FileInclude {
     }
 }
 
-pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, FileTreeState)> {
+pub fn load(
+    filename: &Utf8Path,
+    build_dir: &Utf8Path,
+) -> Result<(ContextBag, FileTreeState, LoadStats)> {
     let mut contexts = ContextBag::new();
     let start = Instant::now();
 
@@ -938,12 +947,7 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
 
     contexts.merge_provides();
 
-    println!(
-        "laze: reading {} files took {:?}",
-        filenames.len(),
-        start.elapsed(),
-    );
-
+    let parsing_time = start.elapsed();
     let start = Instant::now();
 
     // convert Utf8PathBufs to PathBufs
@@ -954,13 +958,14 @@ pub fn load(filename: &Utf8Path, build_dir: &Utf8Path) -> Result<(ContextBag, Fi
         .collect_vec();
 
     let treestate = FileTreeState::new(filenames.iter());
-    println!(
-        "laze: stat'ing {} files took {:?}",
-        filenames.len(),
-        start.elapsed(),
-    );
+    let stat_time = start.elapsed();
 
-    Ok((contexts, treestate))
+    let stats = LoadStats {
+        parsing_time,
+        stat_time,
+        files: filenames.len(),
+    };
+    Ok((contexts, treestate, stats))
 }
 
 fn convert_tasks(
