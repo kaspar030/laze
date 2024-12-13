@@ -196,6 +196,17 @@ impl ContextBag {
         self.contexts.iter().filter(|&x| x.is_builder)
     }
 
+    #[allow(clippy::type_complexity)]
+    pub fn modules<'a>(
+        &'a self,
+    ) -> std::iter::FlatMap<
+        Iter<'a, Context>,
+        indexmap::map::Iter<'a, String, Module>,
+        impl FnMut(&'a Context) -> indexmap::map::Iter<'a, String, Module>,
+    > {
+        self.contexts.iter().flat_map(|c| c.modules.iter())
+    }
+
     pub fn builders_vec(&self) -> Vec<&Context> {
         self.builders().collect()
     }
