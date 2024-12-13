@@ -504,7 +504,6 @@ mod tests {
                 suffix: Some("S".to_string()),
                 start: Some("(".to_string()),
                 end: Some(")".to_string()),
-                ..Default::default()
             },
         );
 

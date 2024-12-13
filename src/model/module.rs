@@ -258,7 +258,7 @@ impl Module {
         self.name.starts_with("context::")
     }
 
-    pub fn add_conflicts<'a, I>(&mut self, more_conflicts: I)
+    pub fn add_conflicts<I>(&mut self, more_conflicts: I)
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
