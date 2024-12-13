@@ -22,7 +22,7 @@ RUN if test -z "$(command -v cargo)"; then apt-get update && apt-get -y install 
 RUN if test -z "$(command -v cargo)"; then curl https://sh.rustup.rs -sSf | sh -s -- -y ; fi
 
 # rust:buster ships 1.79, bump that
-RUN if test "${DEBIAN_FROM}" -eq "rust:buster"; then rustup toolchain install stable ; fi
+RUN if test "${DEBIAN_FROM}" = "rust:buster"; then rustup toolchain install stable ; fi
 
 # this works on both debian and ubuntu
 ENV PATH="/root/.cargo/bin:${PATH}"
