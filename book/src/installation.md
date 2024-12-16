@@ -59,7 +59,3 @@ cargo install --git https://github.com/kaspar030.git laze
 ```
 
 Again, make sure to add the Cargo bin directory to your `PATH`.
-
-If you are interested in making modifications to laze itself, check out the [Contributing Guide] for more information.
-
-[contributing guide]: https://github.com/kaspar030/laze/blob/master/CONTRIBUTING.md

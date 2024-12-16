@@ -5,8 +5,10 @@
 # User Guide
 
 - [Installation](./installation.md)
+- [Configuration](./configuration.md)
 - [Getting Started](./getting_started.md)
 - [Running Laze](./execution.md)
+- [Contributing](./contributing.md)
 
 # Concepts
 
