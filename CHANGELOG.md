@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- feat(cli): implement dynamic shell completions (autocomplete builders, apps, modules)
+
+### Fixed
+
+- fix(cli): don't treat comma in '--define' as separator (#590)
+
+### Internal
+
+- build(deps): bump clap_complete from 4.5.38 to 4.5.40
+- build(deps): bump semver from 1.0.23 to 1.0.24
+- build(deps): bump thiserror from 2.0.6 to 2.0.8
+
 ## [0.1.28] - 2024-12-12
 
 ### Added
