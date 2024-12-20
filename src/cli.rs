@@ -60,7 +60,6 @@ pub fn clap() -> clap::Command {
             .long("define")
             .env("LAZE_DEFINE")
             .action(ArgAction::Append)
-            .value_delimiter(',')
     }
 
     fn partition() -> Arg {
