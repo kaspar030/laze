@@ -132,7 +132,7 @@ struct YamlContext {
     env: Option<Env>,
     selects: Option<Vec<String>>,
     disables: Option<Vec<String>>,
-    rules: Option<Vec<Rule>>,
+    rules: Option<Vec<YamlRule>>,
     var_options: Option<im::HashMap<String, MergeOption>>,
     tasks: Option<HashMap<String, YamlTask>>,
     #[serde(default = "default_as_false", alias = "buildable")]
@@ -208,6 +208,58 @@ struct YamlModuleEnv {
     local: Option<Env>,
     export: Option<Env>,
     global: Option<Env>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct YamlRule {
+    pub name: String,
+    pub cmd: String,
+
+    pub help: Option<String>,
+
+    #[serde(rename = "in")]
+    pub in_: Option<String>,
+    pub out: Option<String>,
+    pub context: Option<String>,
+    pub options: Option<HashMap<String, String>>,
+    pub gcc_deps: Option<String>,
+    pub rspfile: Option<String>,
+    pub rspfile_content: Option<String>,
+    pub pool: Option<String>,
+    pub description: Option<String>,
+    pub export: Option<Vec<StringOrMapString>>,
+
+    #[serde(default = "default_as_false")]
+    pub always: bool,
+
+    #[serde(rename = "meta")]
+    _meta: Option<Value>,
+}
+
+impl From<YamlRule> for Rule {
+    //TODO: use deserialize_with as only the export field needs special handling
+    fn from(yaml_rule: YamlRule) -> Self {
+        Rule {
+            always: yaml_rule.always,
+            cmd: yaml_rule.cmd,
+            context: yaml_rule.context,
+
+            name: yaml_rule.name,
+            help: yaml_rule.help,
+            in_: yaml_rule.in_,
+            out: yaml_rule.out,
+            options: yaml_rule.options,
+            gcc_deps: yaml_rule.gcc_deps,
+            rspfile: yaml_rule.rspfile,
+            rspfile_content: yaml_rule.rspfile_content,
+            pool: yaml_rule.pool,
+            description: yaml_rule.description,
+            export: yaml_rule
+                .export
+                .map(|s| s.iter().map(|s| s.clone().into()).collect_vec()),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
@@ -436,7 +488,7 @@ pub fn load(
         if let Some(rules) = &context.rules {
             context_.rules = Some(IndexMap::new());
             for rule in rules {
-                let mut rule = rule.clone();
+                let mut rule: Rule = rule.clone().into();
                 rule.context = Some(context_name.clone());
                 context_
                     .rules

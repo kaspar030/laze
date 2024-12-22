@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::hash::{Hash, Hasher};
 
-use serde_yaml::Value;
-
 use crate::serde_bool_helpers::default_as_false;
 
 #[derive(Debug, Serialize, Deserialize, Eq, Clone)]
@@ -25,17 +23,16 @@ pub struct Rule {
     pub rspfile_content: Option<String>,
     pub pool: Option<String>,
     pub description: Option<String>,
+    pub export: Option<Vec<VarExportSpec>>,
 
     #[serde(default = "default_as_false")]
     pub always: bool,
-
-    #[serde(rename = "meta")]
-    _meta: Option<Value>,
 }
 
 impl Rule {
-    pub fn to_ninja(&self) -> NinjaRuleBuilder {
-        self.into()
+    pub fn to_ninja(&self, env: &im::HashMap<&String, String>) -> anyhow::Result<NinjaRule> {
+        let ninja_rule: NinjaRuleBuilder = self.into();
+        Ok(ninja_rule.build().unwrap().expand(env)?.named())
     }
 
     /// get rule description
@@ -64,7 +61,9 @@ impl PartialEq for Rule {
     }
 }
 
-use crate::ninja::{NinjaRuleBuilder, NinjaRuleDeps};
+use crate::ninja::{NinjaRule, NinjaRuleBuilder, NinjaRuleDeps};
+
+use super::VarExportSpec;
 
 impl<'a> From<&'a Rule> for crate::ninja::NinjaRuleBuilder<'a> {
     fn from(rule: &'a Rule) -> Self {
@@ -72,14 +71,17 @@ impl<'a> From<&'a Rule> for crate::ninja::NinjaRuleBuilder<'a> {
         builder
             .name(Cow::from(&rule.name))
             .description(Some(rule.description()))
+            .command(&rule.cmd)
             .rspfile(rule.rspfile.as_deref().map(Cow::from))
             .rspfile_content(rule.rspfile_content.as_deref().map(Cow::from))
             .pool(rule.pool.as_deref().map(Cow::from))
             .always(rule.always)
+            .export(&rule.export)
             .deps(match &rule.gcc_deps {
                 None => NinjaRuleDeps::None,
                 Some(s) => NinjaRuleDeps::GCC(s.into()),
             });
+
         builder
     }
 }

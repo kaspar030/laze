@@ -9,7 +9,6 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use super::{ninja::NinjaBuildBuilder, Module, Rule};
-use crate::nested_env::{self, IfMissing};
 use camino::{Utf8Path, Utf8PathBuf};
 
 pub mod source {
@@ -101,9 +100,7 @@ impl Download {
             None => panic!("missing {} rule for module {}", rulename, module.name),
         };
 
-        let expanded = nested_env::expand_eval(&download_rule.cmd, env, IfMissing::Ignore)?;
-
-        let ninja_download_rule = download_rule.to_ninja().command(expanded).build().unwrap();
+        let ninja_download_rule = download_rule.to_ninja(env).unwrap();
 
         // "srcdir" is filled in data.rs
         let srcdir = module.srcdir.as_ref().unwrap();
@@ -145,9 +142,7 @@ impl Download {
             None => panic!("missing {} rule for module {}", rulename, module.name),
         };
 
-        let expanded = nested_env::expand_eval(&patch_rule.cmd, env, IfMissing::Ignore).unwrap();
-
-        let ninja_patch_rule = patch_rule.to_ninja().command(expanded).build().unwrap();
+        let ninja_patch_rule = patch_rule.to_ninja(env).unwrap();
 
         // "srcdir" is filled in data.rs
         let srcdir = module.srcdir.as_ref().unwrap();

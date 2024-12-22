@@ -7,6 +7,8 @@ use crate::nested_env;
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
 use crate::IGNORE_SIGINT;
 
+use super::shared::VarExportSpec;
+
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Task {
@@ -27,30 +29,6 @@ pub enum TaskError {
     RequiredVarMissing { var: String },
     #[error("required module `{module}` not selected")]
     RequiredModuleMissing { module: String },
-}
-
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
-pub struct VarExportSpec {
-    pub variable: String,
-    pub content: Option<String>,
-}
-
-impl VarExportSpec {
-    fn apply_env(&self, env: &im::HashMap<&String, String>) -> Self {
-        let content = if let Some(content) = self.content.as_ref() {
-            content.clone()
-        } else {
-            format!("${{{}}}", self.variable)
-        };
-
-        let content =
-            Some(nested_env::expand_eval(content, env, nested_env::IfMissing::Empty).unwrap());
-
-        Self {
-            variable: self.variable.clone(),
-            content,
-        }
-    }
 }
 
 impl Task {
@@ -140,21 +118,6 @@ impl Task {
     }
 
     fn expand_export(&self, env: &im::HashMap<&String, String>) -> Option<Vec<VarExportSpec>> {
-        // what this does is, apply the env to the format as given by "export:"
-        //
-        // e.g., assuming `FOO=value` and FOOBAR=`other_value`:
-        // ```yaml
-        //
-        // export:
-        //   - FOO
-        //   - BAR: bar
-        //   - FOOBAR: ${foobar}
-        // ```
-        //
-        // ... to export `FOO=value`, `BAR=bar` and `FOOBAR=other_value`.
-
-        self.export
-            .as_ref()
-            .map(|exports| exports.iter().map(|entry| entry.apply_env(env)).collect())
+        VarExportSpec::expand(self.export.as_ref(), env)
     }
 }

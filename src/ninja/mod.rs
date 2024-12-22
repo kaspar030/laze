@@ -9,6 +9,9 @@ use std::process::{Command, ExitStatus, Stdio};
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 
+use crate::model::VarExportSpec;
+use crate::nested_env::{self, IfMissing};
+
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub enum NinjaRuleDeps {
     #[default]
@@ -16,14 +19,14 @@ pub enum NinjaRuleDeps {
     GCC(String),
 }
 
-#[derive(Builder, Debug, PartialEq, Eq, Clone)]
+#[derive(Builder, Clone)]
 #[builder(setter(into))]
 pub struct NinjaRule<'a> {
     pub name: Cow<'a, str>,
     command: Cow<'a, str>,
     description: Option<Cow<'a, str>>,
-    #[builder(setter(into, strip_option), default = "None")]
-    env: Option<&'a IndexMap<String, String>>,
+    #[builder(default = "None")]
+    export: Option<&'a Vec<VarExportSpec>>,
     #[builder(default = "NinjaRuleDeps::None")]
     deps: NinjaRuleDeps,
     #[builder(default = "None")]
@@ -92,6 +95,29 @@ impl<'a> NinjaRule<'a> {
         let name = self.get_hashed_name(self.get_hash(None));
         self.name = Cow::from(name);
         self
+    }
+
+    pub(crate) fn expand(mut self, env: &im::HashMap<&String, String>) -> anyhow::Result<Self> {
+        let mut command = String::with_capacity(self.command.len());
+
+        // handle "export" statements
+        let export = VarExportSpec::expand(self.export, env);
+        if let Some(export) = &export {
+            for entry in export {
+                let VarExportSpec { variable, content } = entry;
+                if let Some(val) = content {
+                    command.push_str(variable);
+                    command.push_str("=\"");
+                    command.push_str(val);
+                    command.push_str("\" && ");
+                }
+            }
+        }
+
+        let expanded = nested_env::expand_eval(&self.command, env, IfMissing::Empty)?;
+        command.push_str(&expanded);
+        self.command = command.into();
+        Ok(self)
     }
 }
 
