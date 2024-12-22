@@ -830,13 +830,12 @@ fn configure_build(
                         )
                     })?;
 
-                    let expanded =
-                        nested_env::expand_eval(&rule.cmd, &flattened_env, IfMissing::Empty)
-                            .with_context(|| format!("while expanding cmd \"{}\"", rule.cmd))
-                            .with_context(|| format!("rule \"{}\"", rule.name))
-                            .with_context(|| format!("module \"{}\"", module.name))?;
+                    let rule = rule
+                        .to_ninja(&flattened_env)
+                        .with_context(|| format!("while expanding cmd \"{}\"", rule.cmd))
+                        .with_context(|| format!("rule \"{}\"", rule.name))
+                        .with_context(|| format!("module \"{}\"", module.name))?;
 
-                    let rule = rule.to_ninja().command(expanded).build().unwrap().named();
                     ninja_entries.insert(format!("{rule}"));
                     rule
                 });
@@ -935,15 +934,9 @@ fn configure_build(
         Ok(*rule)
     }
 
-    fn render_rule_with<'a>(rule: &'a Rule, env: &im::HashMap<&String, String>) -> NinjaRule<'a> {
-        let expanded = nested_env::expand_eval(&rule.cmd, env, IfMissing::Empty).unwrap();
-
-        rule.to_ninja().command(expanded).build().unwrap().named()
-    }
-
     // linking
     {
-        let ninja_link_rule = render_rule_with(get_rule("LINK", rules)?, &global_env_flattened);
+        let ninja_link_rule = get_rule("LINK", rules)?.to_ninja(&global_env_flattened)?;
         // build ninja link target
         let ninja_link_build = NinjaBuildBuilder::from_rule(&ninja_link_rule)
             .inputs(objects)
@@ -964,7 +957,7 @@ fn configure_build(
                 new_outfile.set_extension(rule.out.as_ref().ok_or_else(|| {
                     anyhow!("POST_LINK rule has no \"out\" extension configured")
                 })?);
-                let post_link_rule = render_rule_with(rule, &global_env_flattened);
+                let post_link_rule = rule.to_ninja(&global_env_flattened)?;
                 let post_link_build = NinjaBuildBuilder::from_rule(&post_link_rule)
                     .input(outfile)
                     .out(new_outfile.as_path())
