@@ -12,7 +12,7 @@ use indexmap::IndexMap;
 use crate::model::VarExportSpec;
 use crate::nested_env::{self, IfMissing};
 
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Hash)]
 pub enum NinjaRuleDeps {
     #[default]
     None,
@@ -132,6 +132,16 @@ impl Hash for NinjaRule<'_> {
         self.name.hash(state);
         self.command.hash(state);
         self.description.hash(state);
+
+        // only these are optionally hashed as to not break hashes.
+        // TODO: once we break them, make all options optional
+        if let NinjaRuleDeps::GCC(_) = self.deps {
+            self.deps.hash(state);
+        }
+        if self.pool.is_some() {
+            self.pool.hash(state);
+        }
+
         self.rspfile.hash(state);
         self.rspfile_content.hash(state);
         match &self.deps {
