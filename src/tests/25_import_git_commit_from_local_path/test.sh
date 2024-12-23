@@ -17,7 +17,7 @@ clean_temp_files
 rm -Rf testrepo
 rm -Rf build/imports
 
-diff -r build build_expected
+diff_build_dir
 
 echo TEST_OK
 

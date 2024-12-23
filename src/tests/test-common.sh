@@ -3,6 +3,15 @@ cleanup() {
     rm -rf build
 }
 
+diff_build_dir() {
+    if [ "$UPDATE_BUILD_EXPECTED" = 1 ]; then
+        rm -Rf build_expected
+        mv build build_expected
+    else
+        diff -r build build_expected
+    fi
+}
+
 build() {
     if [ -f EXPECTED_EXIT_CODE ]; then
         # ignore actual exit code

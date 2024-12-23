@@ -8,7 +8,7 @@ echo skipping 15
 # build
 # clean_temp_files
 
-# diff -r build build_expected
+# diff_build_dir
 
 # echo TEST_OK
 
