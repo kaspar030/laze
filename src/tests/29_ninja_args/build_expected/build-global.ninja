@@ -1,12 +1,12 @@
 builddir = build
 build ALWAYS: phony
-rule CC_7950216292150676175
+rule CC_13815167931066592534
   command = cat ${in} > ${out}
   description = CC
   pool = console
 
-build build/objects/single_app.8352856137977294963.o: $
-    CC_7950216292150676175 $
+build build/objects/single_app.17922776573255433378.o: $
+    CC_13815167931066592534 $
     single_app.c
 
 rule LINK_7531752039969474517
@@ -17,5 +17,5 @@ rule LINK_7531752039969474517
 
 build build/single_builder/single_app/single_app.elf: $
     LINK_7531752039969474517 $
-    build/objects/single_app.8352856137977294963.o
+    build/objects/single_app.17922776573255433378.o
 
