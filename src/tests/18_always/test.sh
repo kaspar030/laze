@@ -10,7 +10,7 @@ echo "building second time"
 build
 clean_temp_files
 
-diff -r build build_expected
+diff_build_dir
 
 echo TEST_OK
 
