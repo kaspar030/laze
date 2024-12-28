@@ -50,7 +50,7 @@ jobs:
     - uses: bencherdev/bencher@main
 
     - name: "Build & install"
-      run: "cargo install --path ."
+      run: "cargo install --force --path ."
 
     - name: "Open up perf"
       run: sudo sysctl -w kernel.perf_event_paranoid=-1
