@@ -17,17 +17,15 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use solvent::DepGraph;
 
-use crate::{model::Rule, utils::ContainingPath};
-
-use super::{
+use crate::{
     build::Build,
     data::{load, FileTreeState},
     download,
-    model::BlockAllow,
-    nested_env,
-    nested_env::{Env, EnvKey, IfMissing},
+    model::{BlockAllow, Rule},
+    nested_env::{self, Env, EnvKey, IfMissing},
     ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder},
-    utils, Context, ContextBag, Dependency, Module, Task, TaskError,
+    utils::{self, ContainingPath},
+    Context, ContextBag, Dependency, Module, Task, TaskError,
 };
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -736,6 +734,7 @@ fn configure_build(
                 .name("BUILD")
                 .description(Cow::from("BUILD ${out}"))
                 .command(expanded)
+                .deps(build.gcc_deps.as_ref())
                 .build()
                 .unwrap()
                 .named();

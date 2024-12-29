@@ -19,6 +19,19 @@ pub enum NinjaRuleDeps {
     GCC(String),
 }
 
+impl<T> From<Option<T>> for NinjaRuleDeps
+where
+    T: AsRef<str>,
+{
+    fn from(value: Option<T>) -> Self {
+        if let Some(s) = value {
+            Self::GCC(String::from(s.as_ref()))
+        } else {
+            Self::None
+        }
+    }
+}
+
 #[derive(Builder, Clone)]
 #[builder(setter(into))]
 pub struct NinjaRule<'a> {

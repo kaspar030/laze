@@ -61,7 +61,7 @@ impl PartialEq for Rule {
     }
 }
 
-use crate::ninja::{NinjaRule, NinjaRuleBuilder, NinjaRuleDeps};
+use crate::ninja::{NinjaRule, NinjaRuleBuilder};
 
 use super::VarExportSpec;
 
@@ -77,10 +77,7 @@ impl<'a> From<&'a Rule> for crate::ninja::NinjaRuleBuilder<'a> {
             .pool(rule.pool.as_deref().map(Cow::from))
             .always(rule.always)
             .export(&rule.export)
-            .deps(match &rule.gcc_deps {
-                None => NinjaRuleDeps::None,
-                Some(s) => NinjaRuleDeps::GCC(s.into()),
-            });
+            .deps(rule.gcc_deps.as_ref());
 
         builder
     }
