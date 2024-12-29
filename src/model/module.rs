@@ -327,6 +327,7 @@ impl fmt::Display for Module {
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct CustomBuild {
+    pub gcc_deps: Option<String>,
     pub cmd: Vec<String>,
     pub out: Option<Vec<String>>,
 }
