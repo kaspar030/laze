@@ -156,7 +156,7 @@ struct YamlModule {
     context: Option<StringOrVecString>,
     help: Option<String>,
     depends: Option<Vec<StringOrMapVecString>>,
-    selects: Option<Vec<String>>,
+    selects: Option<Vec<StringOrMapVecString>>,
     uses: Option<Vec<String>>,
     provides: Option<Vec<String>>,
     provides_unique: Option<Vec<String>>,
@@ -646,9 +646,19 @@ pub fn load(
         //
         if let Some(selects) = &module.selects {
             // println!("selects:");
-            for dep_name in selects {
-                // println!("- {}", dep_name);
-                m.selects.push(dependency_from_string(dep_name));
+            for dep_spec in selects {
+                match dep_spec {
+                    StringOrMapVecString::String(dep_name) => {
+                        m.selects.push(dependency_from_string(dep_name));
+                    }
+                    StringOrMapVecString::Map(dep_map) => {
+                        for (k, v) in dep_map {
+                            for dep_name in v {
+                                m.selects.push(dependency_from_string_if(dep_name, k));
+                            }
+                        }
+                    }
+                }
             }
         }
         if let Some(uses) = &module.uses {
