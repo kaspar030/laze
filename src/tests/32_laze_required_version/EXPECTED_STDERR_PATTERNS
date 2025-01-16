@@ -1,1 +1,1 @@
-^laze: error: laze-project.yml: laze_required_version: got "99.0.0", expected any version <=
+laze: error: laze-project.yml: laze_required_version >= 99.0.0, but this is laze
