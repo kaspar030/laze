@@ -65,7 +65,7 @@ where
             let my_version = Version::parse(env!("CARGO_PKG_VERSION")).unwrap();
             if version > my_version {
                 return Err(de::Error::custom(format!(
-                    "laze_required_version: got \"{version}\", expected any version <={my_version}"
+                    "laze_required_version >= {version}, but this is laze {my_version}"
                 )));
             }
             Ok(Some(version))
