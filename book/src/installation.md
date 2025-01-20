@@ -13,9 +13,12 @@ distribution.
 
 Available packages:
 
-| Distribution &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;   | Package name |
-|----------------|--------------|
-| Arch Linux AUR | [`laze-bin`](https://aur.archlinux.org/packages/laze-bin)   |
+| Distribution   | Package name           |
+|----------------|------------------------|
+| Arch Linux AUR | [`laze`], [`laze-bin`] |
+
+[`laze`]: https://aur.archlinux.org/packages/laze
+[`laze-bin`]: https://aur.archlinux.org/packages/laze-bin
 
 ## Dependencies
 
