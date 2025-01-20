@@ -40,7 +40,7 @@ clap_complete = { version = "4.5.42", features = [ "unstable-dynamic" ] }
 clap_mangen = "0.2.26"
 camino = { version = "1.1.9", features = ["serde1"] }
 evalexpr = "11.3.1"
-semver = { version = "1.0.24", features = ["serde"] }
+semver = { version = "1.0.25", features = ["serde"] }
 tinytemplate = "1.2.1"
 serde_json = { version = "1.0.135", features = ["indexmap"] }
 git-cache = "0.2.3"
