@@ -42,7 +42,7 @@ camino = { version = "1.1.9", features = ["serde1"] }
 evalexpr = "11.3.1"
 semver = { version = "1.0.25", features = ["serde"] }
 tinytemplate = "1.2.1"
-serde_json = { version = "1.0.137", features = ["indexmap"] }
+serde_json = { version = "1.0.138", features = ["indexmap"] }
 git-cache = "0.2.3"
 shellexpand = "3.1.0"
 thiserror = "2.0.11"
