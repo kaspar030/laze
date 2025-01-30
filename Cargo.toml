@@ -54,7 +54,7 @@ codegen-units = 1
 strip = true
 
 [dev-dependencies]
-tempfile = "3.15.0"
+tempfile = "3.16.0"
 
 [package.metadata.release]
 sign-commit = true
