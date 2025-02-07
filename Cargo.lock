@@ -98,12 +98,11 @@ dependencies = [
 
 [[package]]
 name = "build_uuid"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "540fa34fdc64931307b11f657a2049649d2f3a726b5616d6438cbd4912d7f172"
+checksum = "7b243f459b8a4c2f9333c984bfd00018ff78837526231852965bc540c4060fa3"
 dependencies = [
  "byteorder",
- "once_cell",
  "twox-hash",
  "uuid",
 ]
