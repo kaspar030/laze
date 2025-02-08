@@ -89,6 +89,7 @@ struct YamlFile {
     #[serde(default, deserialize_with = "deserialize_some")]
     apps: Option<Option<Vec<YamlModule>>>,
     imports: Option<Vec<ImportEntry>>,
+    includes: Option<Vec<String>>,
     subdirs: Option<Vec<String>>,
     defaults: Option<HashMap<String, YamlModule>>,
     #[serde(default, deserialize_with = "deserialize_version_checked")]
@@ -439,6 +440,17 @@ pub fn load(
                     filenames.insert(FileInclude::new_import(
                         import.handle(build_dir)?,
                         new.doc_idx,
+                    ));
+                }
+            }
+            if let Some(includes) = &new.includes {
+                let relpath = filename.parent().unwrap().to_path_buf();
+                for filename in includes {
+                    let filepath = Utf8Path::new(&relpath).join(filename);
+                    filenames.insert(FileInclude::new(
+                        filepath,
+                        new.doc_idx,
+                        new.import_root.clone(),
                     ));
                 }
             }
