@@ -46,6 +46,7 @@ serde_json = { version = "1.0.138", features = ["indexmap"] }
 git-cache = "0.2.4"
 shellexpand = "3.1.0"
 thiserror = "2.0.11"
+toml = { version = "0.8.20", features = ["indexmap"] }
 
 [profile.release]
 lto = "fat"

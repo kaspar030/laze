@@ -335,13 +335,22 @@ fn load_all(file_include: &FileInclude, index_start: usize) -> Result<Vec<YamlFi
     let file = read_to_string(filename).with_context(|| format!("{:?}", filename))?;
 
     let mut result = Vec::new();
-    for (n, doc) in serde_yaml::Deserializer::from_str(&file).enumerate() {
-        let mut parsed = YamlFile::deserialize(doc).with_context(|| filename.clone())?;
-        parsed.filename = Some(filename.clone());
-        parsed.doc_idx = Some(index_start + n);
-        parsed.included_by = file_include.included_by_doc_idx;
-        parsed.import_root.clone_from(&file_include.import_root);
-        result.push(parsed);
+    if let Some(ext) = filename.extension() {
+        match ext {
+            "yaml" | "yml" => {
+                for (n, doc) in serde_yaml::Deserializer::from_str(&file).enumerate() {
+                    let mut parsed =
+                        YamlFile::deserialize(doc).with_context(|| filename.clone())?;
+                    parsed.filename = Some(filename.clone());
+                    parsed.doc_idx = Some(index_start + n);
+                    parsed.included_by = file_include.included_by_doc_idx;
+                    parsed.import_root.clone_from(&file_include.import_root);
+                    result.push(parsed);
+                }
+            }
+            "toml" => {}
+            _ => return Err(anyhow!("unsupported file type `{ext}`")),
+        }
     }
 
     Ok(result)
