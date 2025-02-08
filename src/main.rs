@@ -50,6 +50,7 @@ use model::{Context, ContextBag, Dependency, Module, Rule, Task, TaskError};
 use generate::{get_ninja_build_file, BuildInfo, GenerateMode, GeneratorBuilder, Selector};
 use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
+use utils::get_existing_file;
 
 pub static GIT_CACHE: OnceLock<GitCache> = OnceLock::new();
 
@@ -57,14 +58,14 @@ pub(crate) fn determine_project_root(start: &Utf8Path) -> Result<(Utf8PathBuf, U
     let mut cwd = start.to_owned();
 
     loop {
-        let mut tmp = cwd.clone();
-        tmp.push("laze-project.yml");
-        if tmp.exists() {
-            return Ok((cwd, Utf8PathBuf::from("laze-project.yml")));
+        if let Some(file) =
+            get_existing_file(cwd.as_path(), &["laze-project.yml", "laze-project.toml"])
+        {
+            return Ok((cwd, file));
         }
         cwd = match cwd.parent() {
             Some(p) => Utf8PathBuf::from(p),
-            None => return Err(anyhow!("cannot find laze-project.yml")),
+            None => return Err(anyhow!("cannot find `laze-project.yml|toml`")),
         }
     }
 }

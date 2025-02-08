@@ -1,4 +1,4 @@
-//! This module deals with converting laze .yml files into the format that
+//! This module deals with converting laze .yml/toml files into the format that
 //! the generate module needs.
 //!
 //! This is intentionally separate from the main generate types in order to be a
@@ -26,7 +26,7 @@ use super::model::CustomBuild;
 use super::nested_env::{Env, EnvKey, MergeOption};
 use super::{Context, ContextBag, Dependency, Module, Rule, Task};
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
-use crate::utils::{StringOrMapString, StringOrMapVecString};
+use crate::utils::{get_existing_file, StringOrMapString, StringOrMapVecString};
 
 mod import;
 use import::ImportEntry;
@@ -333,22 +333,28 @@ pub fn dependency_from_string_if(dep_name: &String, other: &str) -> Dependency<S
 fn load_all(file_include: &FileInclude, index_start: usize) -> Result<Vec<YamlFile>> {
     let filename = &file_include.filename;
     let file = read_to_string(filename).with_context(|| format!("{:?}", filename))?;
-
     let mut result = Vec::new();
+
+    let mut handle_parsed = |mut parsed: YamlFile, index| {
+        parsed.filename = Some(filename.clone());
+        parsed.doc_idx = Some(index);
+        parsed.included_by = file_include.included_by_doc_idx;
+        parsed.import_root.clone_from(&file_include.import_root);
+        result.push(parsed);
+    };
+
     if let Some(ext) = filename.extension() {
         match ext {
-            "yaml" | "yml" => {
+            "yml" | "yaml" => {
                 for (n, doc) in serde_yaml::Deserializer::from_str(&file).enumerate() {
-                    let mut parsed =
-                        YamlFile::deserialize(doc).with_context(|| filename.clone())?;
-                    parsed.filename = Some(filename.clone());
-                    parsed.doc_idx = Some(index_start + n);
-                    parsed.included_by = file_include.included_by_doc_idx;
-                    parsed.import_root.clone_from(&file_include.import_root);
-                    result.push(parsed);
+                    let parsed = YamlFile::deserialize(doc).with_context(|| filename.clone())?;
+                    handle_parsed(parsed, index_start + n);
                 }
             }
-            "toml" => {}
+            "toml" => {
+                let parsed = toml::from_str(&file).with_context(|| filename.clone())?;
+                handle_parsed(parsed, index_start);
+            }
             _ => return Err(anyhow!("unsupported file type `{ext}`")),
         }
     }
@@ -407,8 +413,8 @@ pub fn load(
     // yaml_datas holds all parsed yaml data
     let mut yaml_datas = Vec::new();
 
-    // filenames contains all filenames so far included.
-    // when reading files, any "subdir" will be converted to "subdir/laze.yml", then added to the
+    // `filenames` contains all filenames so far included.
+    // when reading files, any "subdir" will be converted to "subdir/laze.(yml|toml)", then added to the
     // set.
     // using an IndexSet so files can only be added once
     let mut filenames: IndexSet<FileInclude> = IndexSet::new();
@@ -433,7 +439,13 @@ pub fn load(
 
                 // collect subdirs, add do filenames list
                 for subdir in subdirs {
-                    let sub_file = Utf8Path::new(&relpath).join(subdir).join("laze.yml");
+                    let sub_file = get_existing_file(
+                        Utf8Path::new(&relpath).join(subdir).as_path(),
+                        &["laze.yml", "laze.toml"],
+                    )
+                    .ok_or_else(|| {
+                        anyhow!("neither `laze.yml` nor `laze.toml` found in subdir `{subdir}`")
+                    })?;
                     filenames.insert(FileInclude::new(
                         sub_file,
                         new.doc_idx,
