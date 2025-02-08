@@ -1,0 +1,18 @@
+builddir = build
+build ALWAYS: phony
+rule CC_7950216292150676175
+  command = cat ${in} > ${out}
+  description = CC
+
+build build/objects/foo.8352856137977294963.o: $
+    CC_7950216292150676175 $
+    foo.c
+
+rule LINK_5506617845631750009
+  command = cat ${in} > ${out}
+  description = LINK
+
+build build/single_builder/imported_app/imported_app.elf: $
+    LINK_5506617845631750009 $
+    build/objects/foo.8352856137977294963.o
+
