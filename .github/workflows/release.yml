@@ -28,30 +28,16 @@ jobs:
   create-release:
     name: create-release
     runs-on: ubuntu-latest
-      #env:
-      # Set to force version number, e.g., when no tag exists.
-      #LAZE_VERSION: TEST-0.0.0
     outputs:
       upload_url: ${{ steps.release.outputs.upload_url }}
-      laze_version: ${{ env.LAZE_VERSION }}
     steps:
-      - name: Get the release version from the tag
-        shell: bash
-        if: env.LAZE_VERSION == ''
-        run: |
-          # Apparently, this is the right way to get a tag name. Really?
-          #
-          # See: https://github.community/t5/GitHub-Actions/How-to-get-just-the-tag-name/m-p/32167/highlight/true#M1027
-          echo "LAZE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo "version is: ${{ env.LAZE_VERSION }}"
-      - name: Create GitHub release
-        id: release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+      - uses: taiki-e/create-gh-release-action@v1
         with:
-          tag_name: ${{ env.LAZE_VERSION }}
-          release_name: ${{ env.LAZE_VERSION }}
+          # (Optional) Path to changelog.
+          changelog: CHANGELOG.md
+          # (Required) GitHub token for creating GitHub Releases.
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   build-release:
     name: build-release
@@ -157,7 +143,7 @@ jobs:
       shell: bash
       run: |
         outdir="$(ci/cargo-out-dir "${{ env.TARGET_DIR }}")"
-        staging="laze-${{ needs.create-release.outputs.laze_version }}-${{ matrix.target }}"
+        staging="laze-${{ needs.create-release.outputs.version }}-${{ matrix.target }}"
         mkdir -p "$staging"/doc
 
         cp {README.md,LICENSE} "$staging/"
@@ -178,11 +164,4 @@ jobs:
         fi
 
     - name: Upload release archive
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ${{ env.ASSET }}
-        asset_name: ${{ env.ASSET }}
-        asset_content_type: application/octet-stream
+      run: GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} gh release upload "${tag="${GITHUB_REF#refs/tags/}"}" "${ASSET}" --clobber
