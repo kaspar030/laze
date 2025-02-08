@@ -2,6 +2,8 @@ use anyhow::Error;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 
+use crate::utils::get_existing_file;
+
 mod cmd;
 mod download;
 mod local;
@@ -46,18 +48,19 @@ pub trait Import: std::hash::Hash {
     }
 }
 
-fn get_existing_file(path: &Utf8Path, filenames: &[&str]) -> Option<Utf8PathBuf> {
-    for filename in filenames.iter() {
-        let fullpath = path.join(filename);
-        if path.join(filename).exists() {
-            return Some(fullpath);
-        }
-    }
-    None
-}
-
 fn get_lazefile(path: &Utf8Path) -> Result<Utf8PathBuf, Error> {
-    get_existing_file(path, &["laze-lib.yml", "laze.yml", "laze-project.yml"]).ok_or(anyhow!(
-        "no \"laze-lib.yml\", \"laze.yml\" or \"laze-project.yml\" in import"
+    get_existing_file(
+        path,
+        &[
+            "laze-lib.yml",
+            "laze-lib.toml",
+            "laze.yml",
+            "laze.toml",
+            "laze-project.yml",
+            "laze-project.toml",
+        ],
+    )
+    .ok_or(anyhow!(
+        "no \"laze-lib.yml/toml\", \"laze.yml/toml\" or \"laze-project.yml/toml\" in import"
     ))
 }

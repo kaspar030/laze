@@ -1,7 +1,7 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 
 use crate::model::VarExportSpec;
@@ -56,4 +56,14 @@ impl ContainingPath<Utf8PathBuf> for IndexMap<&Utf8PathBuf, Utf8PathBuf> {
                 .map(|(_, v)| v)
         })
     }
+}
+
+pub(crate) fn get_existing_file(path: &Utf8Path, filenames: &[&str]) -> Option<Utf8PathBuf> {
+    for filename in filenames.iter() {
+        let fullpath = path.join(filename);
+        if path.join(filename).exists() {
+            return Some(fullpath);
+        }
+    }
+    None
 }
