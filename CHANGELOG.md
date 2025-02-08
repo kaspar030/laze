@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - feat(cli): implement dynamic shell completions (autocomplete builders, apps, modules)
+- feat: implement `includes` (`#include <file>` but for laze build files)
 
 ### Fixed
 
