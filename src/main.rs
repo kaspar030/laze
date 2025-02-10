@@ -61,7 +61,8 @@ pub(crate) fn determine_project_root(start: &Utf8Path) -> Result<(Utf8PathBuf, U
         if let Some(file) =
             get_existing_file(cwd.as_path(), &["laze-project.yml", "laze-project.toml"])
         {
-            return Ok((cwd, file));
+            let filename = file.file_name().unwrap().into();
+            return Ok((cwd, filename));
         }
         cwd = match cwd.parent() {
             Some(p) => Utf8PathBuf::from(p),
