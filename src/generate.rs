@@ -12,6 +12,7 @@ use std::time::Instant;
 
 use anyhow::{Context as _, Result};
 use camino::{Utf8Path, Utf8PathBuf};
+use im::Vector;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -450,19 +451,19 @@ fn configure_build(
     // same with "relroot"
     global_env.insert("relroot".into(), relroot(binary.relpath.as_ref().unwrap()));
 
-    // insert list of actually used modules
-    global_env.insert(
-        "modules".into(),
-        EnvKey::List(
-            resolved
-                .modules
-                .iter()
-                .filter(|(_, m)| !m.is_context_module())
-                .map(|(n, _)| (*n).clone())
-                .sorted()
-                .collect::<_>(),
-        ),
-    );
+    // insert lists of actually used modules and contexts
+    let mut used_modules = Vector::new();
+    let mut used_contexts = Vector::new();
+    for module in resolved.modules.keys() {
+        if let Some(context_name) = module.strip_prefix("context::") {
+            used_contexts.push_back(context_name.to_string());
+        } else {
+            used_modules.push_back(module.to_string());
+        }
+    }
+
+    global_env.insert("modules".into(), EnvKey::List(used_modules));
+    global_env.insert("contexts".into(), EnvKey::List(used_contexts));
 
     // insert list of actually used contexts
     global_env.insert(
