@@ -995,6 +995,7 @@ dependencies = [
  "im",
  "indexmap 2.7.1",
  "itertools",
+ "laze-insights",
  "mimalloc",
  "pathdiff",
  "rayon",
@@ -1015,6 +1016,15 @@ dependencies = [
  "tinytemplate",
  "treestate",
  "uuid",
+]
+
+[[package]]
+name = "laze-insights"
+version = "0.1.30"
+dependencies = [
+ "camino",
+ "indexmap 2.7.1",
+ "serde",
 ]
 
 [[package]]

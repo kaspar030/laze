@@ -26,6 +26,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use git_cache::GitCache;
 use indexmap::IndexSet;
 use itertools::Itertools;
+pub(crate) use laze_insights as insights;
 use signal_hook::{consts::SIGINT, iterator::Signals};
 
 #[global_allocator]
@@ -36,7 +37,6 @@ mod cli;
 mod data;
 mod download;
 mod generate;
-mod insights;
 mod model;
 mod nested_env;
 mod new;
@@ -322,7 +322,7 @@ fn try_main() -> Result<i32> {
                 use std::fs::File;
                 use std::io::BufWriter;
                 let info_outfile = start_relpath.join(info_outfile);
-                let insights = insights::Insights::from_builds(&builds.build_infos);
+                let insights = insights_from_builds(&builds.build_infos);
                 let buffer =
                     BufWriter::new(File::create(&info_outfile).with_context(|| {
                         format!("creating info export file \"{info_outfile}\"")
@@ -553,6 +553,18 @@ fn get_selects(build_matches: &clap::ArgMatches) -> Option<Vec<Dependency<String
     let select = build_matches.get_many::<String>("select");
     // convert CLI --select strings to Vec<Dependency>
     select.map(|vr| vr.map(crate::data::dependency_from_string).collect_vec())
+}
+
+pub fn insights_from_builds(builds: &Vec<crate::generate::BuildInfo>) -> insights::Insights {
+    let mut insights = insights::Insights::default();
+    for build_info in builds {
+        insights
+            .builds
+            .entry(build_info.builder.clone())
+            .or_default()
+            .insert(build_info.binary.clone(), build_info.into());
+    }
+    insights
 }
 
 #[cfg(test)]

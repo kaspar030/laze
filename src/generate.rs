@@ -22,6 +22,7 @@ use crate::{
     build::Build,
     data::{load, FileTreeState},
     download,
+    insights::{InsightBuildInfo, ModuleInfo},
     model::{BlockAllow, Rule},
     nested_env::{self, Env, EnvKey, IfMissing},
     ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder},
@@ -39,8 +40,6 @@ pub struct BuildInfo {
     #[serde(skip)]
     pub module_info: Option<IndexMap<String, ModuleInfo>>,
 }
-
-pub use crate::insights::ModuleInfo;
 
 pub type BuildInfoList = Vec<BuildInfo>;
 
@@ -1140,5 +1139,14 @@ impl TryFrom<&Generator> for GenerateResult {
 impl From<Utf8PathBuf> for EnvKey {
     fn from(path: Utf8PathBuf) -> EnvKey {
         EnvKey::Single(path.into_string())
+    }
+}
+
+impl Into<InsightBuildInfo> for &BuildInfo {
+    fn into(self) -> InsightBuildInfo {
+        InsightBuildInfo {
+            outfile: self.out.clone(),
+            modules: self.module_info.as_ref().unwrap().clone(),
+        }
     }
 }

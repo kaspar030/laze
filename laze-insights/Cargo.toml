@@ -1,0 +1,15 @@
+[package]
+name = "laze-insights"
+version.workspace = true
+authors.workspace = true
+edition = "2021"
+
+description = "Helper library for the laze build system"
+repository = "https://github.com/kaspar030/laze"
+homepage = "https://laze-build.org"
+license = "Apache-2.0"
+
+[dependencies]
+camino.workspace = true
+indexmap.workspace = true
+serde.workspace = true
