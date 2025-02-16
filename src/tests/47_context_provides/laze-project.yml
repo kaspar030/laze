@@ -1,0 +1,61 @@
+builders:
+  - name: default
+    rules:
+      - name: CC
+        in: "c"
+        out: "o"
+        cmd: "echo ${VAR} ${in} > ${out}"
+      - name: LINK
+        in: "o"
+        cmd: "cat ${in} > ${out}"
+    env:
+      bindir: build/${builder}/${app}
+
+  - name: context1
+    parent: default
+    provides:
+      - provided_by_context1
+
+  - name: context2
+    parent: default
+    provides:
+      - provided_by_context2
+
+  - name: context11
+    parent: context1
+    provides_unique:
+      - provided_by_context1
+
+  - name: context12
+    parent: context1
+    provides_unique:
+      - provided_by_context2
+
+  - name: context21
+    parent: context2
+    provides_unique:
+      - provided_by_context1
+
+  - name: context22
+    parent: context2
+    provides_unique:
+      - provided_by_context2
+
+apps:
+  - name: app1
+    sources:
+      - app.c
+    selects:
+      - provided_by_context1
+
+  - name: app2
+    sources:
+      - app.c
+    selects:
+      - provided_by_context2
+
+  - name: app12
+    sources:
+      - app.c
+    selects:
+      - provided_by_context2
