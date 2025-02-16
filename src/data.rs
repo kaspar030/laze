@@ -133,6 +133,8 @@ struct YamlContext {
     env: Option<Env>,
     selects: Option<Vec<String>>,
     disables: Option<Vec<String>>,
+    provides: Option<Vec<String>>,
+    provides_unique: Option<Vec<String>>,
     rules: Option<Vec<YamlRule>>,
     var_options: Option<im::HashMap<String, MergeOption>>,
     tasks: Option<HashMap<String, YamlTask>>,
@@ -550,6 +552,8 @@ pub fn load(
         // This holds:
         // - selects
         // - disables
+        // - provides
+        // - provides_unique
         // TODO:
         // - env (in global env)
         // - rules
@@ -574,6 +578,23 @@ pub fn load(
 
         if let Some(disables) = context.disables.as_ref() {
             module.conflicts = Some(disables.clone());
+        }
+
+        if let Some(provides) = context.provides.as_ref() {
+            module.provides = Some(provides.clone());
+        }
+
+        if let Some(provides_unique) = context.provides_unique.as_ref() {
+            if let Some(provides) = module.provides.as_mut() {
+                provides.extend(provides_unique.iter().cloned());
+            } else {
+                module.provides = Some(provides_unique.clone());
+            }
+            if let Some(conflicts) = module.conflicts.as_mut() {
+                conflicts.extend(provides_unique.iter().cloned());
+            } else {
+                module.conflicts = Some(provides_unique.clone());
+            }
         }
 
         // make context module depend on its parent's context module
