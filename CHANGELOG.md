@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- feat: context `provides`/`provides_unique` (#639)
 - feat: provide an env variable `contexts` similar to `modules` (#636)
 
 ## [0.1.30] - 2025-02-08
