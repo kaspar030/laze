@@ -94,7 +94,7 @@ impl Task {
                 .iter()
                 .map(|cmd| {
                     if do_eval {
-                        nested_env::expand_eval(cmd, env, nested_env::IfMissing::Ignore)
+                        nested_env::expand_eval(cmd, env, nested_env::IfMissing::Empty)
                     } else {
                         nested_env::expand(cmd, env, nested_env::IfMissing::Ignore)
                     }
@@ -109,10 +109,16 @@ impl Task {
         })
     }
 
+    /// This is called early when loading the yaml files.
+    /// It will not evaluate expressions, and pass-through variables that are not
+    /// found in `env`.
     pub fn with_env(&self, env: &im::HashMap<&String, String>) -> Result<Task, Error> {
         self._with_env(env, false)
     }
 
+    /// This is called to generate the final task.
+    /// It will evaluate expressions, and variables that are not
+    /// found in `env` will be replaced with the empty string.
     pub fn with_env_eval(&self, env: &im::HashMap<&String, String>) -> Result<Task, Error> {
         self._with_env(env, true)
     }
