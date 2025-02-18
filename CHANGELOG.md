@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.32] - 2025-02-18
+
 ### Fixed
 
 - fix: don't leak empty variables in tasks (#647)
@@ -437,7 +439,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 <!-- next-url -->
-[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.31...HEAD
+[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.32...HEAD
+[0.1.32]: https://github.com/kaspar030/laze/compare/0.1.31...0.1.32
 [0.1.31]: https://github.com/kaspar030/laze/compare/0.1.30...0.1.31
 [0.1.30]: https://github.com/kaspar030/laze/compare/0.1.29...0.1.30
 [0.1.29]: https://github.com/kaspar030/laze/compare/0.1.28...0.1.29
