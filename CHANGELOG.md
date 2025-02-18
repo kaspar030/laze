@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- fix: don't leak empty variables in tasks (#647)
+
 ## [0.1.31] - 2025-02-17
 
 ### Added
