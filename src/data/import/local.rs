@@ -63,9 +63,12 @@ impl super::Import for Local {
             }
 
             if link_is_missing {
-                // TODO: windows support
-                std::os::unix::fs::symlink(&link_target, &path)
-                    .with_context(|| format!("creating symlink {link_target}"))
+                #[cfg(target_family = "windows")]
+                let res = std::os::windows::fs::symlink_dir(&link_target, &path);
+                #[cfg(target_family = "unix")]
+                let res = std::os::unix::fs::symlink(&link_target, &path);
+
+                res.with_context(|| format!("creating symlink {link_target}"))
                     .with_context(|| format!("importing path {}", self.path))?;
             }
             // using `path` here as that is the path relative to the project root.
