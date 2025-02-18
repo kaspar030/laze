@@ -1,0 +1,17 @@
+includes = ["include.toml"]
+
+[[builders]]
+name = "single_builder"
+env = { bindir = "build/${builder}/${app}" }
+
+[[builders.rules]]
+name = "CC"
+in = 'c'
+out = 'o'
+cmd = 'cat ${in} > ${out}'
+
+[[builders.rules]]
+name = "LINK"
+in = 'o'
+cmd = 'cat ${in} > ${out}'
+
