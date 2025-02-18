@@ -13,7 +13,10 @@ extern crate pathdiff;
 use core::sync::atomic::AtomicBool;
 
 use std::env;
+#[cfg(target_family = "unix")]
 use std::os::unix::prelude::OsStrExt;
+#[cfg(target_family = "windows")]
+use std::os::windows::prelude::OsStrExt;
 use std::str;
 use std::sync::OnceLock;
 use std::thread;
