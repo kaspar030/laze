@@ -13,7 +13,6 @@ extern crate pathdiff;
 use core::sync::atomic::AtomicBool;
 
 use std::env;
-use std::os::unix::prelude::OsStrExt;
 use std::str;
 use std::sync::{Arc, OnceLock};
 
@@ -511,7 +510,7 @@ fn collect_tasks(task_matches: &clap::ArgMatches) -> Option<(&str, Option<Vec<&s
                 .get_many::<std::ffi::OsString>("")
                 .into_iter()
                 .flatten()
-                .map(|v| str::from_utf8(v.as_bytes()).expect("task arg is invalid UTF8"))
+                .map(|v| v.as_os_str().to_str().expect("task arg is invalid UTF8"))
                 .collect::<Vec<_>>();
             Some((name, Some(args)))
         }
