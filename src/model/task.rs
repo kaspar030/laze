@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use crate::nested_env;
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
-use crate::IGNORE_SIGINT;
+use crate::EXIT_ON_SIGINT;
 
 use super::shared::VarExportSpec;
 
@@ -70,14 +70,22 @@ impl Task {
             }
 
             if self.ignore_ctrl_c {
-                IGNORE_SIGINT.store(true, std::sync::atomic::Ordering::SeqCst);
+                EXIT_ON_SIGINT
+                    .get()
+                    .unwrap()
+                    .clone()
+                    .store(false, std::sync::atomic::Ordering::SeqCst);
             }
 
             // run command, wait for status
             let status = command.status().expect("executing command");
 
             if self.ignore_ctrl_c {
-                IGNORE_SIGINT.store(false, std::sync::atomic::Ordering::SeqCst);
+                EXIT_ON_SIGINT
+                    .get()
+                    .unwrap()
+                    .clone()
+                    .store(true, std::sync::atomic::Ordering::SeqCst);
             }
 
             if !status.success() {
