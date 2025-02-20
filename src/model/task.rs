@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Error, Result};
 use thiserror::Error;
@@ -21,6 +21,7 @@ pub struct Task {
     pub build: bool,
     #[serde(default = "default_as_false")]
     pub ignore_ctrl_c: bool,
+    pub working_directory: Option<PathBuf>,
 }
 
 #[derive(Error, Debug, Serialize, Deserialize)]
@@ -45,13 +46,29 @@ impl Task {
         for cmd in &self.cmd {
             use shell_words::join;
             use std::process::Command;
-            let mut command = Command::new("sh");
+
+            let mut command = if cfg!(target_family = "windows") {
+                let mut cmd = Command::new("cmd");
+                cmd.arg("/C");
+                cmd
+            } else {
+                let mut cmd = Command::new("sh");
+                if verbose > 0 {
+                    cmd.arg("-x");
+                }
+                cmd.arg("-c");
+                cmd
+            };
 
             let cmd = cmd.replace("$$", "$");
-            if verbose > 0 {
-                command.arg("-x");
+
+            let mut start_dir = start_dir.to_path_buf();
+
+            if let Some(working_directory) = &self.working_directory {
+                let working_directory = join(std::iter::once(working_directory.to_str().unwrap()));
+                start_dir = start_dir.join(working_directory);
             }
-            command.current_dir(start_dir).arg("-c");
+            command.current_dir(&start_dir);
 
             // handle "export:" (export laze variables to task shell environment)
             if let Some(export) = &self.export {
@@ -104,6 +121,11 @@ impl Task {
                 self.expand_export(env)
             } else {
                 self.export.clone()
+            },
+            working_directory: if do_eval {
+                self.working_directory.clone().map(|wd| PathBuf::from(nested_env::expand_eval(wd.to_str().unwrap(), env, nested_env::IfMissing::Ignore).unwrap()))
+            } else {
+                self.working_directory.clone().map(|wd| PathBuf::from(nested_env::expand(wd.to_str().unwrap(), env, nested_env::IfMissing::Ignore).unwrap()))
             },
             ..(*self).clone()
         })
