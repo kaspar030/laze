@@ -46,12 +46,21 @@ impl Task {
         for cmd in &self.cmd {
             use shell_words::join;
             use std::process::Command;
-            let mut command = Command::new("sh");
+
+            let mut command = if cfg!(target_family = "windows") {
+                let mut cmd = Command::new("cmd");
+                cmd.arg("/C");
+                cmd
+            } else {
+                let mut sh = Command::new("sh");
+                if verbose > 0 {
+                    sh.arg("-x");
+                }
+                sh.arg("-c");
+                sh
+            };
 
             let cmd = cmd.replace("$$", "$");
-            if verbose > 0 {
-                command.arg("-x");
-            }
 
             if let Some(working_directory) = &self.working_directory {
                 // This includes support for absolute working directories through .join
@@ -59,8 +68,6 @@ impl Task {
             } else {
                 command.current_dir(start_dir);
             }
-
-            command.arg("-c");
 
             // handle "export:" (export laze variables to task shell environment)
             if let Some(export) = &self.export {
