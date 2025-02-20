@@ -21,6 +21,7 @@ pub struct Task {
     pub build: bool,
     #[serde(default = "default_as_false")]
     pub ignore_ctrl_c: bool,
+    pub working_directory: Option<String>,
 }
 
 #[derive(Error, Debug, Serialize, Deserialize)]
@@ -51,7 +52,15 @@ impl Task {
             if verbose > 0 {
                 command.arg("-x");
             }
-            command.current_dir(start_dir).arg("-c");
+
+            if let Some(working_directory) = &self.working_directory {
+                // This includes support for absolute working directories through .join
+                command.current_dir(start_dir.join(working_directory));
+            } else {
+                command.current_dir(start_dir);
+            }
+
+            command.arg("-c");
 
             // handle "export:" (export laze variables to task shell environment)
             if let Some(export) = &self.export {
@@ -96,23 +105,26 @@ impl Task {
     }
 
     fn _with_env(&self, env: &im::HashMap<&String, String>, do_eval: bool) -> Result<Task, Error> {
+        let expand = |s| {
+            if do_eval {
+                nested_env::expand_eval(s, env, nested_env::IfMissing::Empty)
+            } else {
+                nested_env::expand(s, env, nested_env::IfMissing::Ignore)
+            }
+        };
+
         Ok(Task {
             cmd: self
                 .cmd
                 .iter()
-                .map(|cmd| {
-                    if do_eval {
-                        nested_env::expand_eval(cmd, env, nested_env::IfMissing::Empty)
-                    } else {
-                        nested_env::expand(cmd, env, nested_env::IfMissing::Ignore)
-                    }
-                })
+                .map(expand)
                 .collect::<Result<Vec<String>, _>>()?,
             export: if do_eval {
                 self.expand_export(env)
             } else {
                 self.export.clone()
             },
+            working_directory: self.working_directory.as_ref().map(expand).transpose()?,
             ..(*self).clone()
         })
     }

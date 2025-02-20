@@ -277,6 +277,7 @@ pub struct YamlTask {
     pub build: bool,
     #[serde(default = "default_as_false")]
     pub ignore_ctrl_c: bool,
+    pub working_directory: Option<String>,
     #[serde(rename = "meta")]
     _meta: Option<Value>,
 }
@@ -293,6 +294,7 @@ impl From<YamlTask> for Task {
                 .map(|s| s.iter().map(|s| s.clone().into()).collect_vec()),
             build: yaml_task.build,
             ignore_ctrl_c: yaml_task.ignore_ctrl_c,
+            working_directory: yaml_task.working_directory,
         }
     }
 }
