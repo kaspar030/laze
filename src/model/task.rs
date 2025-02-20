@@ -46,12 +46,21 @@ impl Task {
         for cmd in &self.cmd {
             use shell_words::join;
             use std::process::Command;
-            let mut command = Command::new("sh");
+
+            let mut command = if cfg!(target_family = "windows") {
+                let mut cmd = Command::new("cmd");
+                cmd.arg("/C");
+                cmd
+            } else {
+                let mut cmd = Command::new("sh");
+                if verbose > 0 {
+                    cmd.arg("-x");
+                }
+                cmd.arg("-c");
+                cmd
+            };
 
             let cmd = cmd.replace("$$", "$");
-            if verbose > 0 {
-                command.arg("-x");
-            }
 
             let mut start_dir = start_dir.to_path_buf();
 
@@ -60,7 +69,6 @@ impl Task {
                 start_dir = start_dir.join(working_directory);
             }
             command.current_dir(&start_dir);
-            command.arg("-c");
 
             // handle "export:" (export laze variables to task shell environment)
             if let Some(export) = &self.export {
