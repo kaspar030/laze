@@ -1,7 +1,7 @@
 # name
 
 Name of this module. Any UTF8 string is valid. This *will* be used as part of
-file- and foldernames, so better keep it simple.
+file- and directory names, so better keep it simple.
 
 Within each context, module names *must* be unique.
 

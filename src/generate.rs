@@ -197,7 +197,7 @@ impl Generator {
         }
 
         // filter selected apps, if specified
-        // also filter by apps in the start folder, if not in global mode
+        // also filter by apps in the start directory, if not in global mode
         let mut bins_not_in_relpath = Vec::new();
         let bins = bins
             .filter(|(_, module)| {
@@ -221,7 +221,7 @@ impl Generator {
 
         if !bins_not_in_relpath.is_empty() {
             return Err(anyhow!(format!(
-                "the following binaries are not defined in the current folder: {}",
+                "the following binaries are not defined in the current directory: {}",
                 bins_not_in_relpath.iter().cloned().join(", ")
             )));
         }
@@ -591,8 +591,8 @@ fn configure_build(
             module_info.insert(module.name.clone(), info);
         }
 
-        // "srcdir" is either the folder of laze.yml that defined this module,
-        // *or* if it was downloaded, the download folder.
+        // "srcdir" is either the directory of laze.yml that defined this module,
+        // *or* if it was downloaded, the download directory.
         // *or*, it was overridden using "srcdir:"
         // *or*, None if this is a "Context module"
         let srcdir = match module.srcdir.as_ref() {
@@ -615,11 +615,11 @@ fn configure_build(
         let mut src_tagfile = None;
 
         if let Some(download) = module.download.as_ref() {
-            // This module is downloading, so store it's download folder in
+            // This module is downloading, so store it's download directory in
             // `download_dirs`. Dependees can then, if their srcdir is the same
             // or prefixed by it, mark their sources as being created by the tagfile.
             // This prevents ninja complaining about missing files.
-            // TODO: catch download folder clash here
+            // TODO: catch download directory clash here
             download_dirs.insert(srcdir, download.tagfile(srcdir));
         } else {
             // this module is not downloading itself, so look up it's srcdir in

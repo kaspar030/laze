@@ -3,7 +3,7 @@
 laze uses yaml files to describe a project.
 
 Each laze project consists of a file named `laze-project.yml` in the project's
-root folder, and any number of `laze.yml` files in subdirectories.
+root directory, and any number of `laze.yml` files in subdirectories.
 
 Please see the [reference](../reference/laze_yaml.md) for a detailed description
 of the file format.

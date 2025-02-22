@@ -215,7 +215,7 @@ pub fn clap() -> clap::Command {
                 .about("Create a new laze project at <PATH>")
                 .arg(
                     Arg::new("path")
-                        .help("folder for new project")
+                        .help("directory for new project")
                         .value_parser(value_parser!(Utf8PathBuf))
                         .value_hint(ValueHint::DirPath)
                         .required(true),

@@ -4,7 +4,7 @@
 
 This variable contains the path in which the app of a build was defined.
 
-Useful mostly for tasks, as `${relpath}` would evaluate to the folder in which
+Useful mostly for tasks, as `${relpath}` would evaluate to the directory in which
 the task is defined.
 
 Examples:
@@ -91,4 +91,4 @@ modules:
 
 Contains the relative (to project root) base path of a module's source files.
 If a module has not been downloaded, this is usually identical to `${relpath}`.
-For downloaded modules, it points to the module's download folder.
+For downloaded modules, it points to the module's download directory.
