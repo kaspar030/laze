@@ -278,7 +278,7 @@ issue just the <code>source ...</code> command, e.g., <code>source &lt;(COMPLETE
 <div style="break-before: page; page-break-before: always;"></div><h1 id="build-file-structure"><a class="header" href="#build-file-structure">Build file structure</a></h1>
 <p>laze uses yaml files to describe a project.</p>
 <p>Each laze project consists of a file named <code>laze-project.yml</code> in the project's
-root folder, and any number of <code>laze.yml</code> files in subdirectories.</p>
+root directory, and any number of <code>laze.yml</code> files in subdirectories.</p>
 <p>Please see the <a href="concepts/../reference/laze_yaml.html">reference</a> for a detailed description
 of the file format.</p>
 <p>laze will always read <code>laze-project.yml</code> and all referenced <code>laze.yml</code> files of
@@ -358,7 +358,7 @@ exported environment will not be imported.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="object-sharing"><a class="header" href="#object-sharing">Object Sharing</a></h1>
 <p>Object Sharing in laze</p>
 <p>Object Sharing is a useful feature of laze that enables the sharing of identical compiled objects between builds. This means that if two different builds are using the same module and are compiled for the same builder, laze will avoid compiling the module multiple times.</p>
-<p>When generating a build plan, laze would normally place the objects of a module in a folder like <code>build/out/&lt;builder&gt;/&lt;app&gt;/src/&lt;module&gt;</code>. With Object Sharing enabled, laze will instead place objects in <code>build/objects/&lt;source_path&gt;/filename.&lt;hash&gt;.o</code>, where hash represents the hash of the ninja build statement used to build the file. In addition, laze makes sure that it doesn't include duplicate build statements.</p>
+<p>When generating a build plan, laze would normally place the objects of a module in a directory like <code>build/out/&lt;builder&gt;/&lt;app&gt;/src/&lt;module&gt;</code>. With Object Sharing enabled, laze will instead place objects in <code>build/objects/&lt;source_path&gt;/filename.&lt;hash&gt;.o</code>, where hash represents the hash of the ninja build statement used to build the file. In addition, laze makes sure that it doesn't include duplicate build statements.</p>
 <p>This scheme effectively and automatically makes laze apps share common objects, which eliminates the need for users to take any action to achieve this. In testing with the RIOT OS, this feature has reduced the number of built objects by approximately 30-40%.</p>
 <p>In summary, Object Sharing in laze is a powerful feature that streamlines the build process by avoiding the redundant compilation of identical objects. This can lead to significant time and resource savings for users, particularly in large-scale projects.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="laze-file-reference"><a class="header" href="#laze-file-reference">Laze File Reference</a></h1>
@@ -443,7 +443,7 @@ contexts:
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="name"><a class="header" href="#name"><code>name</code></a></h3>
 <p>Name of this context. Any UTF8 string is valid. This <em>will</em> be used as part of
-file- and foldernames, so better keep it simple.</p>
+file- and directory names, so better keep it simple.</p>
 <p>Context names <em>must</em> be unique.</p>
 <p>Each context <em>must</em> have a <code>name</code> field, all other fields are optional.</p>
 <p>Example:</p>
@@ -666,7 +666,7 @@ ninja build entry &quot;phony&quot;.</p>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="name-2"><a class="header" href="#name-2">name</a></h1>
 <p>Name of this module. Any UTF8 string is valid. This <em>will</em> be used as part of
-file- and foldernames, so better keep it simple.</p>
+file- and directory names, so better keep it simple.</p>
 <p>Within each context, module names <em>must</em> be unique.</p>
 <p>Each module <em>must</em> have a <code>name</code>. If the field is ommitted, <a href="reference/module/../variables.html#relpath"><code>${relpath}</code></a>
 is used.</p>
@@ -793,7 +793,7 @@ at least one module can be resolved. All modules that resolve will be used.</p>
    # ... possible other fields
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="subdirs"><a class="header" href="#subdirs">subdirs</a></h1>
-<p><code>subdirs</code> contains a <em>list</em> of foldernames. Laze will parse <code>&lt;foldername&gt;/laze.yml</code>.</p>
+<p><code>subdirs</code> contains a <em>list</em> of directory names. Laze will parse <code>&lt;directory name&gt;/laze.yml</code>.</p>
 <p>Example:</p>
 <pre><code class="language-yaml">subdirs:
   - drivers
@@ -843,7 +843,7 @@ neither is specified, the default branch will be checked out.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="path"><a class="header" href="#path"><code>path</code></a></h1>
 <p>A <code>path</code> import allows using a local directory as import source.</p>
 <p>If <code>path</code> is not absolute, it is considered relative to the project root.</p>
-<p>Optionally, <code>path</code> can be symlinked into the <code>imports</code> folder inside the laze
+<p>Optionally, <code>path</code> can be symlinked into the <code>imports</code> directory inside the laze
 build directory by setting <code>symlink: true</code> in the import.
 The symlink name within <code>$build_dir/imports</code> defaults to the last path component
 of <code>path</code>. This can be changed by setting <code>name</code>.
@@ -851,17 +851,17 @@ Using a symlink helps turning absolute pathnames into relative ones. This might
 be desirable for privacy reasons, or help with reproducible builds.</p>
 <p>Example:</p>
 <pre><code class="language-yaml">imports:
-  - path: /path/to/local/folder
-  - path: /path/to/another/local/folder
+  - path: /path/to/local/directory
+  - path: /path/to/another/local/directory
     symlink: true
-  - path: /path/to/a/third/local/folder
+  - path: /path/to/a/third/local/directory
     symlink: true
-    name: folder3
+    name: directory3
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="variables-defined-by-laze"><a class="header" href="#variables-defined-by-laze">Variables defined by laze</a></h1>
 <h2 id="appdir"><a class="header" href="#appdir">appdir</a></h2>
 <p>This variable contains the path in which the app of a build was defined.</p>
-<p>Useful mostly for tasks, as <code>${relpath}</code> would evaluate to the folder in which
+<p>Useful mostly for tasks, as <code>${relpath}</code> would evaluate to the directory in which
 the task is defined.</p>
 <p>Examples:</p>
 <pre><code class="language-yaml"># in apps/foo/laze.yml
@@ -927,7 +927,7 @@ modules:
 <h2 id="srcdir"><a class="header" href="#srcdir">srcdir</a></h2>
 <p>Contains the relative (to project root) base path of a module's source files.
 If a module has not been downloaded, this is usually identical to <code>${relpath}</code>.
-For downloaded modules, it points to the module's download folder.</p>
+For downloaded modules, it points to the module's download directory.</p>
 
                     </main>
 

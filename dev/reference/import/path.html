@@ -150,7 +150,7 @@
                         <h1 id="path"><a class="header" href="#path"><code>path</code></a></h1>
 <p>A <code>path</code> import allows using a local directory as import source.</p>
 <p>If <code>path</code> is not absolute, it is considered relative to the project root.</p>
-<p>Optionally, <code>path</code> can be symlinked into the <code>imports</code> folder inside the laze
+<p>Optionally, <code>path</code> can be symlinked into the <code>imports</code> directory inside the laze
 build directory by setting <code>symlink: true</code> in the import.
 The symlink name within <code>$build_dir/imports</code> defaults to the last path component
 of <code>path</code>. This can be changed by setting <code>name</code>.
@@ -158,12 +158,12 @@ Using a symlink helps turning absolute pathnames into relative ones. This might
 be desirable for privacy reasons, or help with reproducible builds.</p>
 <p>Example:</p>
 <pre><code class="language-yaml">imports:
-  - path: /path/to/local/folder
-  - path: /path/to/another/local/folder
+  - path: /path/to/local/directory
+  - path: /path/to/another/local/directory
     symlink: true
-  - path: /path/to/a/third/local/folder
+  - path: /path/to/a/third/local/directory
     symlink: true
-    name: folder3
+    name: directory3
 </code></pre>
 
                     </main>

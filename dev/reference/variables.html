@@ -150,7 +150,7 @@
                         <h1 id="variables-defined-by-laze"><a class="header" href="#variables-defined-by-laze">Variables defined by laze</a></h1>
 <h2 id="appdir"><a class="header" href="#appdir">appdir</a></h2>
 <p>This variable contains the path in which the app of a build was defined.</p>
-<p>Useful mostly for tasks, as <code>${relpath}</code> would evaluate to the folder in which
+<p>Useful mostly for tasks, as <code>${relpath}</code> would evaluate to the directory in which
 the task is defined.</p>
 <p>Examples:</p>
 <pre><code class="language-yaml"># in apps/foo/laze.yml
@@ -216,7 +216,7 @@ modules:
 <h2 id="srcdir"><a class="header" href="#srcdir">srcdir</a></h2>
 <p>Contains the relative (to project root) base path of a module's source files.
 If a module has not been downloaded, this is usually identical to <code>${relpath}</code>.
-For downloaded modules, it points to the module's download folder.</p>
+For downloaded modules, it points to the module's download directory.</p>
 
                     </main>
 
