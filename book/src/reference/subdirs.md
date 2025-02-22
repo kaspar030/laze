@@ -1,6 +1,6 @@
 # subdirs
 
-`subdirs` contains a _list_ of foldernames. Laze will parse `<foldername>/laze.yml`.
+`subdirs` contains a _list_ of directory names. Laze will parse `<directory name>/laze.yml`.
 
 Example:
 

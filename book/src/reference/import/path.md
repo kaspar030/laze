@@ -4,7 +4,7 @@ A `path` import allows using a local directory as import source.
 
 If `path` is not absolute, it is considered relative to the project root.
 
-Optionally, `path` can be symlinked into the `imports` folder inside the laze
+Optionally, `path` can be symlinked into the `imports` directory inside the laze
 build directory by setting `symlink: true` in the import.
 The symlink name within `$build_dir/imports` defaults to the last path component
 of `path`. This can be changed by setting `name`.
@@ -15,10 +15,10 @@ Example:
 
 ```yaml
 imports:
-  - path: /path/to/local/folder
-  - path: /path/to/another/local/folder
+  - path: /path/to/local/directory
+  - path: /path/to/another/local/directory
     symlink: true
-  - path: /path/to/a/third/local/folder
+  - path: /path/to/a/third/local/directory
     symlink: true
-    name: folder3
+    name: directory3
 ```
