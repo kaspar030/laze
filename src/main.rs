@@ -157,7 +157,7 @@ fn try_main() -> Result<i32> {
     GIT_CACHE
         .set(GitCache::new(git_cache_dir)?)
         .ok()
-        .expect("creating git cache folder");
+        .expect("creating git cache directory.");
 
     // handle project independent subcommands here
     match matches.subcommand() {
