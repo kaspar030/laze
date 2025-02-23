@@ -104,13 +104,8 @@ impl EnvKey {
     }
 }
 
-impl From<String> for EnvKey {
-    fn from(value: String) -> Self {
-        EnvKey::Single(value)
-    }
-}
-impl From<&str> for EnvKey {
-    fn from(value: &str) -> Self {
+impl<T: ToString> From<T> for EnvKey {
+    fn from(value: T) -> Self {
         EnvKey::Single(value.to_string())
     }
 }
