@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- feat: allow setting a workdir for tasks using `workdir` (#652, #658)
+- feat: initial support for Windows (#653, #648, #645)
+
+### Fixed
+
+- fix: use "directory" consistently across docs (drop uses of "folder") (#655)
+
 ## [0.1.32] - 2025-02-18
 
 ### Fixed
