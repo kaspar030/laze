@@ -1140,9 +1140,3 @@ impl TryFrom<&Generator> for GenerateResult {
         Ok(res)
     }
 }
-
-impl From<Utf8PathBuf> for EnvKey {
-    fn from(path: Utf8PathBuf) -> EnvKey {
-        EnvKey::Single(path.into_string())
-    }
-}
