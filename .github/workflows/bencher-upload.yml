@@ -6,7 +6,7 @@ on:
     types: [completed]
 
 jobs:
-  track_fork_pr_branch:
+  upload_bencher_results:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
@@ -36,7 +36,8 @@ jobs:
       - uses: bencherdev/bencher@main
       - name: Track Benchmarks with Bencher
         run: |
-          --token "${{ secrets.BENCHER_API_TOKEN }}"
+          bencher run \
+          --token "${{ secrets.BENCHER_API_TOKEN }}" \
           --branch "$PR_HEAD" \
           --start-point "$PR_BASE" \
           --start-point-hash "$PR_BASE_SHA" \
