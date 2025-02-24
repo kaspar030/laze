@@ -1,0 +1,7 @@
+# inline table form
+apps = [{ name = "toml_app", sources = ["foo.c"], depends = ["toml_module"] }]
+
+# array of tables
+[[modules]]
+name = "toml_module"
+sources = ["bar.c"]
