@@ -14,7 +14,6 @@ on:
 
 jobs:
   bencher:
-    if: "! (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)"
     runs-on: ubuntu-latest
     env:
       SCCACHE_GHA_ENABLED: "true"
@@ -80,19 +79,16 @@ jobs:
         --err
         --file bencher.json
 
-    - name: Submit results to Bencher (PR)
+    - name: Upload Benchmark Results
       if: github.event_name == 'pull_request'
-      run: >
-        bencher run
-        --token "${{ secrets.BENCHER_API_TOKEN }}"
-        --branch "$GITHUB_REF_NAME"
-        --hash "$GITHUB_SHA"
-        --github-actions "${{ secrets.GITHUB_TOKEN }}"
-        --ci-public-links
-        --ci-number "${{ github.event.pull_request.number }}"
-        --start-point "${{ github.base_ref }}"
-        --start-point-hash "${{ github.event.pull_request.base.sha }}"
-        --start-point-clone-thresholds
-        --start-point-reset
-        --err
-        --file bencher.json
+      uses: actions/upload-artifact@v4
+      with:
+        name: bencher.json
+        path: ./bencher.json
+
+    - name: Upload GitHub Pull Request Event
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: event.json
+        path: ${{ github.event_path }}
