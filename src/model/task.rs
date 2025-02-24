@@ -21,7 +21,7 @@ pub struct Task {
     pub build: bool,
     #[serde(default = "default_as_false")]
     pub ignore_ctrl_c: bool,
-    pub working_directory: Option<String>,
+    pub workdir: Option<String>,
 }
 
 #[derive(Error, Debug, Serialize, Deserialize)]
@@ -62,7 +62,7 @@ impl Task {
 
             let cmd = cmd.replace("$$", "$");
 
-            if let Some(working_directory) = &self.working_directory {
+            if let Some(working_directory) = &self.workdir {
                 // This includes support for absolute working directories through .join
                 command.current_dir(start_dir.join(working_directory));
             } else {
@@ -131,7 +131,7 @@ impl Task {
             } else {
                 self.export.clone()
             },
-            working_directory: self.working_directory.as_ref().map(expand).transpose()?,
+            workdir: self.workdir.as_ref().map(expand).transpose()?,
             ..(*self).clone()
         })
     }
