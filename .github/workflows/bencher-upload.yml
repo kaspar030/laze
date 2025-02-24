@@ -37,6 +37,7 @@ jobs:
       - name: Track Benchmarks with Bencher
         run: |
           bencher run \
+          --project laze \
           --token "${{ secrets.BENCHER_API_TOKEN }}" \
           --branch "$PR_HEAD" \
           --start-point "$PR_BASE" \
