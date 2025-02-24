@@ -44,7 +44,7 @@ jobs:
           --start-point-hash "$PR_BASE_SHA" \
           --start-point-clone-thresholds \
           --start-point-reset \
-          --testbed ubuntu-latest \
+          --testbed github-actions \
           --err \
           --adapter json \
           --github-actions '${{ secrets.GITHUB_TOKEN }}' \
