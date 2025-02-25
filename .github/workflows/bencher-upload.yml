@@ -26,7 +26,18 @@ jobs:
           run_id: ${{ github.event.workflow_run.id }}
           if_no_artifact_found: ignore
 
+      - name: Check for PR data
+        id: check_files
+        run: |
+          if [ ! -f "${{ env.BENCHMARK_RESULTS }}" ] || [ ! -f "${{ env.PR_EVENT }}" ]; then
+            echo "Files do not exist. Exiting."
+            exit 0
+          else
+            echo "data=available" >> $GITHUB_ENV
+          fi
+
       - name: Export PR Event Data
+        if: env.data == 'available'
         uses: actions/github-script@v6
         with:
           script: |
@@ -37,7 +48,9 @@ jobs:
             core.exportVariable("PR_BASE_SHA", prEvent.pull_request.base.sha);
             core.exportVariable("PR_NUMBER", prEvent.number);
       - uses: bencherdev/bencher@main
+        if: env.data == 'available'
       - name: Track Benchmarks with Bencher
+        if: env.data == 'available'
         run: |
           bencher run \
           --project laze \
