@@ -31,7 +31,7 @@ im = { version = "15.1.0", features = ["rayon", "serde"] }
 signal-hook = "0.3.17"
 mimalloc = { version = "0.1.43", default-features = false }
 build_uuid = "0.3.1"
-uuid = { version = "1.15.0", features = ["serde"] }
+uuid = { version = "1.15.1", features = ["serde"] }
 solvent = { version = "0.8.3", features = ["deterministic"] }
 rust-embed = "8.6.0"
 task_partitioner = "0.1.1"
