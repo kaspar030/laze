@@ -1,6 +1,8 @@
+use std::ffi::OsStr;
 use std::path::Path;
 
 use anyhow::{Error, Result};
+use itertools::Itertools;
 use thiserror::Error;
 
 use crate::nested_env;
@@ -53,9 +55,6 @@ impl Task {
                 cmd
             } else {
                 let mut sh = Command::new("sh");
-                if verbose > 0 {
-                    sh.arg("-x");
-                }
                 sh.arg("-c");
                 sh
             };
@@ -83,6 +82,16 @@ impl Task {
                 command.arg(cmd.clone() + " " + &join(args).to_owned());
             } else {
                 command.arg(cmd);
+            }
+
+            if verbose > 0 {
+                let command_with_args = command
+                    .get_args()
+                    .skip(1)
+                    .map(OsStr::to_string_lossy)
+                    .collect_vec();
+
+                println!("laze: executing `{}`", command_with_args.join(" "));
             }
 
             if self.ignore_ctrl_c {
