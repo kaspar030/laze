@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+
+- `provides` / `provides_unique` now adds a hard dependency on a module with that
+  name
+- added `module::must_provide` indicating that a module cannot be selected directly
+
 ## [0.1.33] - 2025-02-24
 
 ### Added
