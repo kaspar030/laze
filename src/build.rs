@@ -92,7 +92,7 @@ impl<'a> Resolver<'a> {
             .resolve_module(module_name, self.build.bag)
         {
             Some((_context, module)) => {
-                if module.must_provide && providing {
+                if module.must_provide && !providing {
                     return Err(anyhow!(
                         "module \"{}\" has to be provided by another module",
                         module_name
@@ -103,16 +103,16 @@ impl<'a> Resolver<'a> {
             None => return Err(anyhow!("module \"{}\" not found", module_name)),
         };
 
-        self.resolve_module_deep(module)
+        self.resolve_module_deep(module, providing)
     }
 
-    fn resolve_module_deep(&mut self, module: &'a Module) -> Result<(), Error> {
+    fn resolve_module_deep(&mut self, module: &'a Module, providing: bool) -> Result<(), Error> {
         let state = self.state();
         if self.module_set.contains_key(&module.name) {
             return Ok(());
         }
 
-        if self.disabled_modules.contains(&module.name) {
+        if !providing && self.disabled_modules.contains(&module.name) {
             return Err(anyhow!("\"{}\" is disabled/conflicted", module.name));
         }
 
@@ -210,8 +210,7 @@ impl<'a> Resolver<'a> {
                 }
             };
 
-            // TODO: (consistency): this should be handled *after* modules
-            // which match the exact name
+            // Are we providing `dep_name`?
             let providing = &module
                 .provides
                 .as_ref()
@@ -360,7 +359,7 @@ impl<'a: 'b, 'b> Build<'b> {
         let mut resolver = Resolver::new(self, disabled_modules);
 
         resolver
-            .resolve_module_deep(&self.binary)
+            .resolve_module_deep(&self.binary, false)
             .with_context(|| {
                 format!(
                     "binary \"{}\" for builder \"{}\"",
