@@ -1,4 +1,4 @@
 app.c
 first_module module.c
-third_module module.c
 provided_module_from_upper2 module.c
+third_module module.c

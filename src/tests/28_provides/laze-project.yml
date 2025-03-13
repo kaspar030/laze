@@ -10,6 +10,10 @@ builders:
         cmd: "cat ${in} > ${out}"
     env:
       bindir: build/${builder}/${app}
+    tasks:
+      info-modules:
+        cmd:
+          - echo ${modules}
 
   - name: upper
     parent: default
@@ -69,6 +73,9 @@ modules:
       local:
         VAR:
           - provided_module_from_upper2
+
+  - name: provided
+    must_provide: true
 
 apps:
   - name: app1
