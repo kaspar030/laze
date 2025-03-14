@@ -56,7 +56,7 @@ jobs:
 
     - name: clone RIOT
       run: >
-        git clone --depth 1 https://github.com/kaspar030/RIOT -b add_laze_buildfiles_bencher
+        git clone --depth 1 https://github.com/kaspar030/RIOT -b add_laze_buildfiles_bencher_laze0.2
 
     - name: "Run benchmark"
       run: perf stat -j -o perf-stat.json -- laze -C RIOT build --global -G

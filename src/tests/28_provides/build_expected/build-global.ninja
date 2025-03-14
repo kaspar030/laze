@@ -52,6 +52,6 @@ build build/upper2/app1/app1.elf: $
     LINK_5506617845631750009 $
     build/objects/app.12070292612711521013.o $
     build/objects/module.5640092437665481209.o $
-    build/objects/module.11691236658213220858.o $
-    build/objects/module.17680204663769875419.o
+    build/objects/module.17680204663769875419.o $
+    build/objects/module.11691236658213220858.o
 

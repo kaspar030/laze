@@ -78,25 +78,41 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_module_name_deep(&mut self, module_name: &String) -> Result<(), Error> {
-        let (_context, module) = match self
+        self.resolve_module_name_deep_inner(module_name, false)
+    }
+
+    fn resolve_module_name_deep_inner(
+        &mut self,
+        module_name: &String,
+        providing: bool,
+    ) -> Result<(), Error> {
+        let module = match self
             .build
             .build_context
             .resolve_module(module_name, self.build.bag)
         {
-            Some(x) => x,
+            Some((_context, module)) => {
+                if module.must_provide && !providing {
+                    return Err(anyhow!(
+                        "module \"{}\" has to be provided by another module",
+                        module_name
+                    ));
+                }
+                module
+            }
             None => return Err(anyhow!("module \"{}\" not found", module_name)),
         };
 
-        self.resolve_module_deep(module)
+        self.resolve_module_deep(module, providing)
     }
 
-    fn resolve_module_deep(&mut self, module: &'a Module) -> Result<(), Error> {
+    fn resolve_module_deep(&mut self, module: &'a Module, providing: bool) -> Result<(), Error> {
         let state = self.state();
         if self.module_set.contains_key(&module.name) {
             return Ok(());
         }
 
-        if self.disabled_modules.contains(&module.name) {
+        if !providing && self.disabled_modules.contains(&module.name) {
             return Err(anyhow!("\"{}\" is disabled/conflicted", module.name));
         }
 
@@ -121,8 +137,7 @@ impl<'a> Resolver<'a> {
             }
         }
 
-        // handle "provides" of this module.
-        // also, bail out if any of the provided modules has been conflicted
+        // bail out if any of the provided modules has been conflicted
         // before, which implicitly conflicts this module.
         if let Some(provides) = &module.provides {
             for provided in provides {
@@ -138,11 +153,24 @@ impl<'a> Resolver<'a> {
             self.disabled_modules.extend(conflicts.iter().cloned());
         }
 
-        // all provided modules get added to the "provided_by" map, so later
-        // dependees of one of those get informed.
+        // 1. register this modules' provides to "provided_by" map
+        // 2. create dependency on provided module name
+        //
+        // This is not merged into the `module.provides` iteration loop above for premature
+        // optimization reasons.
+        let mut provided = Vec::new();
         if let Some(provides) = &module.provides {
             for name in provides {
+                // all provided modules get added to the "provided_by" map, so later
+                // dependees of one of those get informed.
                 self.add_provided_by(name, module);
+
+                // here we add a hard dependency on any "provided" module,
+                // unless it starts with "::". (those are laze virtual modules, like,
+                // "::task::<taskname>").
+                if !name.starts_with("::") {
+                    provided.push(Dependency::Hard(name.clone()));
+                }
             }
         }
 
@@ -158,7 +186,11 @@ impl<'a> Resolver<'a> {
             late_if_then_deps.extend(deps.iter().cloned());
         }
 
-        for dep in module.selects.iter().chain(late_if_then_deps.iter()) {
+        for dep in provided
+            .iter()
+            .chain(module.selects.iter())
+            .chain(late_if_then_deps.iter())
+        {
             let (dep_name, mut optional) = match dep {
                 Dependency::Hard(name) => (name, false),
                 Dependency::Soft(name) => (name, true),
@@ -187,27 +219,33 @@ impl<'a> Resolver<'a> {
                 }
             };
 
-            // TODO: (consistency): this should be handled *after* modules
-            // which match the exact name
-            if let Some(provided) = &self.build.build_context.provided {
-                if let Some(providing_modules) = provided.get(dep_name) {
-                    if self.resolve_module_list(providing_modules, dep_name) > 0 {
-                        optional = true;
-                        if self.disabled_modules.contains(dep_name) {
-                            // one provider conflicted the dependency name,
-                            // we'll need to skip the possible exact matching
-                            // module.
-                            continue;
+            // Are we providing `dep_name`?
+            let providing = &module
+                .provides
+                .as_ref()
+                .is_some_and(|provides| provides.contains(dep_name));
+
+            if !providing {
+                if let Some(provided) = &self.build.build_context.provided {
+                    if let Some(providing_modules) = provided.get(dep_name) {
+                        if self.resolve_module_list(providing_modules, dep_name) > 0 {
+                            optional = true;
+                            if self.disabled_modules.contains(dep_name) {
+                                // one provider conflicted the dependency name,
+                                // we'll need to skip the possible exact matching
+                                // module.
+                                continue;
+                            }
                         }
                     }
                 }
             }
 
             if let Err(err) = self
-                .resolve_module_name_deep(dep_name)
+                .resolve_module_name_deep_inner(dep_name, *providing)
                 .with_context(|| format!("\"{}\" cannot resolve \"{}\"", module.name, dep_name))
             {
-                if optional {
+                if optional && !providing {
                     continue;
                 } else {
                     self.reset(state);
@@ -320,6 +358,9 @@ impl<'a: 'b, 'b> Build<'b> {
         build
     }
 
+    /// Dependency resolution entry point
+    ///
+    /// This function is called by `generate()` to resolve all dependencies.
     pub fn resolve_selects(
         &self,
         disabled_modules: IndexSet<String>,
@@ -327,7 +368,7 @@ impl<'a: 'b, 'b> Build<'b> {
         let mut resolver = Resolver::new(self, disabled_modules);
 
         resolver
-            .resolve_module_deep(&self.binary)
+            .resolve_module_deep(&self.binary, false)
             .with_context(|| {
                 format!(
                     "binary \"{}\" for builder \"{}\"",
