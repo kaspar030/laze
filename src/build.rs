@@ -137,8 +137,7 @@ impl<'a> Resolver<'a> {
             }
         }
 
-        // handle "provides" of this module.
-        // also, bail out if any of the provided modules has been conflicted
+        // bail out if any of the provided modules has been conflicted
         // before, which implicitly conflicts this module.
         if let Some(provides) = &module.provides {
             for provided in provides {
@@ -154,14 +153,20 @@ impl<'a> Resolver<'a> {
             self.disabled_modules.extend(conflicts.iter().cloned());
         }
 
-        // handle `provides`
+        // 1. register this modules' provides to "provided_by" map
+        // 2. create dependency on provided module name
+        //
+        // This is not merged into the `module.provides` iteration loop above for premature
+        // optimization reasons.
         let mut provided = Vec::new();
         if let Some(provides) = &module.provides {
             for name in provides {
                 // all provided modules get added to the "provided_by" map, so later
                 // dependees of one of those get informed.
                 self.add_provided_by(name, module);
-                provided.push(Dependency::Hard(name.clone()));
+                if !name.starts_with("::") {
+                    provided.push(Dependency::Hard(name.clone()));
+                }
             }
         }
 
