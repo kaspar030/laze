@@ -164,6 +164,10 @@ impl<'a> Resolver<'a> {
                 // all provided modules get added to the "provided_by" map, so later
                 // dependees of one of those get informed.
                 self.add_provided_by(name, module);
+
+                // here we add a hard dependency on any "provided" module,
+                // unless it starts with "::". (those are laze virtual modules, like,
+                // "::task::<taskname>").
                 if !name.starts_with("::") {
                     provided.push(Dependency::Hard(name.clone()));
                 }
