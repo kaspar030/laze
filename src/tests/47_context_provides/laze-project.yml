@@ -10,6 +10,10 @@ builders:
         cmd: "cat ${in} > ${out}"
     env:
       bindir: build/${builder}/${app}
+    tasks:
+      modules:
+        cmd:
+          - echo ${modules}
 
   - name: context1
     parent: default
@@ -40,6 +44,12 @@ builders:
     parent: context2
     provides_unique:
       - provided_by_context2
+
+modules:
+  - name: provided_by_context1
+    must_provide: true
+  - name: provided_by_context2
+    must_provide: true
 
 apps:
   - name: app1
