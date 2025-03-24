@@ -24,6 +24,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use git_cache::GitCache;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use nested_env::ExpandError;
 use signal_hook::{consts::SIGINT, flag::register_conditional_shutdown};
 
 #[global_allocator]
@@ -108,11 +109,10 @@ fn main() {
     let result = try_main();
     match result {
         Err(e) => {
-            if let Some(expr_err) = e.downcast_ref::<evalexpr::EvalexprError>() {
+            if let Some(_expr_err) = e.downcast_ref::<ExpandError>() {
                 // make expression errors more readable.
                 // TODO: factor out
-                eprintln!("laze: expression error: {expr_err}");
-                eprintln!("laze: the error occured here:");
+                eprintln!("laze: expression error:");
                 let mut iter = e.chain().peekable();
                 let mut i = 0;
                 while let Some(next) = iter.next() {

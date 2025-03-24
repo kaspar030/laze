@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::hash::{Hash, Hasher};
 
+use anyhow::Context;
+
 use crate::serde_bool_helpers::default_as_false;
 
 #[derive(Debug, Serialize, Deserialize, Eq, Clone)]
@@ -32,7 +34,12 @@ pub struct Rule {
 impl Rule {
     pub fn to_ninja(&self, env: &im::HashMap<&String, String>) -> anyhow::Result<NinjaRule> {
         let ninja_rule: NinjaRuleBuilder = self.into();
-        Ok(ninja_rule.build().unwrap().expand(env)?.named())
+        Ok(ninja_rule
+            .build()
+            .unwrap()
+            .expand(env)
+            .with_context(|| format!("while rendering rule `{}`", self.name))?
+            .named())
     }
 
     /// get rule description

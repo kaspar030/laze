@@ -6,6 +6,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::process::{Command, ExitStatus, Stdio};
 
+use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 
@@ -127,7 +128,8 @@ impl<'a> NinjaRule<'a> {
             }
         }
 
-        let expanded = nested_env::expand_eval(&self.command, env, IfMissing::Empty)?;
+        let expanded = nested_env::expand_eval(&self.command, env, IfMissing::Empty)
+            .with_context(|| format!("while expanding command `{}`", &self.command))?;
         command.push_str(&expanded);
         self.command = command.into();
 

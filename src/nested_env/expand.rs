@@ -2,15 +2,20 @@
 
 use evalexpr::EvalexprError;
 use im::HashMap;
-use std::error;
-use std::fmt;
+use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Error, Debug, Clone, PartialEq)]
 pub enum ExpandError {
+    #[error("missing variable \"{0}\"")]
     Missing(String),
+    #[error("unclosed brace at pos {0}")]
     Unclosed(usize),
+    #[error("cycle involving variable \"{0}\"")]
     Cycle(String),
-    Expr(EvalexprError),
+    #[error("expression error in `{1}`: {0}")]
+    Expr(#[source] EvalexprError, String),
+    #[error("while expanding `{1}`")]
+    Nested(#[source] Box<ExpandError>, String),
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -19,24 +24,6 @@ pub enum IfMissing {
     Error,
     Ignore,
     Empty,
-}
-
-impl fmt::Display for ExpandError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ExpandError::Missing(s) => write!(f, "missing variable \"{}\"", s),
-            ExpandError::Cycle(s) => write!(f, "cycle involving variable \"{}\"", s),
-            ExpandError::Unclosed(start) => write!(f, "unclosed brace at pos {}", start),
-            ExpandError::Expr(e) => write!(f, "expression error: {}", e),
-        }
-    }
-}
-
-impl error::Error for ExpandError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        // Generic error, underlying cause isn't tracked.
-        None
-    }
 }
 
 pub fn expand<SI, H>(
@@ -63,9 +50,8 @@ where
 {
     use crate::nested_env::Eval;
     let seen = Vec::new();
-    Ok(expand_recursive::<SI, H>(f, r, seen, if_missing)?
-        .eval()
-        .map_err(ExpandError::Expr))?
+    let expanded = expand_recursive::<SI, H>(f, r, seen, if_missing)?;
+    expanded.eval()
 }
 
 fn expand_recursive<'a, SI, H>(

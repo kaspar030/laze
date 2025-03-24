@@ -1,18 +1,18 @@
 use std::borrow::Cow;
 
-use evalexpr::EvalexprError;
+use super::ExpandError;
 
 pub trait Eval {
-    fn eval(&self) -> Result<String, EvalexprError>;
+    fn eval(&self) -> Result<String, ExpandError>;
 }
 
 impl Eval for String {
-    fn eval(&self) -> Result<Self, EvalexprError> {
+    fn eval(&self) -> Result<Self, ExpandError> {
         Ok(eval(self)?.into())
     }
 }
 
-pub fn eval(input: &str) -> Result<Cow<'_, str>, EvalexprError> {
+pub fn eval(input: &str) -> Result<Cow<'_, str>, ExpandError> {
     if input.contains("$(") {
         eval_recursive(input, false)
     } else {
@@ -20,7 +20,7 @@ pub fn eval(input: &str) -> Result<Cow<'_, str>, EvalexprError> {
     }
 }
 
-fn eval_recursive(input: &str, is_eval: bool) -> Result<Cow<'_, str>, EvalexprError> {
+fn eval_recursive(input: &str, is_eval: bool) -> Result<Cow<'_, str>, ExpandError> {
     let mut result = String::new();
     let mut start = 0;
     let mut level = 0;
@@ -41,7 +41,10 @@ fn eval_recursive(input: &str, is_eval: bool) -> Result<Cow<'_, str>, EvalexprEr
             level -= 1;
             if level == 0 {
                 input_changed = true;
-                result.push_str(&eval_recursive(&input[start + 1..i], true)?);
+                result.push_str(
+                    &eval_recursive(&input[start + 1..i], true)
+                        .map_err(|e| ExpandError::Nested(Box::new(e), input.to_string()))?,
+                );
                 start = 0;
             }
         } else if level == 0 {
@@ -50,7 +53,9 @@ fn eval_recursive(input: &str, is_eval: bool) -> Result<Cow<'_, str>, EvalexprEr
     }
 
     if is_eval {
-        let expr = evalexpr::eval(&result)?.to_string();
+        let expr = evalexpr::eval(&result)
+            .map_err(|e| ExpandError::Expr(e, result))?
+            .to_string();
         input_changed = true;
         result = expr;
     }
