@@ -97,4 +97,10 @@ mod tests {
         let result = eval(literal);
         assert_eq!(result.unwrap(), Cow::Borrowed(literal));
     }
+    #[test]
+    fn escaped_dollar_with_another() {
+        let literal = "$(1) just some $$(1) text";
+        let result = eval(literal);
+        assert_eq!(result.unwrap(), "1 just some $$(1) text");
+    }
 }
