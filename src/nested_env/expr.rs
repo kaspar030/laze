@@ -42,6 +42,7 @@ fn eval_recursive(input: &str, is_eval: bool) -> Result<Cow<'_, str>, EvalexprEr
             if level == 0 {
                 input_changed = true;
                 result.push_str(&eval_recursive(&input[start + 1..i], true)?);
+                start = 0;
             }
         } else if level == 0 {
             result.push(character);
