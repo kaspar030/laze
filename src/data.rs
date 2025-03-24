@@ -181,6 +181,8 @@ struct YamlModule {
     is_global_build_dep: bool,
     #[serde(skip)]
     _is_binary: bool,
+    #[serde(default = "default_as_false")]
+    must_provide: bool,
     #[serde(rename = "meta")]
     _meta: Option<Value>,
 }
@@ -885,6 +887,8 @@ pub fn load(
             m.env_global
                 .insert("appdir".into(), EnvKey::Single(relpath.to_string()));
         }
+
+        m.must_provide = module.must_provide;
 
         Ok(m)
     }

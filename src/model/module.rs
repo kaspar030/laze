@@ -51,6 +51,7 @@ pub struct Module {
     pub is_build_dep: bool,
     pub is_global_build_dep: bool,
     pub is_binary: bool,
+    pub must_provide: bool,
 }
 
 impl Module {
@@ -84,6 +85,7 @@ impl Module {
             blocklist: None,
             allowlist: None,
             download: None,
+            must_provide: false,
         }
     }
 
