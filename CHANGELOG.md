@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- fix(env): fix state reset with escaped expressions (#682)
+
 ## [0.1.33] - 2025-02-24
 
 ### Added
