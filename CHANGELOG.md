@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.34] - 2025-03-24
+
 ### Fixed
 
 - fix(env): fix state reset with escaped expressions (#682)
@@ -454,7 +456,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 <!-- next-url -->
-[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.33...HEAD
+[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.34...HEAD
+[0.1.34]: https://github.com/kaspar030/laze/compare/0.1.33...0.1.34
 [0.1.33]: https://github.com/kaspar030/laze/compare/0.1.32...0.1.33
 [0.1.32]: https://github.com/kaspar030/laze/compare/0.1.31...0.1.32
 [0.1.31]: https://github.com/kaspar030/laze/compare/0.1.30...0.1.31
