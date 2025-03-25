@@ -861,11 +861,14 @@ fn configure_build(
                 let rule_hash = ninja_rule.get_hash(None);
 
                 // 3. determine output path (e.g., name of C object file)
-                let out = srcpath.with_extension(format!(
-                    "{}.{}",
-                    rule_hash ^ build_deps_hash,
-                    &rule.out.as_ref().unwrap()
-                ));
+                let out_ext = {
+                    let raw_ext = rule.out.as_ref().unwrap();
+                    match rule.options.as_ref().and_then(|opts| opts.get("out_ext")) {
+                        Some(value) if value == "raw" => format!("{}", raw_ext),
+                        _ => format!("{}.{}", rule_hash ^ build_deps_hash, raw_ext),
+                    }
+                };
+                let out = srcpath.with_extension(out_ext);
 
                 let mut object = objdir.clone();
                 object.push(out);
