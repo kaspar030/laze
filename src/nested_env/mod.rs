@@ -7,7 +7,7 @@ mod expand;
 mod expr;
 pub use expr::Eval;
 
-pub use expand::{expand, expand_eval, IfMissing};
+pub use expand::{expand, expand_eval, ExpandError, IfMissing};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct Env {
