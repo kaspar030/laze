@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher};
 
 use serde::{Deserialize, Serialize};
 
-use crate::serde_bool_helpers::default_as_false;
+use crate::serde_bool_helpers::{default_as_false, default_as_true};
 
 #[derive(Debug, Serialize, Deserialize, Eq, Clone)]
 #[serde(deny_unknown_fields)]
@@ -29,6 +29,8 @@ pub struct Rule {
 
     #[serde(default = "default_as_false")]
     pub always: bool,
+    #[serde(default = "default_as_true")]
+    pub shareable: bool,
 }
 
 impl Rule {
