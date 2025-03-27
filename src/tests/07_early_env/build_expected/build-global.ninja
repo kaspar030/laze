@@ -1,11 +1,11 @@
 builddir = build
 build ALWAYS: phony
-rule CC_13381053000091777226
-  command = echo local_var relpath:subdir OTHER:other_value  global_var  ${in} > ${out} && cat ${in} >> ${out}
+rule CC_9222106655868819292
+  command = echo local_var relpath:subdir OTHER:other_value ${LOCAL_VAR2} global_var ${GLOBAL_VAR2} ${in} > ${out} && cat ${in} >> ${out}
   description = CC
 
-build build/objects/subdir/single_app.10446704609256962329.o: $
-    CC_13381053000091777226 $
+build build/objects/subdir/single_app.8693902485757748814.o: $
+    CC_9222106655868819292 $
     subdir/single_app.c
 
 rule LINK_5506617845631750009
@@ -14,17 +14,17 @@ rule LINK_5506617845631750009
 
 build build/single_builder/single_app/single_app.elf: $
     LINK_5506617845631750009 $
-    build/objects/subdir/single_app.10446704609256962329.o
+    build/objects/subdir/single_app.8693902485757748814.o
 
-rule CC_12359170378504700312
-  command = echo local_var relpath:subdir/deeper_subdir OTHER:other_value  global_var  ${in} > ${out} && cat ${in} >> ${out}
+rule CC_7534319967402618354
+  command = echo local_var relpath:subdir/deeper_subdir OTHER:other_value ${LOCAL_VAR2} global_var ${GLOBAL_VAR2} ${in} > ${out} && cat ${in} >> ${out}
   description = CC
 
-build build/objects/subdir/deeper_subdir/second_app.2199715274595216891.o: $
-    CC_12359170378504700312 $
+build build/objects/subdir/deeper_subdir/second_app.14603994142363443564.o: $
+    CC_7534319967402618354 $
     subdir/deeper_subdir/second_app.c
 
 build build/single_builder/second_app/second_app.elf: $
     LINK_5506617845631750009 $
-    build/objects/subdir/deeper_subdir/second_app.2199715274595216891.o
+    build/objects/subdir/deeper_subdir/second_app.14603994142363443564.o
 

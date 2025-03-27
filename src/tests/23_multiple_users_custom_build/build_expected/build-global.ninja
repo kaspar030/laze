@@ -11,18 +11,18 @@ build outs_13803245204027608516: $
     phony $
     build/builder0/foo.c
 
-rule CC_6858609285403819907
-  command = echo  ${in} > ${out}
+rule CC_16849476969032860532
+  command = echo ${EXPORT_VAR} ${in} > ${out}
   description = CC
 
-build build/objects/single_app.8382467200608493627.o: $
-    CC_6858609285403819907 $
+build build/objects/single_app.3409959125074191958.o: $
+    CC_16849476969032860532 $
     single_app.c $
     | $
     outs_13803245204027608516
 
-build build/objects/build/builder0/foo.8382467200608493627.o: $
-    CC_6858609285403819907 $
+build build/objects/build/builder0/foo.3409959125074191958.o: $
+    CC_16849476969032860532 $
     build/builder0/foo.c $
     | $
     outs_13803245204027608516
@@ -33,8 +33,8 @@ rule LINK_5506617845631750009
 
 build build/builder0/single_app/single_app.elf: $
     LINK_5506617845631750009 $
-    build/objects/single_app.8382467200608493627.o $
-    build/objects/build/builder0/foo.8382467200608493627.o
+    build/objects/single_app.3409959125074191958.o $
+    build/objects/build/builder0/foo.3409959125074191958.o
 
 rule BUILD_13535410127151112283
   command = echo VARIABLE_from_builder1 > build/builder1/foo.c
@@ -47,20 +47,20 @@ build outs_17043237164113888916: $
     phony $
     build/builder1/foo.c
 
-build build/objects/single_app.7947247775807968690.o: $
-    CC_6858609285403819907 $
+build build/objects/single_app.3840534736792179679.o: $
+    CC_16849476969032860532 $
     single_app.c $
     | $
     outs_17043237164113888916
 
-build build/objects/build/builder1/foo.7947247775807968690.o: $
-    CC_6858609285403819907 $
+build build/objects/build/builder1/foo.3840534736792179679.o: $
+    CC_16849476969032860532 $
     build/builder1/foo.c $
     | $
     outs_17043237164113888916
 
 build build/builder1/single_app/single_app.elf: $
     LINK_5506617845631750009 $
-    build/objects/single_app.7947247775807968690.o $
-    build/objects/build/builder1/foo.7947247775807968690.o
+    build/objects/single_app.3840534736792179679.o $
+    build/objects/build/builder1/foo.3840534736792179679.o
 

@@ -1,11 +1,11 @@
 builddir = build
 build ALWAYS: phony
-rule CC_6858609285403819907
-  command = echo  ${in} > ${out}
+rule CC_18347987957482689929
+  command = echo ${VAR} ${in} > ${out}
   description = CC
 
-build build/objects/app.12070292612711521013.o: $
-    CC_6858609285403819907 $
+build build/objects/app.14297208332835777733.o: $
+    CC_18347987957482689929 $
     app.c
 
 rule CC_17575315763249594616
@@ -30,13 +30,13 @@ rule LINK_5506617845631750009
 
 build build/default/app1/app1.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o $
+    build/objects/app.14297208332835777733.o $
     build/objects/module.5640092437665481209.o $
     build/objects/module.11691236658213220858.o
 
 build build/upper/app1/app1.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o $
+    build/objects/app.14297208332835777733.o $
     build/objects/module.5640092437665481209.o $
     build/objects/module.11691236658213220858.o
 
@@ -50,7 +50,7 @@ build build/objects/module.17680204663769875419.o: $
 
 build build/upper2/app1/app1.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o $
+    build/objects/app.14297208332835777733.o $
     build/objects/module.5640092437665481209.o $
     build/objects/module.11691236658213220858.o $
     build/objects/module.17680204663769875419.o

@@ -1,11 +1,11 @@
 builddir = build
 build ALWAYS: phony
-rule CC_14556393563797253018
-  command = echo result = 2  ${in} > ${out}
+rule CC_17826704091100579840
+  command = echo result = 2 ${GLOBAL_VAR} ${in} > ${out}
   description = CC
 
-build build/objects/single_app.7419491670495048065.o: $
-    CC_14556393563797253018 $
+build build/objects/single_app.14984907445641334125.o: $
+    CC_17826704091100579840 $
     single_app.c
 
 rule LINK_5506617845631750009
@@ -14,5 +14,5 @@ rule LINK_5506617845631750009
 
 build build/single_builder/single_app/single_app.elf: $
     LINK_5506617845631750009 $
-    build/objects/single_app.7419491670495048065.o
+    build/objects/single_app.14984907445641334125.o
 

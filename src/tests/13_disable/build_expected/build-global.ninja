@@ -1,11 +1,11 @@
 builddir = build
 build ALWAYS: phony
-rule CC_6858609285403819907
-  command = echo  ${in} > ${out}
+rule CC_16849476969032860532
+  command = echo ${EXPORT_VAR} ${in} > ${out}
   description = CC
 
-build build/objects/app.12070292612711521013.o: $
-    CC_6858609285403819907 $
+build build/objects/app.18195757928692505752.o: $
+    CC_16849476969032860532 $
     app.c
 
 rule CC_8945665865320373174
@@ -22,12 +22,12 @@ rule LINK_5506617845631750009
 
 build build/default/app/app.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o $
+    build/objects/app.18195757928692505752.o $
     build/objects/module.8741937773202546695.o
 
 build build/default/app_depend_disabled_subdepend_second/app_depend_disabled_subdepend_second.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o
+    build/objects/app.18195757928692505752.o
 
 rule CC_5767099186035483882
   command = echo export_from_second_module export_from_first_module ${in} > ${out}
@@ -48,12 +48,12 @@ build build/default/app_depend_disabled_subdepend_third/app_depend_disabled_subd
 
 build build/builder_disabling_third_module/app/app.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o $
+    build/objects/app.18195757928692505752.o $
     build/objects/module.5571264317339904527.o
 
 build build/builder_disabling_third_module/app_depend_disabled_subdepend_second/app_depend_disabled_subdepend_second.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o
+    build/objects/app.18195757928692505752.o
 
 build build/builder_disabling_third_module/app_depend_disabled_subdepend_third/app_depend_disabled_subdepend_third.elf: $
     LINK_5506617845631750009 $

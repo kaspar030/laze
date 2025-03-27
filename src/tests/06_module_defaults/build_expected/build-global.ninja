@@ -1,11 +1,11 @@
 builddir = build
 build ALWAYS: phony
-rule CC_7199050768932272173
-  command = echo   global_var global_var_from_module_default ${in} > ${out} && cat ${in} >> ${out}
+rule CC_11799991091263207325
+  command = echo ${LOCAL_VAR} ${LOCAL_VAR2} global_var global_var_from_module_default ${in} > ${out} && cat ${in} >> ${out}
   description = CC
 
-build build/objects/single_app.16296015312215634081.o: $
-    CC_7199050768932272173 $
+build build/objects/single_app.15791354474150039548.o: $
+    CC_11799991091263207325 $
     single_app.c
 
 rule CC_434431622607429563
@@ -22,6 +22,6 @@ rule LINK_5506617845631750009
 
 build build/single_builder/single_app/single_app.elf: $
     LINK_5506617845631750009 $
-    build/objects/single_app.16296015312215634081.o $
+    build/objects/single_app.15791354474150039548.o $
     build/objects/module_default.17214067913983005966.o
 
