@@ -1,6 +1,7 @@
 use anyhow::{Context as _, Error, Result};
 use im_rc::{HashMap, HashSet, Vector};
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 
 use crate::model::{Context, ContextBag, Dependency, Module};
 use crate::nested_env::{self, Env};
@@ -29,18 +30,21 @@ struct ResolverState<'a> {
     module_set: HashSet<&'a String>,
     module_list: Vector<(&'a String, &'a Module)>,
     if_then_deps: HashMap<String, Vector<Dependency<String>>>,
-    disabled_modules: HashSet<String>,
+    disabled_modules: HashMap<String, HashSet<&'a String>>,
     provided_by: HashMap<&'a String, Vector<&'a Module>>,
 }
 
 impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
     fn new(build: &'a Build<'a>, mut disabled_modules: IndexSet<String>) -> Self {
-        let disabled_modules = disabled_modules.drain(..).collect();
+        let mut disabled_modules_map: HashMap<String, HashSet<&String>> = HashMap::new();
+        for module_name in disabled_modules.drain(..) {
+            disabled_modules_map.entry(module_name).or_default();
+        }
         Self {
             build,
             state_stack: Vec::new(),
             state: ResolverState {
-                disabled_modules,
+                disabled_modules: disabled_modules_map,
                 ..Default::default()
             },
         }
@@ -116,9 +120,13 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
             return Ok(());
         }
 
-        if self.state.disabled_modules.contains(&module.name) {
-            self.trace(|| format!("resolving {}: disabled", module.name));
-            return Err(anyhow!("\"{}\" is disabled/conflicted", module.name));
+        if let Some(disabled_by) = self.state.disabled_modules.get(&module.name) {
+            let disabled_by = disabled_by.iter().join(", ");
+            self.trace(|| format!("resolving {}: disabled by {disabled_by}", module.name));
+            return Err(anyhow!(
+                "\"{}\" is disabled/conflicted by {disabled_by}",
+                module.name
+            ));
         }
 
         if let Some(conflicts) = &module.conflicts {
@@ -152,11 +160,13 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
         // before, which implicitly conflicts this module.
         if let Some(provides) = &module.provides {
             for provided in provides {
-                if self.state.disabled_modules.contains(provided) {
-                    self.trace(|| {
-                        format!("resolving {}: provides disabled {provided}", &module.name)
-                    });
-                    bail!("provides disabled/conflicted module \"{}\"", provided);
+                if let Some(disabled_by) = self.state.disabled_modules.get(provided) {
+                    let disabled_by = disabled_by.iter().join(", ");
+                    let msg = format!(
+                        "provides `{provided}` which is disabled/conflicted by {disabled_by}"
+                    );
+                    self.trace(|| format!("resolving {}: {msg}", module.name));
+                    return Err(anyhow!(msg));
                 }
             }
         }
@@ -166,7 +176,13 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
 
         // register this module's conflicts
         if let Some(conflicts) = &module.conflicts {
-            self.state.disabled_modules.extend(conflicts.iter());
+            for conflicted in conflicts {
+                self.state
+                    .disabled_modules
+                    .entry(conflicted.clone())
+                    .or_default()
+                    .insert(&module.name);
+            }
         }
 
         // all provided modules get added to the "provided_by" map, so later
@@ -229,7 +245,7 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
                     if self.resolve_module_list(providing_modules, dep_name) > 0 {
                         self.trace(|| format!("got at least one provider for `{dep_name}`"));
                         was_provided = true;
-                        if self.state.disabled_modules.contains(dep_name) {
+                        if self.state.disabled_modules.contains_key(dep_name) {
                             // one provider conflicted the dependency name,
                             // we'll need to skip the possible exact matching
                             // module.
@@ -282,7 +298,7 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
                 continue;
             }
 
-            if self.state.disabled_modules.contains(provided_name) {
+            if self.state.disabled_modules.contains_key(provided_name) {
                 // this "provides" is conflicted, so no other provider can
                 // be chosen. if we already have one hit, we're done.
                 // otherwise, we continue to see if a possible later candidate
