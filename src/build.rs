@@ -389,6 +389,12 @@ impl<'a: 'b, 'b> Build<'b> {
     ) -> Result<ResolverResult, Error> {
         if verbose {
             let mut resolver = Resolver::<true>::new(self, disabled_modules);
+            resolver.trace(|| {
+                format!(
+                    "resolving binary {} for builder {}:",
+                    self.binary.name, self.builder.name
+                )
+            });
             resolver
                 .resolve_module_deep(&self.binary)
                 .with_context(|| {
