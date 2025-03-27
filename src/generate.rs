@@ -115,6 +115,7 @@ impl Generator {
     pub fn execute(
         self,
         partitioner: Option<Box<dyn task_partitioner::Partitioner>>,
+        verbose: bool,
     ) -> Result<GenerateResult> {
         let start = Instant::now();
 
@@ -256,6 +257,7 @@ impl Generator {
                     self.disable.as_ref(),
                     &self.cli_env.as_ref(),
                     self.collect_insights,
+                    verbose,
                 )
                 .with_context(|| format!("binary \"{}\"", bin.name))
                 .with_context(|| format!("builder \"{}\"", builder.name))
@@ -347,6 +349,7 @@ fn configure_build(
     disable: Option<&Vec<String>>,
     cli_env: &Option<&Env>,
     collect_insights: bool,
+    verbose: bool,
 ) -> Result<ConfigureBuildResult> {
     let mut reason = NoBuildReason::default();
 
@@ -416,7 +419,7 @@ fn configure_build(
 
     // resolve all dependency names to specific modules.
     // this also determines if all dependencies are met
-    let resolved = match build.resolve_selects(disabled_modules) {
+    let resolved = match build.resolve_selects(disabled_modules, verbose) {
         Err(e) => {
             reason.msg(format!("laze: not building {:?}", e));
             println!("{}", reason);
