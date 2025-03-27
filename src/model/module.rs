@@ -5,6 +5,7 @@ use std::hash::{Hash, Hasher};
 use anyhow::Error;
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{indexset, IndexMap, IndexSet};
+use serde::{Deserialize, Serialize};
 
 use crate::build::ResolverResult;
 use crate::download;

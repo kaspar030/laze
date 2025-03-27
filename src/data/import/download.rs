@@ -1,6 +1,6 @@
 use std::fs::remove_dir_all;
 
-use anyhow::{Context as _, Error};
+use anyhow::{anyhow, Context as _, Error};
 use camino::{Utf8Path, Utf8PathBuf};
 use git_cache::GitCacheClonerBuilder;
 use rust_embed::RustEmbed;

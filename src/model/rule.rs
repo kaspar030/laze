@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::hash::{Hash, Hasher};
 
+use serde::{Deserialize, Serialize};
+
 use crate::serde_bool_helpers::default_as_false;
 
 #[derive(Debug, Serialize, Deserialize, Eq, Clone)]

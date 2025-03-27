@@ -1,4 +1,4 @@
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 

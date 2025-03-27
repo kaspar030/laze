@@ -3,6 +3,7 @@ use std::hash::{Hash, Hasher};
 
 use camino::Utf8PathBuf;
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 
 use crate::model::VarExportSpec;
 

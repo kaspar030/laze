@@ -4,9 +4,6 @@
 //! This is intentionally separate from the main generate types in order to be a
 //! bit more flexible on changes to the format.
 
-extern crate pathdiff;
-extern crate serde_yaml;
-
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use serde_yaml::Value;
@@ -17,7 +14,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Context as _, Error, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use semver::Version;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use treestate::{FileState, TreeState};
 

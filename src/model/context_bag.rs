@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::{iter::Filter, slice::Iter};
 
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use indexmap::IndexSet;
 
 use super::{BlockAllow, Context, Module};

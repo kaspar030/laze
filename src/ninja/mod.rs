@@ -7,6 +7,7 @@ use std::hash::{Hash, Hasher};
 use std::process::{Command, ExitStatus, Stdio};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use derive_builder::Builder;
 use indexmap::IndexMap;
 
 use crate::model::VarExportSpec;

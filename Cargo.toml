@@ -25,13 +25,11 @@ serde = "1.0.219"
 serde_derive = "1.0.215"
 serde_yaml = "0.9.34"
 shell-words = "1.1.0"
-simple-error = "0.3.1"
 treestate = "0.1.1"
 im = { version = "15.1.0", features = ["rayon", "serde"] }
 signal-hook = "0.3.17"
 mimalloc = { version = "0.1.44", default-features = false }
 build_uuid = "0.3.1"
-uuid = { version = "1.16.0", features = ["serde"] }
 solvent = { version = "0.8.3", features = ["deterministic"] }
 rust-embed = "8.6.0"
 task_partitioner = "0.1.1"
