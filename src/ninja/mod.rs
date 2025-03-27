@@ -128,12 +128,12 @@ impl<'a> NinjaRule<'a> {
             }
         }
 
-        let expanded = nested_env::expand_eval(&self.command, env, IfMissing::Empty)?;
+        let expanded = nested_env::expand_eval(&self.command, env, IfMissing::Ignore)?;
         command.push_str(&expanded);
         self.command = command.into();
 
         if let NinjaRuleDeps::GCC(s) = self.deps {
-            let expanded = nested_env::expand_eval(&s, env, IfMissing::Empty)?;
+            let expanded = nested_env::expand_eval(&s, env, IfMissing::Ignore)?;
             self.deps = NinjaRuleDeps::GCC(expanded)
         }
 

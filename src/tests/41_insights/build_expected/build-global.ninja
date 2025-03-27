@@ -1,11 +1,11 @@
 builddir = build
 build ALWAYS: phony
-rule CC_6858609285403819907
-  command = echo  ${in} > ${out}
+rule CC_16849476969032860532
+  command = echo ${EXPORT_VAR} ${in} > ${out}
   description = CC
 
-build build/objects/app.12070292612711521013.o: $
-    CC_6858609285403819907 $
+build build/objects/app.18195757928692505752.o: $
+    CC_16849476969032860532 $
     app.c
 
 rule CC_2200333248438117254
@@ -30,7 +30,7 @@ rule LINK_5506617845631750009
 
 build build/default/app2/app2.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o $
+    build/objects/app.18195757928692505752.o $
     build/objects/module.11950057073161860527.o $
     build/objects/module.12888704424184336919.o
 

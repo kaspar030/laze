@@ -1,11 +1,11 @@
 builddir = build
 build ALWAYS: phony
-rule CC_6858609285403819907
-  command = echo  ${in} > ${out}
+rule CC_18347987957482689929
+  command = echo ${VAR} ${in} > ${out}
   description = CC
 
-build build/objects/app.12070292612711521013.o: $
-    CC_6858609285403819907 $
+build build/objects/app.14297208332835777733.o: $
+    CC_18347987957482689929 $
     app.c
 
 rule LINK_5506617845631750009
@@ -14,37 +14,37 @@ rule LINK_5506617845631750009
 
 build build/context1/app1/app1.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o
+    build/objects/app.14297208332835777733.o
 
 build build/context2/app2/app2.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o
+    build/objects/app.14297208332835777733.o
 
 build build/context2/app12/app12.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o
+    build/objects/app.14297208332835777733.o
 
 build build/context12/app1/app1.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o
+    build/objects/app.14297208332835777733.o
 
 build build/context12/app2/app2.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o
+    build/objects/app.14297208332835777733.o
 
 build build/context12/app12/app12.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o
+    build/objects/app.14297208332835777733.o
 
 build build/context21/app1/app1.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o
+    build/objects/app.14297208332835777733.o
 
 build build/context21/app2/app2.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o
+    build/objects/app.14297208332835777733.o
 
 build build/context21/app12/app12.elf: $
     LINK_5506617845631750009 $
-    build/objects/app.12070292612711521013.o
+    build/objects/app.14297208332835777733.o
 
