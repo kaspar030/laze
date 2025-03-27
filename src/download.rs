@@ -132,8 +132,13 @@ impl Download {
         env: &HashMap<&String, String>,
     ) -> Result<Vec<String>> {
         let patches = self.patches.as_ref().unwrap();
+        let mut rule_env = IndexMap::new();
         let rulename = match &self.source {
-            Source::Git { .. } => "GIT_PATCH",
+            Source::Git(Git::Commit { url, commit }) => {
+                rule_env.insert("commit".to_string(), commit.to_string());
+                rule_env.insert("url".to_string(), url.to_string());
+                "GIT_PATCH"
+            }
             _ => return Err(anyhow!("unsupported download type for patching")),
         };
 
@@ -163,6 +168,7 @@ impl Download {
             .inputs(patches)
             .out(tagfile_patched.as_path())
             .deps(Some(download_dep))
+            .env(&rule_env)
             .build()
             .unwrap();
 
