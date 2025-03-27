@@ -100,7 +100,7 @@ impl Download {
             None => panic!("missing {} rule for module {}", rulename, module.name),
         };
 
-        let ninja_download_rule = download_rule.to_ninja(env).unwrap();
+        let ninja_download_rule = download_rule.to_ninja(env)?;
 
         // "srcdir" is filled in data.rs
         let srcdir = module.srcdir.as_ref().unwrap();
