@@ -1,7 +1,8 @@
-use anyhow::{Context, Error};
+use anyhow::{anyhow, Context, Error};
 use evalexpr::EvalexprError;
 use im::{hashmap::Entry, vector, HashMap, Vector};
 use itertools::join;
+use serde::{Deserialize, Serialize};
 
 mod expand;
 mod expr;

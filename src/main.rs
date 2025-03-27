@@ -1,25 +1,9 @@
-#[macro_use]
-extern crate anyhow;
-extern crate clap;
-
-#[macro_use]
-extern crate simple_error;
-
-#[macro_use]
-extern crate derive_builder;
-
-extern crate pathdiff;
-
 use core::sync::atomic::AtomicBool;
-
 use std::env;
 use std::str;
 use std::sync::{Arc, OnceLock};
 
-#[macro_use]
-extern crate serde_derive;
-
-use anyhow::{Context as _, Error, Result};
+use anyhow::{anyhow, Context as _, Error, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use git_cache::GitCache;
 use indexmap::IndexSet;
@@ -157,9 +141,12 @@ fn try_main() -> Result<i32> {
             return Ok(0);
         }
         Some(("completion", matches)) => {
-            fn print_completions<G: clap_complete::Generator>(gen: G, cmd: &mut clap::Command) {
+            fn print_completions<G: clap_complete::Generator>(
+                generator: G,
+                cmd: &mut clap::Command,
+            ) {
                 clap_complete::generate(
-                    gen,
+                    generator,
                     cmd,
                     cmd.get_name().to_string(),
                     &mut std::io::stdout(),

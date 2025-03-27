@@ -1,4 +1,4 @@
-use anyhow::{Context as _, Error, Result};
+use anyhow::{anyhow, Context as _, Error, Result};
 use im_rc::{HashMap, HashSet, Vector};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -11,7 +11,6 @@ pub struct Build<'a> {
     binary: Module,
     builder: &'a Context,
     pub build_context: Context,
-    //modules: IndexMap<&'a String, &'a Module>,
 }
 
 struct Resolver<'a, const VERBOSE: bool> {

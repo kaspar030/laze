@@ -10,12 +10,14 @@ use std::hash::Hasher;
 use std::io::prelude::*;
 use std::time::Instant;
 
-use anyhow::{Context as _, Result};
+use anyhow::{anyhow, Context as _, Result};
 use camino::{Utf8Path, Utf8PathBuf};
+use derive_builder::Builder;
 use im::Vector;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use solvent::DepGraph;
 
 use crate::{
