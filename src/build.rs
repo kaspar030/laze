@@ -1,4 +1,5 @@
 use anyhow::{Context as _, Error, Result};
+use im_rc::{HashMap, HashSet, Vector};
 use indexmap::{IndexMap, IndexSet};
 
 use crate::model::{Context, ContextBag, Dependency, Module};
@@ -12,12 +13,10 @@ pub struct Build<'a> {
     //modules: IndexMap<&'a String, &'a Module>,
 }
 
-struct Resolver<'a> {
+struct Resolver<'a, const VERBOSE: bool> {
     build: &'a Build<'a>,
-    module_set: IndexMap<&'a String, &'a Module>,
-    if_then_deps: IndexMap<String, Vec<Dependency<String>>>,
-    disabled_modules: IndexSet<String>,
-    provided_by: IndexMap<&'a String, Vec<&'a Module>>,
+    state_stack: Vec<ResolverState<'a>>,
+    state: ResolverState<'a>,
 }
 
 pub struct ResolverResult<'a> {
@@ -25,56 +24,67 @@ pub struct ResolverResult<'a> {
     pub providers: IndexMap<&'a String, Vec<&'a Module>>,
 }
 
-#[derive(Debug)]
-struct ResolverState {
-    module_set_prev_len: usize,
-    if_then_deps_prev_len: usize,
-    disabled_modules_prev_len: usize,
-    provided_prev_len: usize,
+#[derive(Debug, Clone, Default)]
+struct ResolverState<'a> {
+    module_set: HashSet<&'a String>,
+    module_list: Vector<(&'a String, &'a Module)>,
+    if_then_deps: HashMap<String, Vector<Dependency<String>>>,
+    disabled_modules: HashSet<String>,
+    provided_by: HashMap<&'a String, Vector<&'a Module>>,
 }
 
-impl<'a> Resolver<'a> {
-    fn new(build: &'a Build<'a>, disabled_modules: IndexSet<String>) -> Resolver<'a> {
+impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
+    fn new(build: &'a Build<'a>, mut disabled_modules: IndexSet<String>) -> Self {
+        let disabled_modules = disabled_modules.drain(..).collect();
         Self {
             build,
-            module_set: IndexMap::new(),
-            if_then_deps: IndexMap::new(),
-            provided_by: IndexMap::new(),
-            disabled_modules,
+            state_stack: Vec::new(),
+            state: ResolverState {
+                disabled_modules,
+                ..Default::default()
+            },
         }
     }
 
-    fn state(&self) -> ResolverState {
-        ResolverState {
-            module_set_prev_len: self.module_set.len(),
-            if_then_deps_prev_len: self.if_then_deps.len(),
-            disabled_modules_prev_len: self.disabled_modules.len(),
-            provided_prev_len: self.provided_by.len(),
-        }
+    fn state_push(&mut self) {
+        let new_state = self.state.clone();
+        let old_state = core::mem::replace(&mut self.state, new_state);
+        self.state_stack.push(old_state);
     }
 
-    fn reset(&mut self, state: ResolverState) {
-        self.module_set.truncate(state.module_set_prev_len);
-        self.if_then_deps.truncate(state.if_then_deps_prev_len);
-        self.disabled_modules
-            .truncate(state.disabled_modules_prev_len);
-        self.provided_by.truncate(state.provided_prev_len)
+    fn state_pop(&mut self) {
+        self.state = self
+            .state_stack
+            .pop()
+            .expect("should not pop below last stack");
     }
 
-    fn result(mut self) -> ResolverResult<'a> {
-        // Resolver's state `reset()` works index based (it can truncate indexes
-        // to a previous lower index), but `add_provided_by()` adds to the values
-        // of even lower indexes.
-        // Here, we fix up those so only actually selected modules end up in the
-        // "provided_by" lists.
-        self.provided_by.retain(|_, list| {
-            list.retain(|module| self.module_set.contains_key(&module.name));
-            !list.is_empty()
-        });
-        ResolverResult {
-            modules: self.module_set,
-            providers: self.provided_by,
+    fn state_indent(&self) -> String {
+        let mut res = String::new();
+        for _ in 0..self.state_stack.len() {
+            res.push_str("  ");
         }
+        res
+    }
+
+    fn result(self) -> ResolverResult<'a> {
+        let modules = self
+            .state
+            .module_list
+            .iter()
+            .map(|(x, y)| (*x, *y))
+            .collect();
+        let providers = self
+            .state
+            .provided_by
+            .iter()
+            .map(|(x, y)| {
+                let vec = y.iter().cloned().collect();
+                (*x, vec)
+            })
+            .collect();
+
+        ResolverResult { modules, providers }
     }
 
     fn resolve_module_name_deep(&mut self, module_name: &String) -> Result<(), Error> {
@@ -90,27 +100,43 @@ impl<'a> Resolver<'a> {
         self.resolve_module_deep(module)
     }
 
+    fn trace<F>(&self, f: F)
+    where
+        F: FnOnce() -> String,
+    {
+        if VERBOSE {
+            println!("{}{}", self.state_indent(), f());
+        }
+    }
+
     fn resolve_module_deep(&mut self, module: &'a Module) -> Result<(), Error> {
-        let state = self.state();
-        if self.module_set.contains_key(&module.name) {
+        self.trace(|| format!("resolving {}", module.name));
+        if self.state.module_set.contains(&module.name) {
+            self.trace(|| format!("resolving {}: already selected", module.name));
             return Ok(());
         }
 
-        if self.disabled_modules.contains(&module.name) {
+        if self.state.disabled_modules.contains(&module.name) {
+            self.trace(|| format!("resolving {}: disabled", module.name));
             return Err(anyhow!("\"{}\" is disabled/conflicted", module.name));
         }
 
         if let Some(conflicts) = &module.conflicts {
             for conflicted in conflicts {
-                if self.module_set.contains_key(conflicted) {
-                    self.reset(state);
+                if self.state.module_set.contains(conflicted) {
+                    self.trace(|| format!("resolving {}: conflicts {conflicted}", module.name));
                     return Err(anyhow!("\"{}\" conflicts \"{}\"", module.name, conflicted));
                 }
 
-                if let Some(others) = self.provided_by.get(conflicted) {
+                if let Some(others) = self.state.provided_by.get(conflicted) {
                     let others_wrapped: Vec<String> =
                         others.iter().map(|m| format!("\"{}\"", m.name)).collect();
-                    self.reset(state);
+                    self.trace(|| {
+                        format!(
+                            "resolving {}: conflicts already provided {conflicted} (provided by: {})",
+                            module.name, others_wrapped.join(", ")
+                        )
+                    });
                     return Err(anyhow!(
                         "\"{}\" conflicts already provided \"{}\" (by {})",
                         module.name,
@@ -126,16 +152,21 @@ impl<'a> Resolver<'a> {
         // before, which implicitly conflicts this module.
         if let Some(provides) = &module.provides {
             for provided in provides {
-                if self.disabled_modules.contains(provided) {
-                    self.reset(state);
+                if self.state.disabled_modules.contains(provided) {
+                    self.trace(|| {
+                        format!("resolving {}: provides disabled {provided}", &module.name)
+                    });
                     bail!("provides disabled/conflicted module \"{}\"", provided);
                 }
             }
         }
 
+        // new state needed here
+        self.state_push();
+
         // register this module's conflicts
         if let Some(conflicts) = &module.conflicts {
-            self.disabled_modules.extend(conflicts.iter().cloned());
+            self.state.disabled_modules.extend(conflicts.iter());
         }
 
         // all provided modules get added to the "provided_by" map, so later
@@ -146,7 +177,8 @@ impl<'a> Resolver<'a> {
             }
         }
 
-        self.module_set.insert(&module.name, module);
+        self.state.module_set.insert(&module.name);
+        self.state.module_list.push_back((&module.name, module));
 
         // late if_then_deps are dependencies that are induced by if_then_deps of
         // other modules.
@@ -154,33 +186,35 @@ impl<'a> Resolver<'a> {
         // if_then_deps contains "A: B -> C"
         // Now if B gets resolved, C is now also a dependency.
         let mut late_if_then_deps = Vec::new();
-        if let Some(deps) = self.if_then_deps.get(&module.name) {
+        if let Some(deps) = self.state.if_then_deps.get(&module.name) {
             late_if_then_deps.extend(deps.iter().cloned());
         }
 
         for dep in module.selects.iter().chain(late_if_then_deps.iter()) {
-            let (dep_name, mut optional) = match dep {
+            let (dep_name, optional) = match dep {
                 Dependency::Hard(name) => (name, false),
                 Dependency::Soft(name) => (name, true),
                 Dependency::IfThenHard(other, name) => {
-                    if self.module_set.contains_key(other) {
+                    if self.state.module_set.contains(other) {
                         (name, false)
                     } else {
-                        self.if_then_deps
+                        self.state
+                            .if_then_deps
                             .entry(other.clone())
-                            .or_insert_with(Vec::new)
-                            .push(Dependency::Hard(name.clone()));
+                            .or_default()
+                            .push_back(Dependency::Hard(name.clone()));
                         continue;
                     }
                 }
                 Dependency::IfThenSoft(other, name) => {
-                    if self.module_set.contains_key(other) {
+                    if self.state.module_set.contains(other) {
                         (name, true)
                     } else {
-                        self.if_then_deps
+                        self.state
+                            .if_then_deps
                             .entry(other.clone())
-                            .or_insert_with(Vec::new)
-                            .push(Dependency::Soft(name.clone()));
+                            .or_default()
+                            .push_back(Dependency::Soft(name.clone()));
 
                         continue;
                     }
@@ -189,11 +223,13 @@ impl<'a> Resolver<'a> {
 
             // TODO: (consistency): this should be handled *after* modules
             // which match the exact name
+            let mut was_provided = false;
             if let Some(provided) = &self.build.build_context.provided {
                 if let Some(providing_modules) = provided.get(dep_name) {
                     if self.resolve_module_list(providing_modules, dep_name) > 0 {
-                        optional = true;
-                        if self.disabled_modules.contains(dep_name) {
+                        self.trace(|| format!("got at least one provider for `{dep_name}`"));
+                        was_provided = true;
+                        if self.state.disabled_modules.contains(dep_name) {
                             // one provider conflicted the dependency name,
                             // we'll need to skip the possible exact matching
                             // module.
@@ -207,19 +243,28 @@ impl<'a> Resolver<'a> {
                 .resolve_module_name_deep(dep_name)
                 .with_context(|| format!("\"{}\" cannot resolve \"{}\"", module.name, dep_name))
             {
-                if optional {
+                self.trace(|| format!("resolving {dep_name}: failed (optional={optional}, was_provided={was_provided})"));
+
+                if optional || was_provided {
                     continue;
                 } else {
-                    self.reset(state);
+                    self.state_pop();
                     return Err(err);
                 }
             }
         }
+
+        self.state_stack.pop();
+
         Ok(())
     }
 
     fn add_provided_by(&mut self, name: &'a String, module: &'a Module) {
-        self.provided_by.entry(name).or_default().push(module);
+        self.state
+            .provided_by
+            .entry(name)
+            .or_default()
+            .push_back(module);
     }
 
     fn resolve_module_list(
@@ -227,15 +272,17 @@ impl<'a> Resolver<'a> {
         providing_modules: &IndexSet<String>,
         provided_name: &String,
     ) -> usize {
+        self.trace(|| format!("resolving provided name {provided_name}"));
         let mut count = 0usize;
         for module_name in providing_modules {
-            if self.module_set.contains_key(module_name) {
+            if self.state.module_set.contains(module_name) {
                 // this module is already selected. up the count and try next
+                self.trace(|| format!("  `{module_name}` already selected"));
                 count += 1;
                 continue;
             }
 
-            if self.disabled_modules.contains(provided_name) {
+            if self.state.disabled_modules.contains(provided_name) {
                 // this "provides" is conflicted, so no other provider can
                 // be chosen. if we already have one hit, we're done.
                 // otherwise, we continue to see if a possible later candidate
@@ -323,18 +370,32 @@ impl<'a: 'b, 'b> Build<'b> {
     pub fn resolve_selects(
         &self,
         disabled_modules: IndexSet<String>,
+        verbose: bool,
     ) -> Result<ResolverResult, Error> {
-        let mut resolver = Resolver::new(self, disabled_modules);
+        if verbose {
+            let mut resolver = Resolver::<true>::new(self, disabled_modules);
+            resolver
+                .resolve_module_deep(&self.binary)
+                .with_context(|| {
+                    format!(
+                        "binary \"{}\" for builder \"{}\"",
+                        self.binary.name, self.builder.name
+                    )
+                })?;
 
-        resolver
-            .resolve_module_deep(&self.binary)
-            .with_context(|| {
-                format!(
-                    "binary \"{}\" for builder \"{}\"",
-                    self.binary.name, self.builder.name
-                )
-            })?;
+            Ok(resolver.result())
+        } else {
+            let mut resolver = Resolver::<false>::new(self, disabled_modules);
+            resolver
+                .resolve_module_deep(&self.binary)
+                .with_context(|| {
+                    format!(
+                        "binary \"{}\" for builder \"{}\"",
+                        self.binary.name, self.builder.name
+                    )
+                })?;
 
-        Ok(resolver.result())
+            Ok(resolver.result())
+        }
     }
 }

@@ -307,7 +307,7 @@ fn try_main() -> Result<i32> {
                 .unwrap();
 
             // arguments parsed, launch generation of ninja file(s)
-            let builds = generator.execute(partitioner)?;
+            let builds = generator.execute(partitioner, verbose > 1)?;
 
             if let Some(info_outfile) = info_outfile {
                 use std::fs::File;
