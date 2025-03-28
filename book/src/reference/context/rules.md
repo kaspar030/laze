@@ -29,3 +29,4 @@ contexts:
 - [`rspfile_content`](./rule/rspfile_content.md)
 - [`pool`](./rule/pool.md)
 - [`always`](./rule/always.md)
+- [`shareable`](./rule/shareable.md)

@@ -41,6 +41,7 @@
       - [rspfile_content](./reference/context/rule/rspfile_content.md)
       - [pool](./reference/context/rule/pool.md)
       - [always](./reference/context/rule/always.md)
+      - [shareable](./reference/context/rule/shareable.md)
     - [tasks]()
       - [cmd]()
       - [build]()

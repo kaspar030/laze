@@ -233,6 +233,9 @@ pub struct YamlRule {
     #[serde(default = "default_as_false")]
     pub always: bool,
 
+    #[serde(default = "default_as_true", alias = "sharable")]
+    pub shareable: bool,
+
     #[serde(rename = "meta")]
     _meta: Option<Value>,
 }
@@ -253,6 +256,7 @@ impl From<YamlRule> for Rule {
             gcc_deps: yaml_rule.gcc_deps,
             rspfile: yaml_rule.rspfile,
             rspfile_content: yaml_rule.rspfile_content,
+            shareable: yaml_rule.shareable,
             pool: yaml_rule.pool,
             description: yaml_rule.description,
             export: yaml_rule

@@ -866,13 +866,23 @@ fn configure_build(
                 let rule_hash = ninja_rule.get_hash(None);
 
                 // 3. determine output path (e.g., name of C object file)
-                let out = srcpath.with_extension(format!(
-                    "{}.{}",
-                    rule_hash ^ build_deps_hash,
-                    &rule.out.as_ref().unwrap()
-                ));
+                let out_ext = if rule.shareable {
+                    &format!(
+                        "{}.{}",
+                        rule_hash ^ build_deps_hash,
+                        &rule.out.as_ref().unwrap()
+                    )
+                } else {
+                    rule.out.as_ref().unwrap()
+                };
+
+                let out = srcpath.with_extension(out_ext);
 
                 let mut object = objdir.clone();
+                if !rule.shareable {
+                    object.push(&builder.name);
+                    object.push(&binary.name);
+                }
                 object.push(out);
 
                 // 4. render ninja "build:" snippet and add to this build's
