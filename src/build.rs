@@ -1,10 +1,39 @@
+use std::fmt::Display;
+
 use anyhow::{anyhow, Context as _, Error, Result};
 use im_rc::{HashMap, HashSet, Vector};
 use indexmap::{IndexMap, IndexSet};
-use itertools::Itertools;
+use itertools::{enumerate, Itertools};
 
 use crate::model::{Context, ContextBag, Dependency, Module};
 use crate::nested_env::{self, Env};
+
+#[derive(Debug)]
+struct ErrorVec {
+    msg: String,
+    errors: Vec<Error>,
+}
+
+impl ErrorVec {
+    fn new(msg: String, errors: Vec<Error>) -> Self {
+        Self { msg, errors }
+    }
+}
+
+impl std::error::Error for ErrorVec {}
+impl std::fmt::Display for ErrorVec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("{}:\n", self.msg))?;
+        for (i, err) in enumerate(&self.errors) {
+            f.write_str(&format!("{}:\n", i + 1))?;
+            for cause in err.chain() {
+                Display::fmt(&cause, f)?;
+                f.write_str("\n")?;
+            }
+        }
+        Ok(())
+    }
+}
 
 pub struct Build<'a> {
     bag: &'a ContextBag,
@@ -248,9 +277,12 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
             // TODO: (consistency): this should be handled *after* modules
             // which match the exact name
             let mut was_provided = false;
+            let mut provided_errors = None;
             if let Some(provided) = &self.build.build_context.provided {
                 if let Some(providing_modules) = provided.get(dep_name) {
-                    if self.resolve_module_list(providing_modules, dep_name) > 0 {
+                    let res = self.resolve_module_list(providing_modules, dep_name);
+
+                    if res.is_ok() {
                         self.trace(|| format!("got at least one provider for `{dep_name}`"));
                         was_provided = true;
                         if self.state.disabled_modules.contains_key(dep_name) {
@@ -259,23 +291,30 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
                             // module.
                             continue;
                         }
+                    } else if let Err(err) = res {
+                        provided_errors = Some(err);
                     }
                 }
             }
 
-            if let Err(err) = self
-                .resolve_module_name_deep(dep_name)
-                .with_context(|| format!("\"{}\" cannot resolve \"{}\"", module.name, dep_name))
-            {
+            if let Err(err) = self.resolve_module_name_deep(dep_name) {
                 self.trace(|| format!("resolving {dep_name}: failed (optional={optional}, was_provided={was_provided})"));
 
                 if optional || was_provided {
                     continue;
                 } else {
                     self.state_pop();
-                    return Err(err);
+                    return if let Some(mut provided_errors) = provided_errors {
+                        provided_errors.errors.push(err);
+                        Err(provided_errors.into())
+                    } else {
+                        Err(err)
+                    }
+                    .with_context(|| {
+                        format!("\"{}\" cannot resolve \"{}\"", module.name, dep_name)
+                    });
                 }
-            }
+            };
         }
 
         self.state_stack.pop();
@@ -295,8 +334,10 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
         &mut self,
         providing_modules: &IndexSet<String>,
         provided_name: &String,
-    ) -> usize {
+    ) -> Result<(), ErrorVec> {
         self.trace(|| format!("resolving provided name {provided_name}"));
+
+        let mut errors: Vec<Error> = Vec::new();
         let mut count = 0usize;
         for module_name in providing_modules {
             if self.state.module_set.contains(module_name) {
@@ -319,11 +360,24 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
                 }
             }
 
-            if self.resolve_module_name_deep(module_name).is_ok() {
+            let res = self.resolve_module_name_deep(module_name);
+            if let Err(e) = res {
+                errors.push(e);
+            } else {
                 count += 1;
             }
         }
-        count
+        if count > 0 {
+            Ok(())
+        } else {
+            self.trace(|| {
+                format!("resolving provided name {provided_name}: no provider could be resolved")
+            });
+            Err(ErrorVec::new(
+                format!("Could not resolve the following providers of \"{provided_name}\""),
+                errors,
+            ))
+        }
     }
 }
 
