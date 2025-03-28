@@ -120,12 +120,14 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
         }
 
         if let Some(disabled_by) = self.state.disabled_modules.get(&module.name) {
-            let disabled_by = disabled_by.iter().join(", ");
-            self.trace(|| format!("resolving {}: disabled by {disabled_by}", module.name));
-            return Err(anyhow!(
-                "\"{}\" is disabled/conflicted by {disabled_by}",
-                module.name
-            ));
+            let msg = if disabled_by.is_empty() {
+                "disabled/conflicted by context or cli"
+            } else {
+                let disabled_by = disabled_by.iter().join(", ");
+                &format!("disabled/conflicted by {disabled_by}")
+            };
+            self.trace(|| format!("resolving {}: {msg}", module.name));
+            return Err(anyhow!("\"{}\" is {msg}", module.name));
         }
 
         if let Some(conflicts) = &module.conflicts {
@@ -160,10 +162,17 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
         if let Some(provides) = &module.provides {
             for provided in provides {
                 if let Some(disabled_by) = self.state.disabled_modules.get(provided) {
-                    let disabled_by = disabled_by.iter().join(", ");
-                    let msg = format!(
-                        "provides `{provided}` which is disabled/conflicted by {disabled_by}"
-                    );
+                    let msg = if disabled_by.is_empty() {
+                        format!(
+                            "provides `{provided}` which is disabled/conflicted by context or cli"
+                        )
+                    } else {
+                        let disabled_by = disabled_by.iter().join(", ");
+                        format!(
+                            "provides `{provided}` which is disabled/conflicted by {disabled_by}"
+                        )
+                    };
+
                     self.trace(|| format!("resolving {}: {msg}", module.name));
                     return Err(anyhow!(msg));
                 }
