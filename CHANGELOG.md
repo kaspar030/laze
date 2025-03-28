@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- feat: make output sharing optional (#687)
+- feat: add dependency resolution verbose output
+- feat: track why a module was disabled, improve error msgs
+- feat: expose errors resolving module providers (#694)
+- feat: improve "conflicted by" error message (#693)
+
+### Fixed
+
+- fix(rule): pass through rule variables that are not in env (#691)
+- fix: pass git commit and url to `GIT_PATCH` rule (#690)
+
 ## [0.1.34] - 2025-03-24
 
 ### Fixed
