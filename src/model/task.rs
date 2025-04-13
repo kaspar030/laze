@@ -46,8 +46,13 @@ impl Task {
         args: Option<&Vec<&str>>,
         verbose: u8,
     ) -> Result<(), Error> {
+        if verbose > 0 {
+            if let Some(args) = args {
+                println!("laze: ... with args: {args:?}");
+            }
+        }
+
         for cmd in &self.cmd {
-            use shell_words::join;
             use std::process::Command;
 
             let mut command = if cfg!(target_family = "windows") {
@@ -79,11 +84,7 @@ impl Task {
                 }
             }
 
-            if let Some(args) = args {
-                command.arg(cmd.clone() + " " + &join(args).to_owned());
-            } else {
-                command.arg(cmd);
-            }
+            command.arg(cmd);
 
             if verbose > 0 {
                 let command_with_args = command
@@ -93,6 +94,11 @@ impl Task {
                     .collect_vec();
 
                 println!("laze: executing `{}`", command_with_args.join(" "));
+            }
+
+            if let Some(args) = args {
+                command.arg("--");
+                command.args(args);
             }
 
             if self.ignore_ctrl_c {
