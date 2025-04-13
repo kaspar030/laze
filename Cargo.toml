@@ -24,7 +24,6 @@ rayon = "1.10.0"
 serde = "1.0.219"
 serde_derive = "1.0.219"
 serde_yaml = "0.9.34"
-shell-words = "1.1.0"
 treestate = "0.1.1"
 im = { version = "15.1.0", features = ["rayon", "serde"] }
 signal-hook = "0.3.17"
