@@ -1,13 +1,15 @@
 use std::ffi::OsStr;
 use std::path::Path;
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{Context, Error, Result};
+use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::nested_env;
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
+use crate::subst_ext::{substitute, IgnoreMissing, LocalVec};
 use crate::EXIT_ON_SIGINT;
 
 use super::shared::VarExportSpec;
@@ -27,12 +29,16 @@ pub struct Task {
     pub workdir: Option<String>,
 }
 
-#[derive(Error, Debug, Serialize, Deserialize)]
+#[derive(Error, Debug, Serialize, Deserialize, Clone)]
 pub enum TaskError {
     #[error("required variable `{var}` not set")]
     RequiredVarMissing { var: String },
     #[error("required module `{module}` not selected")]
     RequiredModuleMissing { module: String },
+    #[error("task command had non-zero exit code")]
+    CmdExitError,
+    #[error("task `{task_name}` not found")]
+    TaskNotFound { task_name: String },
 }
 
 impl Task {
@@ -45,88 +51,132 @@ impl Task {
         start_dir: &Path,
         args: Option<&Vec<&str>>,
         verbose: u8,
+        all_tasks: &IndexMap<String, Result<Task, TaskError>>,
     ) -> Result<(), Error> {
-        if verbose > 0 {
-            if let Some(args) = args {
-                println!("laze: ... with args: {args:?}");
-            }
-        }
-
-        for cmd in &self.cmd {
-            use std::process::Command;
-
-            let mut command = if cfg!(target_family = "windows") {
-                let mut cmd = Command::new("cmd");
-                cmd.arg("/C");
-                cmd
-            } else {
-                let mut sh = Command::new("sh");
-                sh.arg("-c");
-                sh
-            };
-
-            let cmd = cmd.replace("$$", "$");
-
-            if let Some(working_directory) = &self.workdir {
-                // This includes support for absolute working directories through .join
-                command.current_dir(start_dir.join(working_directory));
-            } else {
-                command.current_dir(start_dir);
-            }
-
-            // handle "export:" (export laze variables to task shell environment)
-            if let Some(export) = &self.export {
-                for entry in export {
-                    let VarExportSpec { variable, content } = entry;
-                    if let Some(val) = content {
-                        command.env(variable, val);
-                    }
+        for cmd_full in &self.cmd {
+            if verbose > 0 {
+                println!("laze: command: '{cmd_full}'");
+                if let Some(args) = args {
+                    println!("laze:    args: {args:?}");
                 }
             }
 
-            command.arg(cmd);
-
-            if verbose > 0 {
-                let command_with_args = command
-                    .get_args()
-                    .skip(1)
-                    .map(OsStr::to_string_lossy)
-                    .collect_vec();
-
-                println!("laze: executing `{}`", command_with_args.join(" "));
+            if let Some(cmd) = cmd_full.strip_prefix(":") {
+                let cmd = create_cmd_vec(cmd, args);
+                self.execute_subtask(cmd, start_dir, verbose, all_tasks)
+            } else {
+                self.execute_shell_cmd(cmd_full, args, start_dir, verbose)
             }
-
-            if let Some(args) = args {
-                command.arg("--");
-                command.args(args);
-            }
-
-            if self.ignore_ctrl_c {
-                EXIT_ON_SIGINT
-                    .get()
-                    .unwrap()
-                    .clone()
-                    .store(false, std::sync::atomic::Ordering::SeqCst);
-            }
-
-            // run command, wait for status
-            let status = command.status().expect("executing command");
-
-            if self.ignore_ctrl_c {
-                EXIT_ON_SIGINT
-                    .get()
-                    .unwrap()
-                    .clone()
-                    .store(true, std::sync::atomic::Ordering::SeqCst);
-            }
-
-            if !status.success() {
-                return Err(anyhow!("task failed"));
-            }
+            .with_context(|| format!("command `{cmd_full}`"))?;
         }
         Ok(())
     }
 
+    fn execute_shell_cmd(
+        &self,
+        cmd: &str,
+        args: Option<&Vec<&str>>,
+        start_dir: &Path,
+        verbose: u8,
+    ) -> Result<(), Error> {
+        use std::process::Command;
+        let mut command = if cfg!(target_family = "windows") {
+            let mut cmd = Command::new("cmd");
+            cmd.arg("/C");
+            cmd
+        } else {
+            let mut sh = Command::new("sh");
+            sh.arg("-c");
+            sh
+        };
+
+        if let Some(working_directory) = &self.workdir {
+            // This includes support for absolute working directories through .join
+            command.current_dir(start_dir.join(working_directory));
+        } else {
+            command.current_dir(start_dir);
+        }
+
+        // handle "export:" (export laze variables to task shell environment)
+        if let Some(export) = &self.export {
+            for entry in export {
+                let VarExportSpec { variable, content } = entry;
+                if let Some(val) = content {
+                    command.env(variable, val);
+                }
+            }
+        }
+
+        // TODO: is this still needed?
+        let cmd = cmd.replace("$$", "$");
+
+        command.arg(cmd);
+
+        if let Some(args) = args {
+            command.arg("--");
+            command.args(args);
+        }
+
+        if verbose > 0 {
+            let command_with_args = command
+                .get_args()
+                .skip(1)
+                .map(OsStr::to_string_lossy)
+                .collect_vec();
+
+            println!("laze: executing {command_with_args:?}");
+        }
+
+        if self.ignore_ctrl_c {
+            EXIT_ON_SIGINT
+                .get()
+                .unwrap()
+                .clone()
+                .store(false, std::sync::atomic::Ordering::SeqCst);
+        }
+        // run command, wait for status
+        let status = command.status().expect("executing command");
+
+        if self.ignore_ctrl_c {
+            EXIT_ON_SIGINT
+                .get()
+                .unwrap()
+                .clone()
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+        }
+
+        status
+            .success()
+            .then_some(())
+            .ok_or(TaskError::CmdExitError.into())
+    }
+
+    fn execute_subtask(
+        &self,
+        cmd: Vec<String>,
+        start_dir: &Path,
+        verbose: u8,
+        all_tasks: &IndexMap<String, std::result::Result<Task, TaskError>>,
+    ) -> Result<(), Error> {
+        // turn cmd into proper `Vec<&str>` without the command name.
+        let args = cmd.iter().skip(1).map(|s| s.as_str()).collect_vec();
+
+        let task_name = &cmd[0];
+
+        // resolve task name to task
+        let other_task = all_tasks
+            .get(task_name)
+            .ok_or_else(|| TaskError::TaskNotFound {
+                task_name: task_name.clone(),
+            })?
+            .as_ref()
+            .map_err(|e| e.clone())
+            .with_context(|| format!("task '{task_name}'"))?;
+
+        other_task.execute(start_dir, Some(&args), verbose, all_tasks)?;
+
+        Ok(())
+    }
     fn _with_env(&self, env: &im::HashMap<&String, String>, do_eval: bool) -> Result<Task, Error> {
         let expand = |s| {
             if do_eval {
@@ -169,4 +219,56 @@ impl Task {
     fn expand_export(&self, env: &im::HashMap<&String, String>) -> Option<Vec<VarExportSpec>> {
         VarExportSpec::expand(self.export.as_ref(), env)
     }
+}
+
+fn create_cmd_vec(cmd: &str, args: Option<&Vec<&str>>) -> Vec<String> {
+    let mut cmd = shell_words::split(cmd).unwrap();
+    if let Some(args) = args {
+        substitute_args(&mut cmd, args);
+    }
+    cmd
+}
+
+fn substitute_args(cmd: &mut Vec<String>, args: &Vec<&str>) {
+    // This function deals with argument replacements.
+    // \$1 -> first argument, \$<N> -> Nth argument,
+    // \$* -> all arguments as one string,
+    // \$@ -> all arguments as individual arguments.
+    // .. also, braced equivalents (\${1}, \${*}, ...).
+    //
+    // This does not behave exactly like the shell, but tries to get as
+    // close as possible.
+    //
+    // Differences so far:
+    // - \$* / \${*} / \$@ / \${@} only work if they are indivdual arguments,
+    //   not within another. So 'arg1 \$* arg2' works, '"some \$* arg1" arg2' won't.
+    // - whereas in shell, '$*' and '$@' are equivalent and only '"$@"' keeps the individual args,
+    //   laze uses star variant for single string, at variant for individual args.
+    //   This is because `shell_words::split()` eats the double quotes.
+
+    // lazily create the replacement for '\$*'
+    let args_joined = std::cell::LazyCell::new(|| args.iter().join(" "));
+
+    // These two create a helper `VariableMap` to be used by `substitute()`.
+    let args_ = LocalVec::new(args);
+    let variables = IgnoreMissing::new(&args_);
+
+    // here we iterate the arguments, and:
+    // 1. `\$@` / `\${@}` are replaced by multiple individual args.
+    // 2. `\$*` / `\${*}` are replaced by the concatenated args
+    // 3. all elements run through `substitute()`, substituting the numbered args.
+    *cmd = cmd
+        .iter()
+        .flat_map(|arg| match arg.as_str() {
+            "\"$@\"" | "\"${@}\"" | "$@" | "${@}" => args.clone(),
+            _ => vec![arg.as_str()],
+        })
+        .map(|s| match s {
+            "$*" | "${*}" | "$@" | "${@}" => args_joined.clone(),
+            _ => substitute(s, &variables)
+                .with_context(|| format!("substituting '{s}'"))
+                .unwrap(),
+        })
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<String>>();
 }

@@ -24,6 +24,7 @@ mod nested_env;
 mod new;
 mod ninja;
 mod serde_bool_helpers;
+mod subst_ext;
 mod task_runner;
 mod utils;
 
@@ -427,6 +428,12 @@ fn try_main() -> Result<i32> {
                                 "laze: task \"{task_name}\" on app \"{}\" for builder \"{}\"",
                                 result.build.binary, result.build.builder
                             );
+                        }
+                    } else {
+                        // only one error. can't move out of first, cant clone, so print that here.
+                        let (first, _rest) = results.split_first().unwrap();
+                        if let Err(e) = &first.result {
+                            eprintln!("laze: error: {e:#}");
                         }
                     }
                     return Ok(1);
