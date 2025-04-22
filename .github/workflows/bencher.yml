@@ -38,7 +38,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
 
     - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.3
+      uses: mozilla-actions/sccache-action@v0.0.8
 
     - name: "Configure git"
       run: |
