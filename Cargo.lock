@@ -1036,9 +1036,11 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
+ "shell-words",
  "shellexpand",
  "signal-hook",
  "solvent",
+ "subst",
  "task_partitioner",
  "tempfile",
  "thiserror 2.0.12",
@@ -1479,6 +1481,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "shell-words"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "24188a676b6ae68c3b2cb3a01be17fbf7240ce009799bb56d5b1409051e78fde"
+
+[[package]]
 name = "shellexpand"
 version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1554,6 +1562,16 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
+
+[[package]]
+name = "subst"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33e7942675ea19db01ef8cf15a1e6443007208e6c74568bd64162da26d40160d"
+dependencies = [
+ "memchr",
+ "unicode-width",
+]
 
 [[package]]
 name = "syn"
@@ -1723,6 +1741,12 @@ checksum = "5033c97c4262335cded6d6fc3e5c18ab755e1a3dc96376350f3d8e9f009ad956"
 dependencies = [
  "tinyvec",
 ]
+
+[[package]]
+name = "unicode-width"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
 
 [[package]]
 name = "unsafe-libyaml"

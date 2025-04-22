@@ -33,7 +33,9 @@ where
             task_name, build.builder, build.binary,
         );
 
-        let result = task.execute(project_root, args, verbose);
+        let all_tasks = &build.tasks;
+
+        let result = task.execute(project_root, args, verbose, all_tasks);
         let is_error = result.is_err();
 
         results.push(RunTaskResult {
