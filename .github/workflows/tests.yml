@@ -10,11 +10,13 @@ on:
 
 jobs:
   udeps:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu
     env:
-      SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
     steps:
+    - name: "installing prerequisites"
+      run: |
+        sudo apt-get install -y clang
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.8
 
@@ -38,16 +40,21 @@ jobs:
       run: cargo +nightly udeps
 
   msrv:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu
     env:
-      SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
     steps:
-    - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.8
+    - name: "DEBUG"
+      run: |
+        set
+        whoami
+        id -u
 
     - name: rust cache
       uses: Swatinem/rust-cache@v2
+
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.8
 
     - uses: taiki-e/install-action@v2
       with:
@@ -66,9 +73,8 @@ jobs:
     strategy:
       matrix:
         toolchain: [ nightly, stable ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu
     env:
-      SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
 
     # this strips the date suffix from the github job name so we don't have to
@@ -79,13 +85,15 @@ jobs:
     - name: Check out repository code
       uses: actions/checkout@v4
 
+    - name: rust cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        key: "${{ matrix.toolchain }}"
+
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.toolchain }}
         components: llvm-tools
-
-    - name: rust cache
-      uses: Swatinem/rust-cache@v2
 
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.8
