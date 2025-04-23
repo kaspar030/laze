@@ -1,7 +1,8 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use std::path::{Path, PathBuf};
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
@@ -56,5 +57,17 @@ impl ContainingPath<Utf8PathBuf> for IndexMap<&Utf8PathBuf, Utf8PathBuf> {
                 .find(|(k, _)| path.starts_with(k))
                 .map(|(_, v)| v)
         })
+    }
+}
+
+pub(crate) trait NormalizePath {
+    fn normalize(&self) -> Utf8PathBuf;
+}
+
+impl<T: AsRef<Utf8Path>> NormalizePath for T {
+    fn normalize(&self) -> Utf8PathBuf {
+        let mut res = Utf8PathBuf::new();
+        res.extend(self.as_ref().components());
+        res
     }
 }
