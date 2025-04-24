@@ -10,16 +10,18 @@ on:
 
 jobs:
   udeps:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu
     env:
-      SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
     steps:
-    - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.8
+    - name: Check out repository code
+      uses: actions/checkout@v4
 
     - name: rust cache
       uses: Swatinem/rust-cache@v2
+
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.8
 
     - name: Install latest nightly
       uses: dtolnay/rust-toolchain@nightly
@@ -31,23 +33,22 @@ jobs:
     - name: "installing cargo-udeps"
       run: cargo binstall -y --no-symlinks --force cargo-udeps
 
-    - name: Check out repository code
-      uses: actions/checkout@v4
-
     - name: "checking for unused dependencies"
       run: cargo +nightly udeps
 
   msrv:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu
     env:
-      SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
     steps:
-    - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.8
+    - name: Check out repository code
+      uses: actions/checkout@v4
 
     - name: rust cache
       uses: Swatinem/rust-cache@v2
+
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.8
 
     - uses: taiki-e/install-action@v2
       with:
@@ -56,9 +57,6 @@ jobs:
     - name: "Installing cargo-udeps"
       run: cargo binstall -y --no-symlinks --force cargo-msrv
 
-    - name: Check out repository code
-      uses: actions/checkout@v4
-
     - name: "Verifying MSRV"
       run: cargo msrv verify
 
@@ -66,9 +64,9 @@ jobs:
     strategy:
       matrix:
         toolchain: [ nightly, stable ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu
     env:
-      SCCACHE_GHA_ENABLED: "true"
+      CARGO_INCREMENTAL: 0
       RUSTC_WRAPPER: "sccache"
 
     # this strips the date suffix from the github job name so we don't have to
@@ -79,13 +77,16 @@ jobs:
     - name: Check out repository code
       uses: actions/checkout@v4
 
+    - name: rust cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        key: "${{ matrix.toolchain }}"
+        cache-directories: /home/runner/.rustup
+
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.toolchain }}
         components: llvm-tools
-
-    - name: rust cache
-      uses: Swatinem/rust-cache@v2
 
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.8
