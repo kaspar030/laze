@@ -90,7 +90,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
       with:
         key: "${{ matrix.toolchain }}"
-        cache-dirs: /home/runner/.rustup
+        cache-directories: /home/runner/.rustup
 
     - uses: dtolnay/rust-toolchain@master
       with:
