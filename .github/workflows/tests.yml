@@ -75,6 +75,7 @@ jobs:
         toolchain: [ nightly, stable ]
     runs-on: ubuntu
     env:
+      CARGO_INCREMENTAL: 0
       RUSTC_WRAPPER: "sccache"
 
     # this strips the date suffix from the github job name so we don't have to
@@ -89,6 +90,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
       with:
         key: "${{ matrix.toolchain }}"
+        cache-dirs: /home/runner/.rustup
 
     - uses: dtolnay/rust-toolchain@master
       with:
