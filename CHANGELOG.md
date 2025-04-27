@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- feat: create CACHEDIR.TAG file in build directory #710
+
 ## [0.1.35] - 2025-03-28
 
 ### Added
