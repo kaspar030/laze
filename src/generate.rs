@@ -142,6 +142,14 @@ impl Generator {
         );
 
         std::fs::create_dir_all(&self.build_dir)?;
+
+        // Create a cache directory tag file. See https://bford.info/cachedir/.
+        std::fs::write(
+            self.build_dir.join("CACHEDIR.TAG"),
+            "Signature: 8a477f597d28d172789f06886806bc55\n",
+        )
+        .context("writing `CACHEDIR.TAG`")?;
+
         let mut ninja_build_file = std::io::BufWriter::new(std::fs::File::create(
             get_ninja_build_file(&self.build_dir, &self.mode).as_path(),
         )?);
