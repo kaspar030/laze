@@ -27,7 +27,7 @@ use crate::{
     model::{BlockAllow, Rule},
     nested_env::{self, Env, EnvKey, IfMissing},
     ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder},
-    utils::{self, ContainingPath},
+    utils::{self, ContainingPath, NormalizePath},
     Context, ContextBag, Dependency, Module, Task, TaskError,
 };
 
@@ -765,6 +765,7 @@ fn configure_build(
                     Utf8PathBuf::from(
                         nested_env::expand_eval(srcpath, &flattened_env, IfMissing::Empty).unwrap(),
                     )
+                    .normalize()
                 })
                 .collect_vec();
 
@@ -778,7 +779,8 @@ fn configure_build(
                     .map(|out| {
                         let out = Utf8PathBuf::from(
                             nested_env::expand_eval(out, &flattened_env, IfMissing::Empty).unwrap(),
-                        );
+                        )
+                        .normalize();
                         out.hash(&mut hasher);
                         Cow::from(out)
                     })
