@@ -28,10 +28,12 @@ where
     let mut errors = 0;
 
     for (build, task) in tasks {
-        println!(
-            "laze: executing task {} for builder {} bin {}",
-            task_name, build.builder, build.binary,
-        );
+        if verbose > 0 {
+            println!(
+                "laze: executing task {} for builder {} bin {}",
+                task_name, build.builder, build.binary,
+            );
+        }
 
         let result = task.execute(project_root, args, verbose);
         let is_error = result.is_err();
