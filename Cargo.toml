@@ -30,7 +30,7 @@ signal-hook = "0.3.18"
 mimalloc = { version = "0.1.46", default-features = false }
 build_uuid = "0.3.1"
 solvent = { version = "0.8.3", features = ["deterministic"] }
-rust-embed = "8.7.1"
+rust-embed = "8.7.2"
 task_partitioner = "0.1.1"
 
 clap_complete = { version = "4.5.50", features = [ "unstable-dynamic" ] }
