@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.36] - 2025-05-19
+
 ### 🚀 Features
 
 - Create `CACHEDIR.TAG` file in build directory ([#710](https://github.com/kaspar030/laze/issues/710))
@@ -47,22 +49,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- feat: make output sharing optional (#687)
+- feat: make output sharing optional ([#687](https://github.com/kaspar030/laze/pull/687))
 - feat: add dependency resolution verbose output
 - feat: track why a module was disabled, improve error msgs
-- feat: expose errors resolving module providers (#694)
-- feat: improve "conflicted by" error message (#693)
+- feat: expose errors resolving module providers ([#694](https://github.com/kaspar030/laze/pull/694))
+- feat: improve "conflicted by" error message ([#693](https://github.com/kaspar030/laze/pull/693))
 
 ### Fixed
 
-- fix(rule): pass through rule variables that are not in env (#691)
-- fix: pass git commit and url to `GIT_PATCH` rule (#690)
+- fix(rule): pass through rule variables that are not in env ([#691](https://github.com/kaspar030/laze/pull/691))
+- fix: pass git commit and url to `GIT_PATCH` rule ([#690](https://github.com/kaspar030/laze/pull/690))
 
 ## [0.1.34] - 2025-03-24
 
 ### Fixed
 
-- fix(env): fix state reset with escaped expressions (#682)
+- fix(env): fix state reset with escaped expressions ([#682](https://github.com/kaspar030/laze/pull/682))
 
 ## [0.1.33] - 2025-02-24
 
@@ -73,20 +75,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- fix: use "directory" consistently across docs (drop uses of "folder") (#655)
+- fix: use "directory" consistently across docs (drop uses of "folder") ([#655](https://github.com/kaspar030/laze/pull/655))
 
 ## [0.1.32] - 2025-02-18
 
 ### Fixed
 
-- fix: don't leak empty variables in tasks (#647)
+- fix: don't leak empty variables in tasks ([#647](https://github.com/kaspar030/laze/pull/647))
 
 ## [0.1.31] - 2025-02-17
 
 ### Added
 
-- feat: context `provides`/`provides_unique` (#639)
-- feat: provide an env variable `contexts` similar to `modules` (#636)
+- feat: context `provides`/`provides_unique` ([#639](https://github.com/kaspar030/laze/pull/639))
+- feat: provide an env variable `contexts` similar to `modules` ([#636](https://github.com/kaspar030/laze/pull/636))
 
 ## [0.1.30] - 2025-02-08
 
@@ -104,7 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- fix(cli): don't treat comma in '--define' as separator (#590)
+- fix(cli): don't treat comma in '--define' as separator ([#590](https://github.com/kaspar030/laze/pull/590))
 
 ### Internal
 
@@ -135,7 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - fix sorting of ninja build statements, preventing ninja errors
-- fix `$relroot` potentially having one `..` too much (#571)
+- fix `$relroot` potentially having one `..` too much ([#571](https://github.com/kaspar030/laze/pull/571))
 - fix `$root` to usually contain `.`, matching documentation
 - fix cache laze version check (there was a potential crash after a laze update)
 - fix buildfile caching (was broken by task `export`)
@@ -505,7 +507,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 <!-- next-url -->
-[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.35...HEAD
+[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.36...HEAD
+[0.1.36]: https://github.com/kaspar030/laze/compare/0.1.35...0.1.36
 [0.1.35]: https://github.com/kaspar030/laze/compare/0.1.34...0.1.35
 [0.1.34]: https://github.com/kaspar030/laze/compare/0.1.33...0.1.34
 [0.1.33]: https://github.com/kaspar030/laze/compare/0.1.32...0.1.33
