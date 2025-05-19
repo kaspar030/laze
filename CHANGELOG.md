@@ -9,9 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
-### Added
+### 🚀 Features
 
-- feat: create CACHEDIR.TAG file in build directory #710
+- Create `CACHEDIR.TAG` file in build directory ([#710](https://github.com/kaspar030/laze/issues/710))
+- tasks: Pass extra task args as shell args ([#702](https://github.com/kaspar030/laze/issues/702))
+
+### ⌨️  User Interface
+
+- Only show "laze: executing task ..." in verbose mode ([#716](https://github.com/kaspar030/laze/issues/716))
+
+### 📚 Documentation
+
+- Create PR links in CHANGELOG.md ([#712](https://github.com/kaspar030/laze/issues/712))
+
+### ⚙️ Miscellaneous Tasks
+
+- Switch to self-hosted workers ([#709](https://github.com/kaspar030/laze/issues/709))
+- Bump sccache-action ([#707](https://github.com/kaspar030/laze/issues/707))
+- Bump all deps ([#701](https://github.com/kaspar030/laze/issues/701))
+
+### 🔗  Dependencies
+
+- deps: Bump signal-hook from 0.3.17 to 0.3.18 ([#715](https://github.com/kaspar030/laze/issues/715))
+- deps: Bump clap_complete from 4.5.49 to 4.5.50 ([#714](https://github.com/kaspar030/laze/issues/714))
+- deps: Bump rust-embed from 8.7.0 to 8.7.1 ([#713](https://github.com/kaspar030/laze/issues/713))
+- deps: Bump clap_complete from 4.5.47 to 4.5.48 ([#711](https://github.com/kaspar030/laze/issues/711))
+- deps: Bump clap from 4.5.36 to 4.5.37 ([#706](https://github.com/kaspar030/laze/issues/706))
+- deps: Bump shellexpand from 3.1.0 to 3.1.1 ([#704](https://github.com/kaspar030/laze/issues/704))
+- deps: Bump anyhow from 1.0.97 to 1.0.98 ([#703](https://github.com/kaspar030/laze/issues/703))
+- deps: Bump mimalloc from 0.1.45 to 0.1.46 ([#699](https://github.com/kaspar030/laze/issues/699))
+- deps: Bump rust-embed from 8.6.0 to 8.7.0 ([#700](https://github.com/kaspar030/laze/issues/700))
+- deps: Bump indexmap from 2.8.0 to 2.9.0 ([#698](https://github.com/kaspar030/laze/issues/698))
+- deps: Bump mimalloc from 0.1.44 to 0.1.45 ([#697](https://github.com/kaspar030/laze/issues/697))
+- deps: Bump clap from 4.5.34 to 4.5.35 ([#696](https://github.com/kaspar030/laze/issues/696))
 
 ## [0.1.35] - 2025-03-28
 
