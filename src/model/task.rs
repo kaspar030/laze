@@ -48,11 +48,18 @@ impl Task {
 
     pub fn execute(
         &self,
-        start_dir: &Path,
+        cwd: &Path,
         args: Option<&Vec<&str>>,
         verbose: u8,
         all_tasks: &IndexMap<String, Result<Task, TaskError>>,
     ) -> Result<(), Error> {
+        let wd = if let Some(working_directory) = &self.workdir {
+            // This includes support for absolute working directories through .join
+            cwd.join(working_directory)
+        } else {
+            cwd.to_owned()
+        };
+
         for cmd_full in &self.cmd {
             if verbose > 0 {
                 println!("laze: command: '{cmd_full}'");
@@ -63,9 +70,9 @@ impl Task {
 
             if let Some(cmd) = cmd_full.strip_prefix(":") {
                 let cmd = create_cmd_vec(cmd, args);
-                self.execute_subtask(cmd, start_dir, verbose, all_tasks)
+                self.execute_subtask(cmd, wd.as_path(), verbose, all_tasks)
             } else {
-                self.execute_shell_cmd(cmd_full, args, start_dir, verbose)
+                self.execute_shell_cmd(cmd_full, args, wd.as_path(), verbose)
             }
             .with_context(|| format!("command `{cmd_full}`"))?;
         }
@@ -76,7 +83,7 @@ impl Task {
         &self,
         cmd: &str,
         args: Option<&Vec<&str>>,
-        start_dir: &Path,
+        workdir: &Path,
         verbose: u8,
     ) -> Result<(), Error> {
         use std::process::Command;
@@ -90,12 +97,7 @@ impl Task {
             sh
         };
 
-        if let Some(working_directory) = &self.workdir {
-            // This includes support for absolute working directories through .join
-            command.current_dir(start_dir.join(working_directory));
-        } else {
-            command.current_dir(start_dir);
-        }
+        command.current_dir(workdir);
 
         // handle "export:" (export laze variables to task shell environment)
         if let Some(export) = &self.export {
