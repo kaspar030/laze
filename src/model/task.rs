@@ -2,6 +2,7 @@ use std::ffi::OsStr;
 use std::path::Path;
 
 use anyhow::{Context, Error, Result};
+use im::Vector;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -21,7 +22,7 @@ pub struct Task {
     pub help: Option<String>,
     pub required_vars: Option<Vec<String>>,
     pub required_modules: Option<Vec<String>>,
-    pub export: Option<Vec<VarExportSpec>>,
+    pub export: Option<Vector<VarExportSpec>>,
     #[serde(default = "default_as_true")]
     pub build: bool,
     #[serde(default = "default_as_false")]
@@ -52,6 +53,7 @@ impl Task {
         args: Option<&Vec<&str>>,
         verbose: u8,
         all_tasks: &IndexMap<String, Result<Task, TaskError>>,
+        parent_exports: &Vector<VarExportSpec>,
     ) -> Result<(), Error> {
         for cmd_full in &self.cmd {
             if verbose > 0 {
@@ -63,9 +65,10 @@ impl Task {
 
             if let Some(cmd) = cmd_full.strip_prefix(":") {
                 let cmd = create_cmd_vec(cmd, args);
-                self.execute_subtask(cmd, start_dir, verbose, all_tasks)
+
+                self.execute_subtask(cmd, start_dir, verbose, all_tasks, parent_exports)
             } else {
-                self.execute_shell_cmd(cmd_full, args, start_dir, verbose)
+                self.execute_shell_cmd(cmd_full, args, start_dir, verbose, parent_exports)
             }
             .with_context(|| format!("command `{cmd_full}`"))?;
         }
@@ -78,6 +81,7 @@ impl Task {
         args: Option<&Vec<&str>>,
         start_dir: &Path,
         verbose: u8,
+        parent_exports: &Vector<VarExportSpec>,
     ) -> Result<(), Error> {
         use std::process::Command;
         let mut command = if cfg!(target_family = "windows") {
@@ -98,12 +102,13 @@ impl Task {
         }
 
         // handle "export:" (export laze variables to task shell environment)
-        if let Some(export) = &self.export {
-            for entry in export {
-                let VarExportSpec { variable, content } = entry;
-                if let Some(val) = content {
-                    command.env(variable, val);
-                }
+        for entry in parent_exports
+            .into_iter()
+            .chain(self.export.iter().flatten())
+        {
+            let VarExportSpec { variable, content } = entry;
+            if let Some(val) = content {
+                command.env(variable, val);
             }
         }
 
@@ -157,6 +162,7 @@ impl Task {
         start_dir: &Path,
         verbose: u8,
         all_tasks: &IndexMap<String, std::result::Result<Task, TaskError>>,
+        parent_exports: &Vector<VarExportSpec>,
     ) -> Result<(), Error> {
         // turn cmd into proper `Vec<&str>` without the command name.
         let args = cmd.iter().skip(1).map(|s| s.as_str()).collect_vec();
@@ -173,7 +179,12 @@ impl Task {
             .map_err(|e| e.clone())
             .with_context(|| format!("task '{task_name}'"))?;
 
-        other_task.execute(start_dir, Some(&args), verbose, all_tasks)?;
+        let mut parent_exports = parent_exports.clone();
+        if let Some(export) = self.export.as_ref() {
+            parent_exports.append(export.clone());
+        }
+
+        other_task.execute(start_dir, Some(&args), verbose, all_tasks, &parent_exports)?;
 
         Ok(())
     }
@@ -216,8 +227,10 @@ impl Task {
         self._with_env(env, true)
     }
 
-    fn expand_export(&self, env: &im::HashMap<&String, String>) -> Option<Vec<VarExportSpec>> {
-        VarExportSpec::expand(self.export.as_ref(), env)
+    fn expand_export(&self, env: &im::HashMap<&String, String>) -> Option<Vector<VarExportSpec>> {
+        self.export
+            .as_ref()
+            .map(|export| VarExportSpec::expand(export.iter(), env))
     }
 }
 
