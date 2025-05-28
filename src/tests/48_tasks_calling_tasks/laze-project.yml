@@ -37,6 +37,23 @@ builders:
         cmd:
           - :echo-${ANY} any=${ANY} "$@"
 
+      echo-with-export:
+        export:
+          - VARIABLE: foo
+        cmd:
+          - :echo-variable
+
+      echo-with-export-two:
+        export:
+          - VARIABLE: bar
+          - ANOTHER_VARIABLE: bar
+        cmd:
+          - :echo-with-export
+
+      echo-variable:
+        cmd:
+          - echo $VARIABLE $ANOTHER_VARIABLE
+
       echo-all:
         cmd:
           - :echo-first $1 $2 $3 $4
@@ -45,6 +62,8 @@ builders:
           - :echo-star $1 $2 $3 $4
           - :echo-at $1 $2 $3 $4
           - :echo-any $1 $2 $3 $4
+          - :echo-with-export
+          - :echo-with-export-two
       ls:
         cmd:
           - ls "$@"

@@ -1,4 +1,3 @@
-laze: executing task echo-all for builder default bin app
 1: first=1
 1: second=2
 1: third=3
@@ -10,3 +9,5 @@ laze: executing task echo-all for builder default bin app
 4: 3
 5: 4
 1: first=any=first
+foo
+foo bar
