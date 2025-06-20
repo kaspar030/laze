@@ -399,7 +399,7 @@ pub struct NinjaCmd<'a> {
 }
 
 impl NinjaCmd<'_> {
-    pub fn run(&self) -> std::io::Result<ExitStatus> {
+    pub fn cmd(&self) -> Command {
         let mut cmd = Command::new(self.binary);
         cmd.arg("-f").arg(self.build_file);
 
@@ -422,8 +422,7 @@ impl NinjaCmd<'_> {
                 cmd.arg(target);
             }
         }
-
-        cmd.status()
+        cmd
     }
 }
 
