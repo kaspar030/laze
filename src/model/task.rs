@@ -1,3 +1,4 @@
+use std::cell::LazyCell;
 use std::ffi::OsStr;
 use std::path::Path;
 
@@ -55,12 +56,15 @@ impl Task {
         all_tasks: &IndexMap<String, Result<Task, TaskError>>,
         parent_exports: &Vector<VarExportSpec>,
     ) -> Result<(), Error> {
+        let argv_str = LazyCell::new(|| match args {
+            None => "".into(),
+            Some(v) if v.is_empty() => "".into(),
+            Some(v) => format!(" argv: {:?}", v),
+        });
+
         for cmd_full in &self.cmd {
             if verbose > 0 {
-                println!("laze: command: '{cmd_full}'");
-                if let Some(args) = args {
-                    println!("laze:    args: {args:?}");
-                }
+                println!("laze: command: `{cmd_full}`{}", *argv_str);
             }
 
             if let Some(cmd) = cmd_full.strip_prefix(":") {
@@ -118,18 +122,18 @@ impl Task {
         command.arg(cmd);
 
         if let Some(args) = args {
-            command.arg("--");
-            command.args(args);
+            if !args.is_empty() {
+                command.arg("--");
+                command.args(args);
+            }
         }
 
         if verbose > 0 {
-            let command_with_args = command
-                .get_args()
-                .skip(1)
-                .map(OsStr::to_string_lossy)
-                .collect_vec();
+            let mut full_command = Vec::new();
+            full_command.push(command.get_program().to_string_lossy());
+            full_command.extend(command.get_args().map(OsStr::to_string_lossy));
 
-            println!("laze: executing {command_with_args:?}");
+            println!("laze: executing `{full_command:?}`");
         }
 
         if self.ignore_ctrl_c {
@@ -188,6 +192,7 @@ impl Task {
 
         Ok(())
     }
+
     fn _with_env(&self, env: &im::HashMap<&String, String>, do_eval: bool) -> Result<Task, Error> {
         let expand = |s| {
             if do_eval {
