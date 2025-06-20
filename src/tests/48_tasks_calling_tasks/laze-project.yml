@@ -1,0 +1,72 @@
+builders:
+  - name: default
+    rules:
+      - name: LINK
+        in: "o"
+        cmd: "cat ${in} > ${out}"
+
+    env:
+      bindir: build/${builder}/${app}
+
+    tasks:
+      echo:
+        cmd:
+          - sh args.sh "$@"
+
+      echo-first:
+        cmd:
+          - :echo first=$1
+
+      echo-second:
+        cmd:
+          - :echo second=$2
+
+      echo-third:
+        cmd:
+          - :echo third=$3
+
+      echo-star:
+        cmd:
+          - :echo all-star $*
+
+      echo-at:
+        cmd:
+          - :echo all-at "$@"
+
+      echo-any:
+        cmd:
+          - :echo-${ANY} any=${ANY} "$@"
+
+      echo-with-export:
+        export:
+          - VARIABLE: foo
+        cmd:
+          - :echo-variable
+
+      echo-with-export-two:
+        export:
+          - VARIABLE: bar
+          - ANOTHER_VARIABLE: bar
+        cmd:
+          - :echo-with-export
+
+      echo-variable:
+        cmd:
+          - echo $VARIABLE $ANOTHER_VARIABLE
+
+      echo-all:
+        cmd:
+          - :echo-first $1 $2 $3 $4
+          - :echo-second $1 $2 $3 $4
+          - :echo-third $1 $2 $3 $4
+          - :echo-star $1 $2 $3 $4
+          - :echo-at $1 $2 $3 $4
+          - :echo-any $1 $2 $3 $4
+          - :echo-with-export
+          - :echo-with-export-two
+      ls:
+        cmd:
+          - ls "$@"
+
+apps:
+  - name: app

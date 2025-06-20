@@ -31,9 +31,23 @@ build() {
         diff -q EXPECTED_STDOUT stdout
     fi
 
+    if [ -f EXPECTED_STDOUT_TAIL ]; then
+        echo testing stdout tail
+        LEN=$(cat EXPECTED_STDOUT_TAIL | wc -l)
+        cat stdout | tail -n "$LEN" > stdout.tail
+        diff -q EXPECTED_STDOUT_TAIL stdout.tail
+    fi
+
     if [ -f EXPECTED_STDERR ]; then
         echo testing stderr
         diff -q EXPECTED_STDERR stderr
+    fi
+
+    if [ -f EXPECTED_STDERR_TAIL ]; then
+        echo testing stderr tail
+        LEN=$(cat EXPECTED_STDERR_TAIL | wc -l)
+        cat stderr | tail -n "$LEN" > stderr.tail
+        diff -q EXPECTED_STDERR_TAIL stderr.tail
     fi
 
     if [ -f EXPECTED_STDOUT_PATTERNS ]; then
@@ -53,7 +67,7 @@ clean_temp_files() {
         build/laze-cache-local.bincode \
         build/laze-cache-global.bincode \
         compile_commands.json \
-        stdout stderr
+        stdout stderr stdout.tail stderr.tail
 }
 
 : "${LAZE:=laze}"

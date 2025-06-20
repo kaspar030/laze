@@ -8,6 +8,7 @@ use std::process::{Command, ExitStatus, Stdio};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use derive_builder::Builder;
+use im::HashMap;
 use indexmap::IndexMap;
 
 use crate::model::VarExportSpec;
@@ -115,16 +116,22 @@ impl<'a> NinjaRule<'a> {
         let mut command = String::with_capacity(self.command.len());
 
         // handle "export" statements
-        let export = VarExportSpec::expand(self.export, env);
-        if let Some(export) = &export {
-            for entry in export {
+        if let Some(export) = self.export {
+            let exports: Vec<VarExportSpec> = VarExportSpec::expand(export.iter(), env);
+            let mut export_map = HashMap::new();
+
+            for entry in exports {
                 let VarExportSpec { variable, content } = entry;
                 if let Some(val) = content {
-                    command.push_str(variable);
-                    command.push_str("=\"");
-                    command.push_str(val);
-                    command.push_str("\" && ");
+                    export_map.insert(variable, val);
                 }
+            }
+
+            for (variable, val) in export_map {
+                command.push_str(&variable);
+                command.push_str("=\"");
+                command.push_str(&val);
+                command.push_str("\" && ");
             }
         }
 

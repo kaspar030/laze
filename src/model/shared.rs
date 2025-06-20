@@ -25,10 +25,14 @@ impl VarExportSpec {
         }
     }
 
-    pub(crate) fn expand(
-        export: Option<&Vec<VarExportSpec>>,
+    pub(crate) fn expand<
+        'a,
+        T: Iterator<Item = &'a VarExportSpec>,
+        U: FromIterator<VarExportSpec>,
+    >(
+        export: T,
         env: &im::HashMap<&String, String>,
-    ) -> Option<Vec<VarExportSpec>> {
+    ) -> U {
         // what this does is, apply the env to the format as given by "export:"
         //
         // e.g., assuming `FOO=value` and FOOBAR=`other_value`:
@@ -42,6 +46,6 @@ impl VarExportSpec {
         //
         // ... to export `FOO=value`, `BAR=bar` and `FOOBAR=other_value`.
 
-        export.map(|exports| exports.iter().map(|entry| entry.apply_env(env)).collect())
+        export.map(|entry| entry.apply_env(env)).collect()
     }
 }

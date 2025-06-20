@@ -35,7 +35,10 @@ where
             );
         }
 
-        let result = task.execute(project_root, args, verbose);
+        let all_tasks = &build.tasks;
+
+        let parent_export = im::Vector::new();
+        let result = task.execute(project_root, args, verbose, all_tasks, &parent_export);
         let is_error = result.is_err();
 
         results.push(RunTaskResult {

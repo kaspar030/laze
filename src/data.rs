@@ -292,7 +292,7 @@ impl From<YamlTask> for Task {
             required_modules: yaml_task.required_modules,
             export: yaml_task
                 .export
-                .map(|s| s.iter().map(|s| s.clone().into()).collect_vec()),
+                .map(|s| s.iter().map(|s| s.clone().into()).collect()),
             build: yaml_task.build,
             ignore_ctrl_c: yaml_task.ignore_ctrl_c,
             workdir: yaml_task.workdir,
