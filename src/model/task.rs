@@ -86,6 +86,11 @@ impl Task {
 
             command.arg(cmd);
 
+            if let Some(args) = args {
+                command.arg("--");
+                command.args(args);
+            }
+
             if verbose > 0 {
                 let command_with_args = command
                     .get_args()
@@ -94,11 +99,6 @@ impl Task {
                     .collect_vec();
 
                 println!("laze: executing `{}`", command_with_args.join(" "));
-            }
-
-            if let Some(args) = args {
-                command.arg("--");
-                command.args(args);
             }
 
             if self.ignore_ctrl_c {
