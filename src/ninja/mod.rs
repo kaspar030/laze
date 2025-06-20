@@ -10,6 +10,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use derive_builder::Builder;
 use im::HashMap;
 use indexmap::IndexMap;
+use path_slash::PathExt as _;
 
 use crate::model::VarExportSpec;
 use crate::nested_env::{self, IfMissing};
@@ -252,14 +253,14 @@ impl fmt::Display for NinjaBuild<'_> {
         write!(f, "build")?;
 
         for out in &self.outs {
-            write!(f, " {out}")?;
+            write!(f, " {}", out.as_std_path().to_slash().unwrap())?;
         }
 
         write!(f, ": $\n    {}", self.rule)?;
 
         if let Some(inputs) = &self.inputs {
             for path in inputs {
-                write!(f, " $\n    {path}")?;
+                write!(f, " $\n    {}", path.as_std_path().to_slash().unwrap())?;
             }
         }
 
@@ -267,7 +268,7 @@ impl fmt::Display for NinjaBuild<'_> {
             write!(f, " $\n    |")?;
             if let Some(list) = &self.deps {
                 for entry in list {
-                    write!(f, " $\n    {entry}")?;
+                    write!(f, " $\n    {}", entry.as_std_path().to_slash().unwrap())?;
                 }
             }
             if self.always {
