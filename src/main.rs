@@ -8,6 +8,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use git_cache::GitCache;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use jobserver::JOBSERVER;
 use signal_hook::{consts::SIGINT, flag::register_conditional_shutdown};
 
 #[global_allocator]
@@ -19,6 +20,7 @@ mod data;
 mod download;
 mod generate;
 mod insights;
+mod jobserver;
 mod model;
 mod nested_env;
 mod new;
@@ -76,9 +78,14 @@ fn ninja_run(
 
     let ninja_cmd = ninja_cmd.build().unwrap();
     let ninja_binary = ninja_cmd.binary;
-    let ninja_exit = ninja_cmd
-        .run()
-        .with_context(|| format!("launching ninja binary \"{}\"", ninja_binary))?;
+
+    let ninja_exit = if jobs.is_some() {
+        ninja_cmd.cmd().status()
+    } else {
+        let jobserver = JOBSERVER.get().unwrap();
+        jobserver.configure_make_and_run_with_fifo(&mut ninja_cmd.cmd(), |cmd| cmd.status())
+    }
+    .with_context(|| format!("launching ninja binary \"{}\"", ninja_binary))?;
 
     match ninja_exit.code() {
         Some(code) => match code {
@@ -123,6 +130,9 @@ fn try_main() -> Result<i32> {
     register_conditional_shutdown(SIGINT, 130, EXIT_ON_SIGINT.get().unwrap().clone()).unwrap();
 
     clap_complete::env::CompleteEnv::with_factory(cli::clap).complete();
+
+    // If there's a parent jobserver, get it now. Needs to be done early.
+    jobserver::maybe_init_fromenv();
 
     let matches = cli::clap().get_matches();
 
@@ -256,6 +266,16 @@ fn try_main() -> Result<i32> {
             };
 
             let jobs = build_matches.get_one::<usize>("jobs").copied();
+
+            // Unless we've inherited a jobserver, create one.
+            jobserver::maybe_set_limit(jobs.unwrap_or_else(|| {
+                // default to number of logical cores.
+                // TODO: figure out in which case this might error
+                std::thread::available_parallelism()
+                    .map(|n| n.get())
+                    .unwrap_or(1)
+            }));
+
             let keep_going = build_matches.get_one::<usize>("keep_going").copied();
 
             let partitioner = build_matches

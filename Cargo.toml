@@ -47,6 +47,7 @@ im-rc = "15.1.0"
 shell-words = "1.1.0"
 subst = "0.3.7"
 path-slash = "0.2.1"
+jobslot = "0.2.22"
 
 [profile.release]
 lto = "fat"
