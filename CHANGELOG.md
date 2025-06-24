@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### 🚀 Features
+
+- Add jobserver support ([#735](https://github.com/kaspar030/laze/issues/735))
+- ninja: Use slash paths for ninja files ([#734](https://github.com/kaspar030/laze/issues/734))
+- tasks: Implement tasks calling subtasks ([#725](https://github.com/kaspar030/laze/issues/725))
+
+### ⚙️ Miscellaneous Tasks
+
+- release: Add git cliff config file ([#720](https://github.com/kaspar030/laze/issues/720))
+
+### 🔗  Dependencies
+
+- deps: Bump subst from 0.3.7 to 0.3.8 ([#736](https://github.com/kaspar030/laze/issues/736))
+- deps: Bump mimalloc from 0.1.46 to 0.1.47 ([#733](https://github.com/kaspar030/laze/issues/733))
+- deps: Bump clap_complete from 4.5.52 to 4.5.54 ([#731](https://github.com/kaspar030/laze/issues/731))
+- deps: Bump clap_mangen from 0.2.26 to 0.2.27 ([#729](https://github.com/kaspar030/laze/issues/729))
+- deps: Bump clap from 4.5.39 to 4.5.40 ([#730](https://github.com/kaspar030/laze/issues/730))
+- deps: Bump camino from 1.1.9 to 1.1.10 ([#727](https://github.com/kaspar030/laze/issues/727))
+- deps: Bump clap_complete from 4.5.51 to 4.5.52 ([#726](https://github.com/kaspar030/laze/issues/726))
+- deps: Bump clap from 4.5.38 to 4.5.39 ([#724](https://github.com/kaspar030/laze/issues/724))
+- deps: Bump clap_complete from 4.5.50 to 4.5.51 ([#723](https://github.com/kaspar030/laze/issues/723))
+
 ## [0.1.36] - 2025-05-19
 
 ### 🚀 Features
