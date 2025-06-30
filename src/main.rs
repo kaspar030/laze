@@ -131,9 +131,6 @@ fn try_main() -> Result<i32> {
 
     clap_complete::env::CompleteEnv::with_factory(cli::clap).complete();
 
-    // If there's a parent jobserver, get it now. Needs to be done early.
-    jobserver::maybe_init_fromenv();
-
     let matches = cli::clap().get_matches();
 
     let git_cache_dir = Utf8PathBuf::from(&shellexpand::tilde(
@@ -249,6 +246,9 @@ fn try_main() -> Result<i32> {
 
     let verbose = matches.get_count("verbose");
 
+    // If there's a parent jobserver, get it now. Needs to be done early.
+    jobserver::maybe_init_fromenv(verbose);
+
     match matches.subcommand() {
         Some(("build", build_matches)) => {
             let build_dir = build_matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
@@ -268,13 +268,16 @@ fn try_main() -> Result<i32> {
             let jobs = build_matches.get_one::<usize>("jobs").copied();
 
             // Unless we've inherited a jobserver, create one.
-            jobserver::maybe_set_limit(jobs.unwrap_or_else(|| {
-                // default to number of logical cores.
-                // TODO: figure out in which case this might error
-                std::thread::available_parallelism()
-                    .map(|n| n.get())
-                    .unwrap_or(1)
-            }));
+            jobserver::maybe_set_limit(
+                jobs.unwrap_or_else(|| {
+                    // default to number of logical cores.
+                    // TODO: figure out in which case this might error
+                    std::thread::available_parallelism()
+                        .map(|n| n.get())
+                        .unwrap_or(1)
+                }),
+                verbose,
+            );
 
             let keep_going = build_matches.get_one::<usize>("keep_going").copied();
 
