@@ -975,7 +975,9 @@ fn configure_build(
 
     // linking
     {
-        let ninja_link_rule = get_rule("LINK", rules)?.to_ninja(&global_env_flattened)?;
+        let ninja_link_rule = get_rule("LINK", rules)?
+            .to_ninja(&global_env_flattened)
+            .context("rendering LINK rule")?;
         // build ninja link target
         let ninja_link_build = NinjaBuildBuilder::from_rule(&ninja_link_rule)
             .inputs(objects)

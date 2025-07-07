@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use evalexpr::{Context, EmptyContextWithBuiltinFunctions, EvalexprError};
 
 pub trait Eval {
+    #[expect(unused)]
     fn eval(&self) -> Result<String, EvalexprError>;
     fn eval_with_context(&self, context: impl Context) -> Result<String, EvalexprError>;
 }
@@ -69,7 +70,7 @@ fn eval_recursive<'a>(
     }
 
     if is_eval {
-        let expr = match evalexpr::eval(&result)? {
+        let expr = match evalexpr::eval_with_context(&result, context)? {
             evalexpr::Value::String(string) => string,
             other => other.to_string(),
         };
