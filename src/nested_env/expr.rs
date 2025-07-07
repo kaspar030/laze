@@ -1,26 +1,45 @@
 use std::borrow::Cow;
 
-use evalexpr::EvalexprError;
+use evalexpr::{Context, EmptyContextWithBuiltinFunctions, EvalexprError};
 
 pub trait Eval {
     fn eval(&self) -> Result<String, EvalexprError>;
+    fn eval_with_context(&self, context: impl Context) -> Result<String, EvalexprError>;
 }
 
 impl Eval for String {
     fn eval(&self) -> Result<Self, EvalexprError> {
         Ok(eval(self)?.into())
     }
+    fn eval_with_context(&self, context: impl Context) -> Result<Self, EvalexprError> {
+        Ok(eval_with_context(self, &context)?.into())
+    }
 }
 
 pub fn eval(input: &str) -> Result<Cow<'_, str>, EvalexprError> {
     if input.contains("$(") {
-        eval_recursive(input, false)
+        eval_recursive(input, false, &EmptyContextWithBuiltinFunctions)
     } else {
         Ok(input.into())
     }
 }
 
-fn eval_recursive(input: &str, is_eval: bool) -> Result<Cow<'_, str>, EvalexprError> {
+pub fn eval_with_context<'a>(
+    input: &'a str,
+    context: &impl Context,
+) -> Result<Cow<'a, str>, EvalexprError> {
+    if input.contains("$(") {
+        eval_recursive(input, false, context)
+    } else {
+        Ok(input.into())
+    }
+}
+
+fn eval_recursive<'a>(
+    input: &'a str,
+    is_eval: bool,
+    context: &impl Context,
+) -> Result<Cow<'a, str>, EvalexprError> {
     let mut result = String::new();
     let mut start = 0;
     let mut level = 0;
@@ -41,7 +60,7 @@ fn eval_recursive(input: &str, is_eval: bool) -> Result<Cow<'_, str>, EvalexprEr
             level -= 1;
             if level == 0 {
                 input_changed = true;
-                result.push_str(&eval_recursive(&input[start + 1..i], true)?);
+                result.push_str(&eval_recursive(&input[start + 1..i], true, context)?);
                 start = 0;
             }
         } else if level == 0 {
