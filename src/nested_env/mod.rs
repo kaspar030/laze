@@ -1,6 +1,8 @@
+use std::borrow::Cow;
+
 use anyhow::{anyhow, Context, Error};
 use evalexpr::EvalexprError;
-use im::{hashmap::Entry, vector, HashMap, Vector};
+use im::{hashmap::Entry, vector, Vector};
 use itertools::join;
 use serde::{Deserialize, Serialize};
 
@@ -10,10 +12,12 @@ pub use expr::Eval;
 
 pub use expand::{expand, expand_eval, IfMissing};
 
+pub type EnvMap<'a> = im::HashMap<&'a str, Cow<'a, str>>;
+
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct Env {
     #[serde(flatten)]
-    inner: HashMap<String, EnvKey>,
+    inner: im::HashMap<String, EnvKey>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
@@ -48,14 +52,14 @@ impl EnvKey {
         }
     }
 
-    fn flatten(&self) -> Result<String, EvalexprError> {
+    fn flatten(&self) -> Result<Cow<str>, EvalexprError> {
         match self {
-            EnvKey::Single(s) => Ok(s.clone()),
-            EnvKey::List(list) => Ok(join(list, " ")),
+            EnvKey::Single(s) => Ok(Cow::from(s)),
+            EnvKey::List(list) => Ok(join(list, " ").into()),
         }
     }
 
-    fn flatten_with_opts(&self, opts: &MergeOption) -> Result<String, EvalexprError> {
+    fn flatten_with_opts(&self, opts: &MergeOption) -> Result<Cow<str>, EvalexprError> {
         let mut res = String::new();
         if let Some(start) = &opts.start {
             res.push_str(start);
@@ -101,7 +105,7 @@ impl EnvKey {
         if let Some(end) = &opts.end {
             res.push_str(&end[..]);
         }
-        Ok(res)
+        Ok(res.into())
     }
 }
 
@@ -114,7 +118,7 @@ impl<T: ToString> From<T> for EnvKey {
 impl Env {
     pub fn new() -> Self {
         Self {
-            inner: HashMap::new(),
+            inner: im::HashMap::new(),
         }
     }
 
@@ -132,40 +136,41 @@ impl Env {
         }
     }
 
-    pub fn flatten(&self) -> Result<HashMap<&String, String>, Error> {
+    pub fn flatten(&self) -> Result<EnvMap, Error> {
         self.inner
             .iter()
             .map(|(key, value)| {
                 match value.flatten() {
-                    Ok(v) => Ok((key, v)),
+                    Ok(v) => Ok((key.as_str(), v)),
                     Err(e) => Err(e),
                 }
                 .with_context(|| format!("variable \"{key}\""))
             })
-            .collect::<Result<HashMap<_, _>, Error>>()
+            .collect::<Result<EnvMap, Error>>()
     }
+
     pub fn flatten_with_opts<'a>(
         &'a self,
-        merge_opts: &'a HashMap<String, MergeOption>,
-    ) -> Result<HashMap<&'a String, String>, Error> {
+        merge_opts: &'a im::HashMap<String, MergeOption>,
+    ) -> Result<EnvMap<'a>, Error> {
         let mut result = self
             .inner
             .iter()
             .map(|(key, value)| {
                 if let Some(merge_opts) = merge_opts.get(key) {
                     match value.flatten_with_opts(merge_opts) {
-                        Ok(v) => Ok((key, v)),
+                        Ok(v) => Ok((key.as_str(), v)),
                         Err(e) => Err(e),
                     }
                 } else {
                     match value.flatten() {
-                        Ok(v) => Ok((key, v)),
+                        Ok(v) => Ok((key.as_str(), v)),
                         Err(e) => Err(e),
                     }
                 }
                 .with_context(|| format!("variable \"{key}\""))
             })
-            .collect::<Result<HashMap<&'a String, String>, Error>>()?;
+            .collect::<Result<EnvMap, Error>>()?;
 
         for (key, merge_opt) in merge_opts {
             if let Some(other) = merge_opt.from.as_ref() {
@@ -192,8 +197,8 @@ impl Env {
 
     pub fn flatten_with_opts_option<'a>(
         &'a self,
-        merge_opts: Option<&'a HashMap<String, MergeOption>>,
-    ) -> Result<HashMap<&'a String, String>, Error> {
+        merge_opts: Option<&'a im::HashMap<String, MergeOption>>,
+    ) -> Result<EnvMap<'a>, Error> {
         if let Some(merge_opts) = merge_opts {
             self.flatten_with_opts(merge_opts)
         } else {
@@ -211,7 +216,7 @@ impl Env {
     pub fn expand(&mut self, values: &Env) -> Result<(), Error> {
         let values = values.flatten()?;
 
-        fn expand_envkey(envkey: &EnvKey, values: &HashMap<&String, String>) -> EnvKey {
+        fn expand_envkey(envkey: &EnvKey, values: &EnvMap) -> EnvKey {
             match envkey {
                 EnvKey::Single(key) => {
                     EnvKey::Single(expand(key, values, IfMissing::Ignore).unwrap())
@@ -423,7 +428,7 @@ mod tests {
             ]),
         );
 
-        let mut merge_opts = HashMap::new();
+        let mut merge_opts = im::HashMap::new();
         merge_opts.insert(
             "mykey".to_string(),
             MergeOption {
@@ -439,7 +444,7 @@ mod tests {
         let flattened = env.flatten_with_opts(&merge_opts).unwrap();
 
         assert_eq!(
-            flattened.get(&"mykey".to_string()).unwrap(),
+            flattened.get("mykey").unwrap(),
             &"(Pvalue_1S,Pvalue_2S,Pvalue_3S,Pvalue_4S)".to_string()
         );
     }
@@ -457,7 +462,7 @@ mod tests {
             ]),
         );
 
-        let mut merge_opts = HashMap::new();
+        let mut merge_opts = im::HashMap::new();
         merge_opts.insert(
             "mykey".to_string(),
             MergeOption {
@@ -473,7 +478,7 @@ mod tests {
         let flattened = env.flatten_with_opts(&merge_opts).unwrap();
 
         assert_eq!(
-            flattened.get(&"mykey".to_string()).unwrap(),
+            flattened.get("mykey").unwrap(),
             &"(Pvalue_1S,Pvalue_2S,Pvalue_3S,Pvalue_4S)".to_string()
         );
     }
@@ -490,7 +495,7 @@ mod tests {
             EnvKey::Single("mykey_value".to_string()),
         );
 
-        let mut merge_opts = HashMap::new();
+        let mut merge_opts = im::HashMap::new();
         merge_opts.insert(
             "mykey".to_string(),
             MergeOption {

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::nested_env;
+use crate::nested_env::{self, EnvMap};
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct VarExportSpec {
@@ -9,7 +9,7 @@ pub struct VarExportSpec {
 }
 
 impl VarExportSpec {
-    pub fn apply_env(&self, env: &im::HashMap<&String, String>) -> Self {
+    pub fn apply_env(&self, env: &EnvMap) -> Self {
         let content = if let Some(content) = self.content.as_ref() {
             content.clone()
         } else {
@@ -31,7 +31,7 @@ impl VarExportSpec {
         U: FromIterator<VarExportSpec>,
     >(
         export: T,
-        env: &im::HashMap<&String, String>,
+        env: &EnvMap,
     ) -> U {
         // what this does is, apply the env to the format as given by "export:"
         //

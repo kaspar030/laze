@@ -5,6 +5,7 @@ use std::hash::{Hash, Hasher};
 
 use camino::Utf8PathBuf;
 
+use crate::nested_env::EnvMap;
 use crate::Env;
 use crate::MergeOption;
 use crate::{ContextBag, Module, Rule, Task, TaskError};
@@ -148,7 +149,7 @@ impl Context {
     pub fn collect_tasks(
         &self,
         contexts: &ContextBag,
-        env: &im::HashMap<&String, String>,
+        env: &EnvMap,
         modules: &IndexMap<&String, (&Module, Env, std::option::Option<IndexSet<&Module>>)>,
     ) -> Result<IndexMap<String, Result<Task, TaskError>>, Error> {
         let mut result = IndexMap::new();
@@ -260,13 +261,13 @@ fn task_handle_required_modules(
 
 fn task_handle_required_vars(
     task: &Task,
-    env: &im::HashMap<&String, String>,
+    env: &EnvMap,
     result: &mut IndexMap<String, Result<Task, TaskError>>,
     name: &str,
 ) -> bool {
     if let Some(required_vars) = &task.required_vars {
         for var in required_vars {
-            if !env.contains_key(var) {
+            if !env.contains_key(var.as_str()) {
                 result.insert(
                     name.to_string(),
                     Err(TaskError::RequiredVarMissing { var: var.clone() }),
