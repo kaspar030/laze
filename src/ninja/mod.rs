@@ -13,7 +13,7 @@ use indexmap::IndexMap;
 use path_slash::PathExt as _;
 
 use crate::model::VarExportSpec;
-use crate::nested_env::{self, IfMissing};
+use crate::nested_env::{self, EnvMap, IfMissing};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Hash)]
 pub enum NinjaRuleDeps {
@@ -113,7 +113,7 @@ impl<'a> NinjaRule<'a> {
         self
     }
 
-    pub(crate) fn expand(mut self, env: &im::HashMap<&String, String>) -> anyhow::Result<Self> {
+    pub(crate) fn expand(mut self, env: &EnvMap) -> anyhow::Result<Self> {
         let mut command = String::with_capacity(self.command.len());
 
         // handle "export" statements

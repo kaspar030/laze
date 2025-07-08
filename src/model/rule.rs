@@ -5,6 +5,7 @@ use std::hash::{Hash, Hasher};
 
 use serde::{Deserialize, Serialize};
 
+use crate::nested_env::EnvMap;
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
 
 #[derive(Debug, Serialize, Deserialize, Eq, Clone)]
@@ -34,7 +35,7 @@ pub struct Rule {
 }
 
 impl Rule {
-    pub fn to_ninja(&self, env: &im::HashMap<&String, String>) -> anyhow::Result<NinjaRule> {
+    pub fn to_ninja(&self, env: &EnvMap) -> anyhow::Result<NinjaRule> {
         let ninja_rule: NinjaRuleBuilder = self.into();
         Ok(ninja_rule.build().unwrap().expand(env)?.named())
     }

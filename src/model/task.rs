@@ -9,7 +9,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::nested_env;
+use crate::nested_env::{self, EnvMap};
 use crate::serde_bool_helpers::{default_as_false, default_as_true};
 use crate::subst_ext::{substitute, IgnoreMissing, LocalVec};
 use crate::EXIT_ON_SIGINT;
@@ -193,7 +193,7 @@ impl Task {
         Ok(())
     }
 
-    fn _with_env(&self, env: &im::HashMap<&String, String>, do_eval: bool) -> Result<Task, Error> {
+    fn _with_env(&self, env: &EnvMap, do_eval: bool) -> Result<Task, Error> {
         let expand = |s| {
             if do_eval {
                 nested_env::expand_eval(s, env, nested_env::IfMissing::Empty)
@@ -221,18 +221,18 @@ impl Task {
     /// This is called early when loading the yaml files.
     /// It will not evaluate expressions, and pass-through variables that are not
     /// found in `env`.
-    pub fn with_env(&self, env: &im::HashMap<&String, String>) -> Result<Task, Error> {
+    pub fn with_env(&self, env: &EnvMap) -> Result<Task, Error> {
         self._with_env(env, false)
     }
 
     /// This is called to generate the final task.
     /// It will evaluate expressions, and variables that are not
     /// found in `env` will be replaced with the empty string.
-    pub fn with_env_eval(&self, env: &im::HashMap<&String, String>) -> Result<Task, Error> {
+    pub fn with_env_eval(&self, env: &EnvMap) -> Result<Task, Error> {
         self._with_env(env, true)
     }
 
-    fn expand_export(&self, env: &im::HashMap<&String, String>) -> Option<Vector<VarExportSpec>> {
+    fn expand_export(&self, env: &EnvMap) -> Option<Vector<VarExportSpec>> {
         self.export
             .as_ref()
             .map(|export| VarExportSpec::expand(export.iter(), env))

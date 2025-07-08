@@ -4,10 +4,11 @@ use std::{borrow::Cow, path::Path};
 
 use anyhow::{anyhow, Result};
 use camino::{Utf8Path, Utf8PathBuf};
-use im::HashMap;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+
+use crate::nested_env::EnvMap;
 
 use super::{ninja::NinjaBuildBuilder, Module, Rule};
 
@@ -83,7 +84,7 @@ impl Download {
         module: &Module,
         _build_dir: &Utf8Path,
         rules: &IndexMap<String, &Rule>,
-        env: &HashMap<&String, String>,
+        env: &EnvMap,
     ) -> Result<Vec<String>> {
         let mut rule_env = IndexMap::new();
         let rulename = match &self.source {
@@ -129,7 +130,7 @@ impl Download {
         &self,
         module: &Module,
         rules: &IndexMap<String, &Rule>,
-        env: &HashMap<&String, String>,
+        env: &EnvMap,
     ) -> Result<Vec<String>> {
         let patches = self.patches.as_ref().unwrap();
         let mut rule_env = IndexMap::new();
@@ -200,7 +201,7 @@ pub fn handle_module(
     module: &Module,
     build_dir: &Utf8Path,
     rules: &IndexMap<String, &Rule>,
-    env: &HashMap<&String, String>,
+    env: &EnvMap,
 ) -> Result<Option<Vec<String>>> {
     if let Some(download) = &module.download {
         Ok(Some(download.render(module, build_dir, rules, env)?))

@@ -1,9 +1,10 @@
 /* this is based on "far" (https://forge.typ3.tech/charles/far) */
-
-use evalexpr::EvalexprError;
-use im::HashMap;
 use std::error;
 use std::fmt;
+
+use evalexpr::EvalexprError;
+
+use super::EnvMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExpandError {
@@ -39,44 +40,33 @@ impl error::Error for ExpandError {
     }
 }
 
-pub fn expand<SI, H>(
-    f: SI,
-    r: &HashMap<&String, String, H>,
-    if_missing: IfMissing,
-) -> Result<String, ExpandError>
+pub fn expand<SI>(f: SI, r: &EnvMap, if_missing: IfMissing) -> Result<String, ExpandError>
 where
     SI: AsRef<str>,
-    H: std::hash::BuildHasher,
 {
     let seen = Vec::new();
-    expand_recursive::<SI, H>(f, r, seen, if_missing)
+    expand_recursive::<SI>(f, r, seen, if_missing)
 }
 
-pub fn expand_eval<SI, H>(
-    f: SI,
-    r: &HashMap<&String, String, H>,
-    if_missing: IfMissing,
-) -> Result<String, ExpandError>
+pub fn expand_eval<SI>(f: SI, r: &EnvMap, if_missing: IfMissing) -> Result<String, ExpandError>
 where
     SI: AsRef<str>,
-    H: std::hash::BuildHasher,
 {
     use crate::nested_env::Eval;
     let seen = Vec::new();
-    Ok(expand_recursive::<SI, H>(f, r, seen, if_missing)?
+    Ok(expand_recursive::<SI>(f, r, seen, if_missing)?
         .eval()
         .map_err(ExpandError::Expr))?
 }
 
-fn expand_recursive<'a, SI, H>(
+fn expand_recursive<'a, SI>(
     f: SI,
-    r: &HashMap<&String, String, H>,
+    r: &EnvMap,
     seen: Vec<&'a str>,
     if_missing: IfMissing,
 ) -> Result<String, ExpandError>
 where
     SI: 'a + AsRef<str>,
-    H: std::hash::BuildHasher,
 {
     let f = f.as_ref();
 
@@ -131,20 +121,19 @@ where
         /* TODO: there's a lot of cloning and string copying in this block.
          * Need to improve... */
         let mut seen = seen.clone();
-        let key_ = &key.to_string();
         result.push_str(&f[cursor..start]);
         if seen.contains(&key) {
             return Err(ExpandError::Cycle(key.into()));
         }
-        seen.push(key_);
+        seen.push(key);
 
-        match r.get(key_) {
+        match r.get(key) {
             Some(val) => result.push_str(expand_recursive(val, r, seen, if_missing)?.as_ref()),
             None => match if_missing {
                 IfMissing::Error => return Err(ExpandError::Missing(key.into())),
                 IfMissing::Ignore => {
                     result.push_str("${");
-                    result.push_str(key_);
+                    result.push_str(key);
                     result.push('}')
                 }
                 IfMissing::Empty => (),
@@ -171,7 +160,7 @@ mod tests {
 
     #[test]
     fn no_expansion() {
-        let vars = HashMap::new();
+        let vars = EnvMap::new();
         assert_eq!(
             expand("simple string", &vars, IfMissing::Error),
             Ok("simple string".to_string())
@@ -180,9 +169,8 @@ mod tests {
 
     #[test]
     fn single_expansion() {
-        let mut vars = HashMap::new();
-        vars.insert("A".to_string(), "a".to_string());
-        let vars: HashMap<&String, String> = vars.iter().map(|(k, v)| (k, v.into())).collect();
+        let mut vars = EnvMap::new();
+        vars.insert("A", "a".into());
         assert_eq!(
             expand("${A} simple string", &vars, IfMissing::Error),
             Ok("a simple string".to_string())
@@ -191,10 +179,9 @@ mod tests {
 
     #[test]
     fn multi_expansion() {
-        let mut vars = HashMap::new();
-        vars.insert("A".to_string(), "a".to_string());
-        vars.insert("B".to_string(), "with variables".to_string());
-        let vars: HashMap<&String, String> = vars.iter().map(|(k, v)| (k, v.into())).collect();
+        let mut vars = EnvMap::new();
+        vars.insert("A", "a".into());
+        vars.insert("B", "with variables".into());
         assert_eq!(
             expand("${A} simple string ${B}", &vars, IfMissing::Error),
             Ok("a simple string with variables".to_string())
@@ -203,7 +190,7 @@ mod tests {
 
     #[test]
     fn error_missing() {
-        let vars = HashMap::new();
+        let vars = EnvMap::new();
         assert_eq!(
             expand("simple string ${A}", &vars, IfMissing::Error),
             Err(ExpandError::Missing("A".to_string()))
@@ -212,7 +199,7 @@ mod tests {
 
     #[test]
     fn no_error_missing() {
-        let vars = HashMap::new();
+        let vars = EnvMap::new();
         assert_eq!(
             expand("simple string ${A}", &vars, IfMissing::Empty),
             Ok("simple string ".to_string())
@@ -221,10 +208,9 @@ mod tests {
 
     #[test]
     fn recursive() {
-        let mut vars = HashMap::new();
-        vars.insert("A".to_string(), "a(${B})".to_string());
-        vars.insert("B".to_string(), "b()".to_string());
-        let vars: HashMap<&String, String> = vars.iter().map(|(k, v)| (k, v.into())).collect();
+        let mut vars = EnvMap::new();
+        vars.insert("A", "a(${B})".into());
+        vars.insert("B", "b()".into());
         assert_eq!(
             expand("x${A}x", &vars, IfMissing::Error),
             Ok("xa(b())x".to_string())
@@ -233,9 +219,8 @@ mod tests {
 
     #[test]
     fn single_expansion_escaped() {
-        let mut vars = HashMap::new();
-        vars.insert("A".to_string(), "\\${a}".to_string());
-        let vars: HashMap<&String, String> = vars.iter().map(|(k, v)| (k, v.into())).collect();
+        let mut vars = EnvMap::new();
+        vars.insert("A", "\\${a}".into());
         assert_eq!(
             expand("${A} simple string", &vars, IfMissing::Error),
             Ok("${a} simple string".to_string())

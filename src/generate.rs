@@ -996,7 +996,7 @@ fn configure_build(
         };
 
     // collect tasks
-    global_env_flattened.insert(&out_str, outfile.to_string());
+    global_env_flattened.insert(&out_str, Cow::from(outfile.to_string()));
     let tasks = build
         .build_context
         .collect_tasks(contexts, &global_env_flattened, &modules)?;
