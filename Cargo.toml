@@ -41,7 +41,7 @@ rust-embed = "8.7.2"
 task_partitioner = "0.1.1"
 
 clap_complete = { version = "4.5.55", features = ["unstable-dynamic"] }
-clap_mangen = "0.2.27"
+clap_mangen = "0.2.28"
 camino = { version = "1.1.10", features = ["serde1"] }
 evalexpr = "11.3.1"
 semver = { version = "1.0.26", features = ["serde"] }
