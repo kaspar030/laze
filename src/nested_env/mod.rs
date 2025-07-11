@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use anyhow::{anyhow, Context, Error};
 use evalexpr::EvalexprError;
-use im::{hashmap::Entry, vector, Vector};
+use im::{vector, Vector};
 use itertools::join;
 use serde::{Deserialize, Serialize};
 
@@ -123,17 +123,10 @@ impl Env {
     }
 
     pub fn merge(&mut self, other: &Env) {
-        for (key, value) in other.inner.iter() {
-            match self.entry(key.clone()) {
-                Entry::Vacant(e) => {
-                    e.insert(value.clone());
-                }
-                Entry::Occupied(mut e) => {
-                    let merged = e.get_mut().merge(value);
-                    *e.get_mut() = merged;
-                }
-            }
-        }
+        self.inner = self
+            .clone()
+            .inner
+            .union_with(other.inner.clone(), |a, b| a.merge(&b));
     }
 
     pub fn flatten(&self) -> Result<EnvMap, Error> {
