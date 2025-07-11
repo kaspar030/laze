@@ -12,7 +12,7 @@ pub use expr::Eval;
 
 pub use expand::{expand, expand_eval, IfMissing};
 
-pub type EnvMap<'a> = im::HashMap<&'a str, Cow<'a, str>>;
+pub type EnvMap<'a> = std::collections::HashMap<&'a str, Cow<'a, str>>;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct Env {
