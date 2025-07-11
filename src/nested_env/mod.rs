@@ -6,6 +6,7 @@ use im::{hashmap::Entry, vector, Vector};
 use itertools::join;
 use serde::{Deserialize, Serialize};
 
+mod eval_context;
 mod expand;
 mod expr;
 pub use expr::Eval;

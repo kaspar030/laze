@@ -2,8 +2,9 @@
 use std::error;
 use std::fmt;
 
-use camino::Utf8PathBuf;
-use evalexpr::{EvalexprError, EvalexprResult};
+use evalexpr::EvalexprError;
+
+use crate::nested_env::eval_context::EvalContext;
 
 use super::EnvMap;
 
@@ -61,7 +62,7 @@ where
     let seen = Vec::new();
 
     let expanded = expand_recursive::<SI>(s, env, seen, if_missing)?;
-    let eval_context = EvalContext { inner: env };
+    let eval_context = EvalContext::new(env);
     Ok(expanded
         .eval_with_context(eval_context)
         .map_err(ExpandError::Expr)?)
@@ -160,50 +161,6 @@ where
     }
 
     Ok(result)
-}
-
-pub struct EvalContext<'a, 'b: 'a> {
-    inner: &'a EnvMap<'b>,
-}
-
-impl evalexpr::Context for EvalContext<'_, '_> {
-    fn get_value(&self, _identifier: &str) -> Option<&evalexpr::Value> {
-        None
-    }
-
-    fn call_function(
-        &self,
-        identifier: &str,
-        argument: &evalexpr::Value,
-    ) -> evalexpr::EvalexprResult<evalexpr::Value> {
-        match identifier {
-            "relroot" => {
-                let s = argument.as_string()?;
-                let relroot = if let Some(relroot) = self.inner.get("relroot") {
-                    relroot
-                } else {
-                    return EvalexprResult::Err(
-                        evalexpr::EvalexprError::VariableIdentifierNotFound("XXrelroot".into()),
-                    );
-                };
-
-                let path = Utf8PathBuf::from(relroot).join(s);
-
-                EvalexprResult::Ok(evalexpr::Value::String(path.into()))
-            }
-            _ => EvalexprResult::Err(evalexpr::EvalexprError::FunctionIdentifierNotFound(
-                identifier.to_string(),
-            )),
-        }
-    }
-
-    fn are_builtin_functions_disabled(&self) -> bool {
-        false
-    }
-
-    fn set_builtin_functions_disabled(&mut self, _disabled: bool) -> evalexpr::EvalexprResult<()> {
-        EvalexprResult::Ok(())
-    }
 }
 
 #[cfg(test)]

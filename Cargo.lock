@@ -1138,6 +1138,7 @@ dependencies = [
  "jobslot",
  "log",
  "mimalloc",
+ "normalize-path",
  "path-slash",
  "pathdiff",
  "ptree",
@@ -1236,6 +1237,12 @@ checksum = "e1ee66a4b64c74f4ef288bcbb9192ad9c3feaad75193129ac8509af543894fd8"
 dependencies = [
  "libmimalloc-sys",
 ]
+
+[[package]]
+name = "normalize-path"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5438dd2b2ff4c6df6e1ce22d825ed2fa93ee2922235cc45186991717f0a892d"
 
 [[package]]
 name = "once_cell"
