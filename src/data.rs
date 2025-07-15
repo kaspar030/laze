@@ -408,7 +408,16 @@ pub fn load(
     // set.
     // using an IndexSet so files can only be added once
     let mut filenames: IndexSet<FileInclude> = IndexSet::new();
-    filenames.insert(FileInclude::new(Utf8PathBuf::from(filename), None, None));
+    let main_file = Utf8PathBuf::from(filename);
+
+    let mut local_file = main_file.clone();
+    local_file.set_file_name("laze-local.yml");
+
+    filenames.insert(FileInclude::new(main_file, None, None));
+
+    if local_file.is_file() {
+        filenames.insert(FileInclude::new(local_file, None, None));
+    }
 
     let mut filenames_pos = 0;
     while filenames_pos < filenames.len() {
