@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### 🚀 Features
+
+- Support optionally parsing laze-local.yml ([#745](https://github.com/kaspar030/laze/issues/745))
+
+### 🐛 Bug Fixes
+
+- Handle empty string in LAZE_BUILDERS ([#746](https://github.com/kaspar030/laze/issues/746))
+- Silence jobserver output unless verbose ([#738](https://github.com/kaspar030/laze/issues/738))
+
+### 🚜 Refactor
+
+- env: Use std HashMap ([#743](https://github.com/kaspar030/laze/issues/743))
+- Introduce EnvMap ([#739](https://github.com/kaspar030/laze/issues/739))
+
+### 🔗  Dependencies
+
+- deps: Bump clap_mangen from 0.2.27 to 0.2.28 ([#742](https://github.com/kaspar030/laze/issues/742))
+- deps: Bump clap from 4.5.40 to 4.5.41 ([#740](https://github.com/kaspar030/laze/issues/740))
+- deps: Bump clap_complete from 4.5.54 to 4.5.55 ([#741](https://github.com/kaspar030/laze/issues/741))
+- deps: Bump indexmap from 2.9.0 to 2.10.0 ([#737](https://github.com/kaspar030/laze/issues/737))
+
 ## [0.1.37] - 2025-06-24
 
 ### 🚀 Features
