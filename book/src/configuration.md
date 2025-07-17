@@ -1,6 +1,6 @@
 # Configuration
 
-Currently, **laze** has no configuratin itself.
+Currently, **laze** has no configuration itself.
 Only its `<TAB>` (shell-) completions need some set-up.
 
 ## Shell completions
