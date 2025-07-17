@@ -12,6 +12,7 @@ use std::time::Instant;
 
 use anyhow::{anyhow, Context as _, Result};
 use camino::{Utf8Path, Utf8PathBuf};
+use clap::parser::ValuesRef;
 use derive_builder::Builder;
 use im::Vector;
 use indexmap::{IndexMap, IndexSet};
@@ -1054,6 +1055,22 @@ impl fmt::Display for Selector {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Option<ValuesRef<'_, String>>> for Selector {
+    fn from(values: Option<ValuesRef<String>>) -> Self {
+        match values {
+            Some(values) => {
+                let values: IndexSet<String> = values.filter(|v| !v.is_empty()).cloned().collect();
+                if values.is_empty() {
+                    Selector::All
+                } else {
+                    Selector::Some(values)
+                }
+            }
+            None => Selector::All,
+        }
     }
 }
 

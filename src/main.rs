@@ -6,7 +6,6 @@ use std::sync::{Arc, OnceLock};
 use anyhow::{anyhow, Context as _, Error, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use git_cache::GitCache;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use jobserver::JOBSERVER;
 use signal_hook::{consts::SIGINT, flag::register_conditional_shutdown};
@@ -254,16 +253,9 @@ fn try_main() -> Result<i32> {
             let build_dir = build_matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
 
             // collect builder names from args
-            let builders = match build_matches.get_many::<String>("builders") {
-                Some(values) => Selector::Some(values.cloned().collect::<IndexSet<String>>()),
-                None => Selector::All,
-            };
-
+            let builders = Selector::from(build_matches.get_many::<String>("builders"));
             // collect app names from args
-            let apps = match build_matches.get_many::<String>("apps") {
-                Some(values) => Selector::Some(values.cloned().collect::<IndexSet<String>>()),
-                None => Selector::All,
-            };
+            let apps = Selector::from(build_matches.get_many::<String>("apps"));
 
             let jobs = build_matches.get_one::<usize>("jobs").copied();
 
