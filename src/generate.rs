@@ -268,6 +268,7 @@ impl Generator {
                     self.disable.as_ref(),
                     &self.cli_env.as_ref(),
                     self.collect_insights,
+                    self.project_root.clone(),
                     verbose,
                 )
                 .with_context(|| format!("binary \"{}\"", bin.name))
@@ -360,6 +361,7 @@ fn configure_build(
     disable: Option<&Vec<String>>,
     cli_env: &Option<&Env>,
     collect_insights: bool,
+    project_root: Utf8PathBuf,
     verbose: bool,
 ) -> Result<ConfigureBuildResult> {
     let mut reason = NoBuildReason::default();
@@ -464,6 +466,9 @@ fn configure_build(
 
     // same with "relroot"
     global_env.insert("relroot".into(), relroot(binary.relpath.as_ref().unwrap()));
+
+    // insert global "absroot"
+    global_env.insert("absroot".into(), project_root);
 
     // insert lists of actually used modules and contexts
     let mut used_modules = Vector::new();
