@@ -49,7 +49,7 @@ tinytemplate = "1.2.1"
 serde_json = { version = "1.0.142", features = ["indexmap"] }
 git-cache = "0.2.5"
 shellexpand = "3.1.1"
-thiserror = "2.0.14"
+thiserror = "2.0.15"
 im-rc = "15.1.0"
 shell-words = "1.1.0"
 subst = "0.3.8"
