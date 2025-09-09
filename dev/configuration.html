@@ -163,7 +163,7 @@ completions on shell start (if in doubt, you're probably running <code>bash</cod
 <pre><code class="language-elvish">echo &quot;eval (E:COMPLETE=elvish laze | slurp)&quot; &gt;&gt; ~/.elvish/rc.elv
 </code></pre>
 <p>Fish</p>
-<pre><code class="language-fish">echo &quot;source (COMPLETE=fish laze | psub)&quot; &gt;&gt; ~/.config/fish/config.fish
+<pre><code class="language-fish">echo &quot;COMPLETE=fish laze | source&quot; &gt;&gt; ~/.config/fish/config.fish
 </code></pre>
 <p>Powershell</p>
 <pre><code class="language-powershell">echo &quot;COMPLETE=powershell laze | Invoke-Expression&quot; &gt;&gt; $PROFILE
