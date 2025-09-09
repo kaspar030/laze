@@ -25,7 +25,7 @@ echo "eval (E:COMPLETE=elvish laze | slurp)" >> ~/.elvish/rc.elv
 
 Fish
 ```fish
-echo "source (COMPLETE=fish laze | psub)" >> ~/.config/fish/config.fish
+echo "COMPLETE=fish laze | source" >> ~/.config/fish/config.fish
 ```
 
 Powershell
