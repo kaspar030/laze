@@ -79,10 +79,14 @@ fn ninja_run(
     let ninja_binary = ninja_cmd.binary;
 
     let ninja_exit = if jobs.is_some() {
+        // we force some `-jN`
         ninja_cmd.cmd().status()
-    } else {
-        let jobserver = JOBSERVER.get().unwrap();
+    } else if let Some(jobserver) = JOBSERVER.get() {
+        // we use our own jobserver
         jobserver.configure_make_and_run_with_fifo(&mut ninja_cmd.cmd(), |cmd| cmd.status())
+    } else {
+        // our jobserver is not available (e.g., on `laze clean`)
+        ninja_cmd.cmd().status()
     }
     .with_context(|| format!("launching ninja binary \"{}\"", ninja_binary))?;
 
