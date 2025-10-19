@@ -23,6 +23,9 @@ jobs:
       BENCHER_ADAPTER: json
 
     steps:
+    - name: install perf
+      run: sudo apt install -y linux-tools-$(uname -r) linux-tools-generic
+
     - name: check out repository code
       uses: actions/checkout@v4
 
