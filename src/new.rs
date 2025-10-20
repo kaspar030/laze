@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use anyhow::{bail, Context as _, Error, Result};
 use camino::Utf8PathBuf;
 use clap::ArgMatches;
+use log::info;
 use rust_embed::RustEmbed;
 use serde::Serialize;
 
@@ -31,9 +32,6 @@ impl PathEmpty for camino::Utf8Path {
 pub fn from_matches(matches: &ArgMatches) -> Result<(), Error> {
     let path = matches.get_one::<Utf8PathBuf>("path").unwrap();
     let template_name = matches.get_one::<String>("template").unwrap();
-    let _verbose = matches.get_count("verbose");
-    let quiet = matches.get_count("quiet");
-
     let prefix = format!("{template_name}/");
     if !TemplateFiles::iter().any(|x| x.starts_with(&prefix)) {
         bail!("no internal template with name \"{template_name}\" available");
@@ -85,9 +83,7 @@ pub fn from_matches(matches: &ArgMatches) -> Result<(), Error> {
         };
     }
 
-    if quiet == 0 {
-        println!("laze: created '{}' project", context.project_name);
-    }
+    info!("laze: created '{}' project", context.project_name);
 
     Ok(())
 }

@@ -56,6 +56,8 @@ subst = "0.3.8"
 path-slash = "0.2.1"
 jobslot = "0.2.23"
 ptree = { version = "0.5.2", default-features = false }
+env_logger = "0.11.8"
+log = "0.4.28"
 
 [profile.release]
 lto = "fat"
