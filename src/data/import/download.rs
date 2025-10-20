@@ -3,6 +3,7 @@ use std::fs::remove_dir_all;
 use anyhow::{anyhow, Context as _, Error};
 use camino::{Utf8Path, Utf8PathBuf};
 use git_cache::GitCacheClonerBuilder;
+use log::debug;
 use rust_embed::RustEmbed;
 
 use super::Import;
@@ -64,7 +65,7 @@ impl Import for Download {
 
             match &self.source {
                 Source::Git(Git::Commit { url, commit }) => {
-                    println!("IMPORT Git {url}:{commit} -> {target_path}");
+                    debug!("IMPORT Git {url}:{commit} -> {target_path}");
 
                     git_clone_commit(url, &target_path, commit).with_context(|| {
                         format!("cloning git url: \"{url}\" commit: \"{commit}\"")
@@ -80,7 +81,7 @@ impl Import for Download {
                     url,
                     tag: branch_or_tag,
                 }) => {
-                    println!("IMPORT Git {url}:{branch_or_tag} -> {target_path}");
+                    debug!("IMPORT Git {url}:{branch_or_tag} -> {target_path}");
 
                     git_clone_branch(url, &target_path, branch_or_tag).with_context(|| {
                         format!("cloning git url: \"{url}\" branch/tag: \"{branch_or_tag}\"")
@@ -89,7 +90,7 @@ impl Import for Download {
                     self.create_tagfile(tagfile)?;
                 }
                 Source::Git(Git::Default { url }) => {
-                    println!("IMPORT Git {url} -> {target_path}");
+                    debug!("IMPORT Git {url} -> {target_path}");
 
                     git_cloner(url, &target_path)?
                         .do_clone()
