@@ -35,7 +35,7 @@ pub struct Rule {
 }
 
 impl Rule {
-    pub fn to_ninja(&self, env: &EnvMap) -> anyhow::Result<NinjaRule> {
+    pub fn to_ninja(&self, env: &EnvMap) -> anyhow::Result<NinjaRule<'_>> {
         let ninja_rule: NinjaRuleBuilder = self.into();
         Ok(ninja_rule.build().unwrap().expand(env)?.named())
     }
@@ -43,7 +43,7 @@ impl Rule {
     /// get rule description
     ///
     /// if no description is set, uses this rule's name
-    pub fn description(&self) -> Cow<str> {
+    pub fn description(&self) -> Cow<'_, str> {
         if let Some(description) = &self.description {
             Cow::from(description)
         } else {
