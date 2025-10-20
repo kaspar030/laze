@@ -140,7 +140,7 @@ impl Import for Download {
             Source::Git(Git::Commit { url, .. })
             | Source::Git(Git::Branch { url, .. })
             | Source::Git(Git::Tag { url, .. })
-            | Source::Git(Git::Default { url, .. }) => url.split('/').last().map(|x| x.to_string()),
+            | Source::Git(Git::Default { url, .. }) => url.split('/').next_back().map(|x| x.to_string()),
             Source::Laze(name) => {
                 let prefix = format!("{}/", name);
 

@@ -52,14 +52,14 @@ impl EnvKey {
         }
     }
 
-    fn flatten(&self) -> Result<Cow<str>, EvalexprError> {
+    fn flatten(&self) -> Result<Cow<'_, str>, EvalexprError> {
         match self {
             EnvKey::Single(s) => Ok(Cow::from(s)),
             EnvKey::List(list) => Ok(join(list, " ").into()),
         }
     }
 
-    fn flatten_with_opts(&self, opts: &MergeOption) -> Result<Cow<str>, EvalexprError> {
+    fn flatten_with_opts(&self, opts: &MergeOption) -> Result<Cow<'_, str>, EvalexprError> {
         let mut res = String::new();
         if let Some(start) = &opts.start {
             res.push_str(start);
@@ -136,7 +136,7 @@ impl Env {
         }
     }
 
-    pub fn flatten(&self) -> Result<EnvMap, Error> {
+    pub fn flatten(&self) -> Result<EnvMap<'_>, Error> {
         self.inner
             .iter()
             .map(|(key, value)| {

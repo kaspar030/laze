@@ -192,7 +192,7 @@ impl ContextBag {
         Ok(())
     }
 
-    pub fn builders(&self) -> Filter<Iter<Context>, fn(&&Context) -> bool> {
+    pub fn builders(&self) -> Filter<Iter<'_, Context>, fn(&&Context) -> bool> {
         self.contexts.iter().filter(|&x| x.is_builder)
     }
 

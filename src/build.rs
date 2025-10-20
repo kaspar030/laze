@@ -449,7 +449,7 @@ impl<'a: 'b, 'b> Build<'b> {
         &self,
         disabled_modules: IndexSet<String>,
         verbose: bool,
-    ) -> Result<ResolverResult, Error> {
+    ) -> Result<ResolverResult<'_>, Error> {
         if verbose {
             let mut resolver = Resolver::<true>::new(self, disabled_modules);
             resolver.trace(|| {
