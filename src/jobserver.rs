@@ -1,6 +1,6 @@
 use std::sync::OnceLock;
 
-use log::debug;
+use log::{debug, trace};
 
 use jobslot::Client;
 
@@ -15,7 +15,7 @@ pub fn maybe_init_fromenv() {
 
 pub(crate) fn maybe_set_limit(limit: usize) {
     JOBSERVER.get_or_init(|| {
-        debug!("laze: configured jobserver with limit {limit}");
+        trace!("laze: configured jobserver with limit {limit}");
         Client::new_with_fifo(limit).expect("jobserver created")
     });
 }
