@@ -119,7 +119,7 @@ fn main() {
                     i += 1;
                 }
             } else {
-                error!("{e:#}");
+                error!("laze: error: {e:#}");
             }
             std::process::exit(1);
         }
@@ -144,8 +144,7 @@ fn try_main() -> Result<i32> {
         .format(|buf, record| {
             let log_style = buf.default_level_style(record.level());
             writeln!(buf,
-                "{log_style}{}{log_style:#}: {}",
-                record.level(),
+                "{}",
                 record.args()
             )
         });
