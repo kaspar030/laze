@@ -77,7 +77,7 @@ impl EnvKey {
                     res.push_str(suffix);
                 }
             }
-            EnvKey::List(list) => {
+            EnvKey::List(list) if !list.is_empty() => {
                 let joiner = match &opts.joiner {
                     Some(joiner) => joiner,
                     None => " ",
@@ -101,6 +101,7 @@ impl EnvKey {
                     }
                 }
             }
+            _ => (),
         }
         if let Some(end) = &opts.end {
             res.push_str(&end[..]);
@@ -509,6 +510,34 @@ mod tests {
         );
 
         assert!(env.flatten_with_opts(&merge_opts).is_err());
+    }
+
+    #[test]
+    fn test_mergeopts_empty() {
+        let mut env = Env::new();
+        env.insert(
+            "mykey".to_string(),
+            EnvKey::List(vector![]),
+        );
+
+        let mut merge_opts = im::HashMap::new();
+        merge_opts.insert(
+            "mykey".to_string(),
+            MergeOption {
+                joiner: Some(",".to_string()),
+                prefix: Some("P".to_string()),
+                suffix: Some("S".to_string()),
+                start: Some("(".to_string()),
+                end: Some(")".to_string()),
+                ..Default::default()
+            },
+        );
+
+        let flattened = env.flatten_with_opts(&merge_opts).unwrap();
+        assert_eq!(
+            flattened.get("mykey").unwrap(),
+            &"()".to_string()
+        );
     }
 
     #[test]
