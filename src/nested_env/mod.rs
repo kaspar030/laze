@@ -77,7 +77,7 @@ impl EnvKey {
                     res.push_str(suffix);
                 }
             }
-            EnvKey::List(list) => {
+            EnvKey::List(list) if !list.is_empty() => {
                 let joiner = match &opts.joiner {
                     Some(joiner) => joiner,
                     None => " ",
@@ -101,6 +101,7 @@ impl EnvKey {
                     }
                 }
             }
+            _ => (),
         }
         if let Some(end) = &opts.end {
             res.push_str(&end[..]);
