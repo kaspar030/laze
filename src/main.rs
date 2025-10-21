@@ -147,85 +147,15 @@ fn try_main() -> Result<i32> {
 
     // handle project independent subcommands here
     match matches.subcommand() {
-        Some(("new", matches)) => {
-            new::from_matches(matches)?;
-            return Ok(0);
-        }
-        Some(("completion", matches)) => {
-            fn print_completions<G: clap_complete::Generator>(
-                generator: G,
-                cmd: &mut clap::Command,
-            ) {
-                clap_complete::generate(
-                    generator,
-                    cmd,
-                    cmd.get_name().to_string(),
-                    &mut std::io::stdout(),
-                );
-            }
-            if let Some(generator) = matches
-                .get_one::<clap_complete::Shell>("generator")
-                .copied()
-            {
-                let mut cmd = cli::clap();
-                eprintln!("Generating completion file for {}...", generator);
-                print_completions(generator, &mut cmd);
-            }
-            return Ok(0);
-        }
-        Some(("manpages", matches)) => {
-            fn create_manpage(cmd: clap::Command, outfile: &Utf8Path) -> Result<(), Error> {
-                let man = clap_mangen::Man::new(cmd);
-                let mut buffer: Vec<u8> = Default::default();
-                man.render(&mut buffer)?;
-
-                std::fs::write(outfile, buffer)?;
-                Ok(())
-            }
-            let mut outpath: Utf8PathBuf =
-                matches.get_one::<Utf8PathBuf>("outdir").unwrap().clone();
-            let cmd = cli::clap();
-
-            outpath.push("laze.1");
-            create_manpage(cmd.clone(), &outpath)?;
-
-            for subcommand in cmd.get_subcommands() {
-                if subcommand.is_hide_set() {
-                    continue;
-                }
-                let name = subcommand.get_name();
-                outpath.pop();
-                outpath.push(format!("laze-{name}.1"));
-                create_manpage(subcommand.clone(), &outpath)?;
-            }
-
-            return Ok(0);
-        }
-        Some(("git-clone", matches)) => {
-            let repository = matches.get_one::<String>("repository").unwrap();
-            let target_path = matches.get_one::<Utf8PathBuf>("target_path").cloned();
-            let wanted_commit = matches.get_one::<String>("commit");
-            let sparse_paths = matches
-                .get_many::<String>("sparse-add")
-                .map(|v| v.into_iter().cloned().collect::<Vec<String>>());
-
-            GIT_CACHE
-                .get()
-                .unwrap()
-                .cloner()
-                .commit(wanted_commit.cloned())
-                .extra_clone_args_from_matches(matches)
-                .repository_url(repository.clone())
-                .sparse_paths(sparse_paths)
-                .target_path(target_path)
-                .update(matches.get_flag("update"))
-                .do_clone()?;
-
-            return Ok(0);
-        }
-        _ => (),
+        Some(("new", matches)) => cmd_new(matches),
+        Some(("completion", matches)) => cmd_completion(matches),
+        Some(("manpages", matches)) => cmd_manpages(matches),
+        Some(("git-clone", matches)) => cmd_gitclone(matches),
+        _ => try_main_build(matches),
     }
+}
 
+fn try_main_build(matches: clap::ArgMatches) -> Result<i32> {
     if let Some(dir) = matches.get_one::<Utf8PathBuf>("chdir") {
         env::set_current_dir(dir).context(format!("cannot change to directory \"{dir}\""))?;
     }
@@ -253,268 +183,366 @@ fn try_main() -> Result<i32> {
     jobserver::maybe_init_fromenv(verbose);
 
     match matches.subcommand() {
-        Some(("build", build_matches)) => {
-            let build_dir = build_matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
+        Some(("build", matches)) => cmd_build(
+            matches,
+            global,
+            verbose,
+            project_root,
+            project_file,
+            start_relpath,
+        ),
+        Some(("clean", matches)) => cmd_clean(matches, global, verbose, start_relpath),
+        _ => Ok(0),
+    }
+}
 
-            // collect builder names from args
-            let builders = Selector::from(build_matches.get_many::<String>("builders"));
-            // collect app names from args
-            let apps = Selector::from(build_matches.get_many::<String>("apps"));
+fn cmd_new(matches: &clap::ArgMatches) -> Result<i32> {
+    new::from_matches(matches)?;
+    Ok(0)
+}
 
-            let jobs = build_matches.get_one::<usize>("jobs").copied();
+fn cmd_completion(matches: &clap::ArgMatches) -> Result<i32> {
+    fn print_completions<G: clap_complete::Generator>(generator: G, cmd: &mut clap::Command) {
+        clap_complete::generate(
+            generator,
+            cmd,
+            cmd.get_name().to_string(),
+            &mut std::io::stdout(),
+        );
+    }
+    if let Some(generator) = matches
+        .get_one::<clap_complete::Shell>("generator")
+        .copied()
+    {
+        let mut cmd = cli::clap();
+        eprintln!("Generating completion file for {}...", generator);
+        print_completions(generator, &mut cmd);
+    }
+    Ok(0)
+}
 
-            // Unless we've inherited a jobserver, create one.
-            jobserver::maybe_set_limit(
-                jobs.unwrap_or_else(|| {
-                    // default to number of logical cores.
-                    // TODO: figure out in which case this might error
-                    std::thread::available_parallelism()
-                        .map(|n| n.get())
-                        .unwrap_or(1)
-                }),
-                verbose,
-            );
+fn cmd_manpages(matches: &clap::ArgMatches) -> Result<i32> {
+    fn create_manpage(cmd: clap::Command, outfile: &Utf8Path) -> Result<(), Error> {
+        let man = clap_mangen::Man::new(cmd);
+        let mut buffer: Vec<u8> = Default::default();
+        man.render(&mut buffer)?;
 
-            let keep_going = build_matches.get_one::<usize>("keep_going").copied();
+        std::fs::write(outfile, buffer)?;
+        Ok(())
+    }
+    let mut outpath: Utf8PathBuf = matches.get_one::<Utf8PathBuf>("outdir").unwrap().clone();
+    let cmd = cli::clap();
 
-            let partitioner = build_matches
-                .get_one::<task_partitioner::PartitionerBuilder>("partition")
-                .map(|v| v.build());
+    outpath.push("laze.1");
+    create_manpage(cmd.clone(), &outpath)?;
 
-            let info_outfile = build_matches.get_one::<Utf8PathBuf>("info-export");
+    for subcommand in cmd.get_subcommands() {
+        if subcommand.is_hide_set() {
+            continue;
+        }
+        let name = subcommand.get_name();
+        outpath.pop();
+        outpath.push(format!("laze-{name}.1"));
+        create_manpage(subcommand.clone(), &outpath)?;
+    }
 
-            println!("laze: building {apps} for {builders}");
+    return Ok(0);
+}
 
-            // collect CLI selected/disabled modules
-            let select = get_selects(build_matches);
-            let disable = get_disables(build_matches);
-            let require = get_requires(build_matches);
+fn cmd_gitclone(matches: &clap::ArgMatches) -> Result<i32> {
+    let repository = matches.get_one::<String>("repository").unwrap();
+    let target_path = matches.get_one::<Utf8PathBuf>("target_path").cloned();
+    let wanted_commit = matches.get_one::<String>("commit");
+    let sparse_paths = matches
+        .get_many::<String>("sparse-add")
+        .map(|v| v.into_iter().cloned().collect::<Vec<String>>());
 
-            // collect CLI env overrides
-            let cli_env = get_cli_vars(build_matches)?;
+    GIT_CACHE
+        .get()
+        .unwrap()
+        .cloner()
+        .commit(wanted_commit.cloned())
+        .extra_clone_args_from_matches(matches)
+        .repository_url(repository.clone())
+        .sparse_paths(sparse_paths)
+        .target_path(target_path)
+        .update(matches.get_flag("update"))
+        .do_clone()?;
 
-            let mode = match global {
-                true => GenerateMode::Global,
-                false => GenerateMode::Local(start_relpath.clone()),
-            };
+    return Ok(0);
+}
 
-            let generator = GeneratorBuilder::default()
-                .project_root(project_root.clone())
-                .project_file(project_file)
-                .build_dir(build_dir.clone())
-                .mode(mode.clone())
-                .builders(builders.clone())
-                .apps(apps.clone())
-                .select(select)
-                .disable(disable)
-                .require(require)
-                .cli_env(cli_env)
-                .partitioner(partitioner.as_ref().map(|x| format!("{:?}", x)))
-                .collect_insights(info_outfile.is_some())
-                .disable_cache(info_outfile.is_some())
-                .build()
-                .unwrap();
+fn cmd_build(
+    matches: &clap::ArgMatches,
+    global: bool,
+    verbose: u8,
+    project_root: Utf8PathBuf,
+    project_file: Utf8PathBuf,
+    start_relpath: Utf8PathBuf,
+) -> Result<i32> {
+    let build_dir = matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
 
-            // arguments parsed, launch generation of ninja file(s)
-            let builds = generator.execute(partitioner, verbose > 1)?;
+    // collect builder names from args
+    let builders = Selector::from(matches.get_many::<String>("builders"));
+    // collect app names from args
+    let apps = Selector::from(matches.get_many::<String>("apps"));
 
-            if let Some(info_outfile) = info_outfile {
-                use std::fs::File;
-                use std::io::BufWriter;
-                let info_outfile = start_relpath.join(info_outfile);
-                let insights = insights::Insights::from_builds(&builds.build_infos);
-                let buffer =
-                    BufWriter::new(File::create(&info_outfile).with_context(|| {
-                        format!("creating info export file \"{info_outfile}\"")
-                    })?);
-                serde_json::to_writer_pretty(buffer, &insights)
-                    .with_context(|| "exporting build info".to_string())?;
-            }
+    let jobs = matches.get_one::<usize>("jobs").copied();
 
-            let ninja_build_file = get_ninja_build_file(build_dir, &mode);
+    // Unless we've inherited a jobserver, create one.
+    jobserver::maybe_set_limit(
+        jobs.unwrap_or_else(|| {
+            // default to number of logical cores.
+            // TODO: figure out in which case this might error
+            std::thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(1)
+        }),
+        verbose,
+    );
 
-            if build_matches.get_flag("compile-commands") {
-                let mut compile_commands = project_root.clone();
-                compile_commands.push("compile_commands.json");
-                println!("laze: generating {compile_commands}");
-                ninja::generate_compile_commands(&ninja_build_file, &compile_commands)?;
-            }
+    let keep_going = matches.get_one::<usize>("keep_going").copied();
 
-            // collect (optional) task and it's arguments
-            let task = collect_tasks(build_matches);
+    let partitioner = matches
+        .get_one::<task_partitioner::PartitionerBuilder>("partition")
+        .map(|v| v.build());
 
-            // generation of ninja build file complete.
-            // exit here if requested.
-            if task.is_none() && build_matches.get_flag("generate-only") {
-                return Ok(0);
-            }
+    let info_outfile = matches.get_one::<Utf8PathBuf>("info-export");
 
-            if let Some((task, args)) = task {
-                let builds: Vec<&BuildInfo> = builds
-                    .build_infos
-                    .iter()
-                    .filter(|build_info| {
-                        builders.selects(&build_info.builder)
-                            && apps.selects(&build_info.binary)
-                            && build_info.tasks.contains_key(task)
-                    })
-                    .collect();
+    println!("laze: building {apps} for {builders}");
 
-                if !builds
-                    .iter()
-                    .any(|build_info| build_info.tasks.iter().any(|t| t.1.is_ok() && t.0 == task))
-                {
-                    let mut not_available = 0;
-                    for b in builds {
-                        for t in &b.tasks {
-                            if t.1.is_err() && t.0 == task {
-                                not_available += 1;
-                                if verbose > 0 {
-                                    eprintln!(
+    // collect CLI selected/disabled modules
+    let select = get_selects(matches);
+    let disable = get_disables(matches);
+    let require = get_requires(matches);
+
+    // collect CLI env overrides
+    let cli_env = get_cli_vars(matches)?;
+
+    let mode = match global {
+        true => GenerateMode::Global,
+        false => GenerateMode::Local(start_relpath.clone()),
+    };
+
+    let generator = GeneratorBuilder::default()
+        .project_root(project_root.clone())
+        .project_file(project_file)
+        .build_dir(build_dir.clone())
+        .mode(mode.clone())
+        .builders(builders.clone())
+        .apps(apps.clone())
+        .select(select)
+        .disable(disable)
+        .require(require)
+        .cli_env(cli_env)
+        .partitioner(partitioner.as_ref().map(|x| format!("{:?}", x)))
+        .collect_insights(info_outfile.is_some())
+        .disable_cache(info_outfile.is_some())
+        .build()
+        .unwrap();
+
+    // arguments parsed, launch generation of ninja file(s)
+    let builds = generator.execute(partitioner, verbose > 1)?;
+
+    if let Some(info_outfile) = info_outfile {
+        use std::fs::File;
+        use std::io::BufWriter;
+        let info_outfile = start_relpath.join(info_outfile);
+        let insights = insights::Insights::from_builds(&builds.build_infos);
+        let buffer = BufWriter::new(
+            File::create(&info_outfile)
+                .with_context(|| format!("creating info export file \"{info_outfile}\""))?,
+        );
+        serde_json::to_writer_pretty(buffer, &insights)
+            .with_context(|| "exporting build info".to_string())?;
+    }
+
+    let ninja_build_file = get_ninja_build_file(build_dir, &mode);
+
+    if matches.get_flag("compile-commands") {
+        let mut compile_commands = project_root.clone();
+        compile_commands.push("compile_commands.json");
+        println!("laze: generating {compile_commands}");
+        ninja::generate_compile_commands(&ninja_build_file, &compile_commands)?;
+    }
+
+    // collect (optional) task and it's arguments
+    let task = collect_tasks(matches);
+
+    // generation of ninja build file complete.
+    // exit here if requested.
+    if task.is_none() && matches.get_flag("generate-only") {
+        return Ok(0);
+    }
+
+    if let Some((task, args)) = task {
+        let builds: Vec<&BuildInfo> = builds
+            .build_infos
+            .iter()
+            .filter(|build_info| {
+                builders.selects(&build_info.builder)
+                    && apps.selects(&build_info.binary)
+                    && build_info.tasks.contains_key(task)
+            })
+            .collect();
+
+        if !builds
+            .iter()
+            .any(|build_info| build_info.tasks.iter().any(|t| t.1.is_ok() && t.0 == task))
+        {
+            let mut not_available = 0;
+            for b in builds {
+                for t in &b.tasks {
+                    if t.1.is_err() && t.0 == task {
+                        not_available += 1;
+                        if verbose > 0 {
+                            eprintln!(
                                     "laze: warn: task \"{task}\" for binary \"{}\" on builder \"{}\": {}",
                                     b.binary,
                                     b.builder,
                                     t.1.as_ref().err().unwrap()
                                 );
-                                }
-                            }
                         }
                     }
-
-                    if not_available > 0 && verbose == 0 {
-                        println!("laze hint: {not_available} target(s) not available, try `--verbose` to list why");
-                    }
-                    return Err(anyhow!("no matching target for task \"{}\" found.", task));
                 }
+            }
 
-                let multiple = build_matches.get_flag("multiple");
+            if not_available > 0 && verbose == 0 {
+                println!("laze hint: {not_available} target(s) not available, try `--verbose` to list why");
+            }
+            return Err(anyhow!("no matching target for task \"{}\" found.", task));
+        }
 
-                if builds.len() > 1 && !multiple {
-                    println!("laze: multiple task targets found:");
-                    for build_info in builds {
-                        eprintln!("{} {}", build_info.builder, build_info.binary);
-                    }
+        let multiple = matches.get_flag("multiple");
 
-                    // TODO: allow running tasks for multiple targets
-                    return Err(anyhow!(
-                        "please specify one of these builders, or -m/--multiple-tasks."
-                    ));
+        if builds.len() > 1 && !multiple {
+            println!("laze: multiple task targets found:");
+            for build_info in builds {
+                eprintln!("{} {}", build_info.builder, build_info.binary);
+            }
+
+            // TODO: allow running tasks for multiple targets
+            return Err(anyhow!(
+                "please specify one of these builders, or -m/--multiple-tasks."
+            ));
+        }
+
+        let task_name = task;
+        let mut targets = Vec::new();
+        let mut ninja_targets = Vec::new();
+
+        for build in builds {
+            let task = build.tasks.get(task).unwrap();
+            if let Ok(task) = task {
+                if task.build_app() {
+                    let build_target = build.out.clone();
+                    ninja_targets.push(build_target);
                 }
-
-                let task_name = task;
-                let mut targets = Vec::new();
-                let mut ninja_targets = Vec::new();
-
-                for build in builds {
-                    let task = build.tasks.get(task).unwrap();
-                    if let Ok(task) = task {
-                        if task.build_app() {
-                            let build_target = build.out.clone();
-                            ninja_targets.push(build_target);
-                        }
-                        targets.push((build, task));
-                    }
-                }
-
-                if !ninja_targets.is_empty() && !build_matches.get_flag("generate-only") {
-                    let ninja_build_file = get_ninja_build_file(build_dir, &mode);
-                    if ninja_run(
-                        ninja_build_file.as_path(),
-                        verbose > 0,
-                        Some(ninja_targets),
-                        jobs,
-                        None, // have to fail on build error b/c no way of knowing *which* target
-                              // failed
-                    )? != 0
-                    {
-                        return Err(anyhow!("build error"));
-                    };
-                }
-
-                let (results, errors) = task_runner::run_tasks(
-                    task_name,
-                    targets.iter(),
-                    args.as_ref(),
-                    verbose,
-                    keep_going.unwrap(),
-                    project_root.as_std_path(),
-                )?;
-
-                if errors > 0 {
-                    if multiple {
-                        // multiple tasks, more than zero errors. print them
-                        println!("laze: the following tasks failed:");
-                        for result in results.iter().filter(|r| r.result.is_err()) {
-                            println!(
-                                "laze: task \"{task_name}\" on app \"{}\" for builder \"{}\"",
-                                result.build.binary, result.build.builder
-                            );
-                        }
-                    } else {
-                        // only one error. can't move out of first, cant clone, so print that here.
-                        let (first, _rest) = results.split_first().unwrap();
-                        if let Err(e) = &first.result {
-                            eprintln!("laze: error: {e:#}");
-                        }
-                    }
-                    return Ok(1);
-                }
-            } else {
-                // build ninja target arguments, if necessary
-                let targets: Option<Vec<Utf8PathBuf>> = if let Selector::All = builders {
-                    if let Selector::All = apps {
-                        None
-                    } else {
-                        // TODO: filter by app
-                        None
-                    }
-                } else {
-                    Some(
-                        builds
-                            .build_infos
-                            .iter()
-                            .filter_map(|build_info| {
-                                (builders.selects(&build_info.builder)
-                                    && apps.selects(&build_info.binary))
-                                .then_some(build_info.out.clone())
-                            })
-                            .collect(),
-                    )
-                };
-
-                ninja_run(
-                    ninja_build_file.as_path(),
-                    verbose > 0,
-                    targets,
-                    jobs,
-                    keep_going,
-                )?;
+                targets.push((build, task));
             }
         }
-        Some(("clean", clean_matches)) => {
-            let unused = clean_matches.get_flag("unused");
-            let build_dir = clean_matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
-            let mode = match global {
-                true => GenerateMode::Global,
-                false => GenerateMode::Local(start_relpath),
-            };
+
+        if !ninja_targets.is_empty() && !matches.get_flag("generate-only") {
             let ninja_build_file = get_ninja_build_file(build_dir, &mode);
-            let tool = match unused {
-                true => "cleandead",
-                false => "clean",
-            };
-            let clean_target: Option<Vec<Utf8PathBuf>> = Some(vec!["-t".into(), tool.into()]);
-            ninja_run(
+            if ninja_run(
                 ninja_build_file.as_path(),
                 verbose > 0,
-                clean_target,
-                None,
-                None,
-            )?;
+                Some(ninja_targets),
+                jobs,
+                None, // have to fail on build error b/c no way of knowing *which* target
+                      // failed
+            )? != 0
+            {
+                return Err(anyhow!("build error"));
+            };
         }
-        _ => {}
-    };
 
+        let (results, errors) = task_runner::run_tasks(
+            task_name,
+            targets.iter(),
+            args.as_ref(),
+            verbose,
+            keep_going.unwrap(),
+            project_root.as_std_path(),
+        )?;
+
+        if errors > 0 {
+            if multiple {
+                // multiple tasks, more than zero errors. print them
+                println!("laze: the following tasks failed:");
+                for result in results.iter().filter(|r| r.result.is_err()) {
+                    println!(
+                        "laze: task \"{task_name}\" on app \"{}\" for builder \"{}\"",
+                        result.build.binary, result.build.builder
+                    );
+                }
+            } else {
+                // only one error. can't move out of first, cant clone, so print that here.
+                let (first, _rest) = results.split_first().unwrap();
+                if let Err(e) = &first.result {
+                    eprintln!("laze: error: {e:#}");
+                }
+            }
+            return Ok(1);
+        }
+    } else {
+        // build ninja target arguments, if necessary
+        let targets: Option<Vec<Utf8PathBuf>> = if let Selector::All = builders {
+            if let Selector::All = apps {
+                None
+            } else {
+                // TODO: filter by app
+                None
+            }
+        } else {
+            Some(
+                builds
+                    .build_infos
+                    .iter()
+                    .filter_map(|build_info| {
+                        (builders.selects(&build_info.builder) && apps.selects(&build_info.binary))
+                            .then_some(build_info.out.clone())
+                    })
+                    .collect(),
+            )
+        };
+
+        ninja_run(
+            ninja_build_file.as_path(),
+            verbose > 0,
+            targets,
+            jobs,
+            keep_going,
+        )?;
+    }
+    Ok(0)
+}
+
+fn cmd_clean(
+    matches: &clap::ArgMatches,
+    global: bool,
+    verbose: u8,
+    start_relpath: Utf8PathBuf,
+) -> Result<i32> {
+    let unused = matches.get_flag("unused");
+    let build_dir = matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
+    let mode = match global {
+        true => GenerateMode::Global,
+        false => GenerateMode::Local(start_relpath),
+    };
+    let ninja_build_file = get_ninja_build_file(build_dir, &mode);
+    let tool = match unused {
+        true => "cleandead",
+        false => "clean",
+    };
+    let clean_target: Option<Vec<Utf8PathBuf>> = Some(vec!["-t".into(), tool.into()]);
+    ninja_run(
+        ninja_build_file.as_path(),
+        verbose > 0,
+        clean_target,
+        None,
+        None,
+    )?;
     Ok(0)
 }
 
