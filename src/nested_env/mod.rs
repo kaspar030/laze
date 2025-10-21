@@ -513,6 +513,34 @@ mod tests {
     }
 
     #[test]
+    fn test_mergeopts_empty() {
+        let mut env = Env::new();
+        env.insert(
+            "mykey".to_string(),
+            EnvKey::List(vector![]),
+        );
+
+        let mut merge_opts = im::HashMap::new();
+        merge_opts.insert(
+            "mykey".to_string(),
+            MergeOption {
+                joiner: Some(",".to_string()),
+                prefix: Some("P".to_string()),
+                suffix: Some("S".to_string()),
+                start: Some("(".to_string()),
+                end: Some(")".to_string()),
+                ..Default::default()
+            },
+        );
+
+        let flattened = env.flatten_with_opts(&merge_opts).unwrap();
+        assert_eq!(
+            flattened.get("mykey").unwrap(),
+            &"()".to_string()
+        );
+    }
+
+    #[test]
     fn test_assign_from_string_override() {
         let mut env = Env::new();
         env.insert("FOO".to_string(), EnvKey::Single("whiskeyBAR".to_string()));
