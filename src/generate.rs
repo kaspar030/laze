@@ -580,7 +580,7 @@ fn configure_build(
             }
             Err(_) => {
                 reason.msg(format!(
-                    "{} for {}: build dependency cycle detected.",
+                    "error: {} for {}: build dependency cycle detected.",
                     binary.name, builder.name
                 ));
                 error!("{}", reason);

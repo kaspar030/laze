@@ -390,7 +390,7 @@ fn try_main() -> Result<i32> {
                             if t.1.is_err() && t.0 == task {
                                 not_available += 1;
                                     debug!(
-                                    "task \"{task}\" for binary \"{}\" on builder \"{}\": {}",
+                                    "laze: warn: task \"{task}\" for binary \"{}\" on builder \"{}\": {}",
                                     b.binary,
                                     b.builder,
                                     t.1.as_ref().err().unwrap()
@@ -400,7 +400,7 @@ fn try_main() -> Result<i32> {
                     }
 
                     if not_available > 0 && verbose == 0 {
-                        info!("{not_available} target(s) not available, try `--verbose` to list why");
+                        info!("laze hint: {not_available} target(s) not available, try `--verbose` to list why");
                     }
                     return Err(anyhow!("no matching target for task \"{}\" found.", task));
                 }
@@ -462,7 +462,7 @@ fn try_main() -> Result<i32> {
                         error!("laze: the following tasks failed:");
                         for result in results.iter().filter(|r| r.result.is_err()) {
                             error!(
-                                "task \"{task_name}\" on app \"{}\" for builder \"{}\"",
+                                "laze: task \"{task_name}\" on app \"{}\" for builder \"{}\"",
                                 result.build.binary, result.build.builder
                             );
                         }
@@ -470,7 +470,7 @@ fn try_main() -> Result<i32> {
                         // only one error. can't move out of first, cant clone, so print that here.
                         let (first, _rest) = results.split_first().unwrap();
                         if let Err(e) = &first.result {
-                            error!("{e:#}");
+                            error!("laze: error: {e:#}");
                         }
                     }
                     return Ok(1);
