@@ -1057,6 +1057,7 @@ dependencies = [
  "mimalloc",
  "path-slash",
  "pathdiff",
+ "ptree",
  "rayon",
  "rust-embed",
  "semver",
@@ -1251,6 +1252,15 @@ checksum = "f04bb108f648884c23b98a0e940ebc2c93c0c3b89f04dbaf7eb8256ce617d1bc"
 dependencies = [
  "log",
  "parking_lot",
+]
+
+[[package]]
+name = "ptree"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "289cfd20ebec0e7ff2572e370dd7a1c9973ba666d3c38c5e747de0a4ada21f17"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
