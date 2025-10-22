@@ -33,17 +33,11 @@ impl BuildInspector {
             })
     }
 
-    pub(crate) fn write_tree<W: Write>(&self, mut w: W) -> Result<()> {
-        self.contexts
-            .contexts
-            .iter()
-            .filter(|c| c.get_parent(&self.contexts).is_none())
-            .map(|c| {
-                let mut tree_builder = TreeBuilder::new(c.name.to_string());
-                self.add_tree_element(c, &mut tree_builder);
-                let tree = tree_builder.build();
-                write_tree(&tree, &mut w).map_err(|e| e.into())
-            })
-            .collect()
+    pub(crate) fn write_tree<W: Write>(&self, w: W) -> Result<()> {
+        let default = self.contexts.get_by_name(&"default".to_string()).unwrap();
+        let mut tree_builder = TreeBuilder::new("default".to_string()); // The first node is always called default
+        self.add_tree_element(default, &mut tree_builder);
+        let tree = tree_builder.build();
+        write_tree(&tree, w).map_err(|e| e.into())
     }
 }
