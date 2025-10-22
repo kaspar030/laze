@@ -19,6 +19,7 @@ mod data;
 mod download;
 mod generate;
 mod insights;
+mod inspect;
 mod jobserver;
 mod model;
 mod nested_env;
@@ -29,6 +30,7 @@ mod subst_ext;
 mod task_runner;
 mod utils;
 
+use inspect::BuildInspector;
 use model::{Context, ContextBag, Dependency, Module, Rule, Task, TaskError};
 
 use generate::{get_ninja_build_file, BuildInfo, GenerateMode, GeneratorBuilder, Selector};
@@ -191,6 +193,7 @@ fn try_main_build(matches: clap::ArgMatches) -> Result<i32> {
             project_file,
             start_relpath,
         ),
+        Some(("inspect", matches)) => cmd_inspect(matches, project_file),
         Some(("clean", matches)) => cmd_clean(matches, global, verbose, start_relpath),
         _ => Ok(0),
     }
@@ -543,6 +546,25 @@ fn cmd_clean(
         None,
         None,
     )?;
+    Ok(0)
+}
+
+fn cmd_inspect(matches: &clap::ArgMatches, project_file: Utf8PathBuf) -> Result<i32> {
+    let build_dir = matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
+    match matches.subcommand() {
+        Some(("builders", matches)) => {
+            let build_inspector = BuildInspector::from_project(project_file, build_dir.clone())?;
+            if matches.get_flag("tree") {
+                build_inspector.write_tree(&std::io::stdout())?;
+            } else {
+                let builders = build_inspector.inspect_builders();
+                builders
+                    .iter()
+                    .for_each(|builder| println!("{}", builder.name));
+            }
+        }
+        _ => (),
+    };
     Ok(0)
 }
 
