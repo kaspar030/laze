@@ -17,7 +17,7 @@ include = [
   "!**/tests/**/*",
   "assets/**/*",
 ]
-rust-version = "1.81"
+rust-version = "1.82"
 
 [dependencies]
 anyhow = "1.0.100"
