@@ -502,7 +502,7 @@ fn configure_build(
 
     // build application file name
     let outfile = Utf8PathBuf::from(
-        nested_env::expand("${outfile}", &global_env_flattened, IfMissing::Empty).unwrap(),
+        nested_env::expand_eval("${outfile}", &global_env_flattened, IfMissing::Empty).unwrap(),
     );
 
     let mut objdir = build_dir.clone();
