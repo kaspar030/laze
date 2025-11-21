@@ -422,9 +422,9 @@ dependencies = [
 
 [[package]]
 name = "evalexpr"
-version = "11.3.1"
+version = "13.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6aff27af350e7b53e82aac3e5ab6389abd8f280640ac034508dff0608c4c7e5"
+checksum = "27e614886ef76024b107796be5f9a6860472ace012aaa33bd177743382ff77da"
 
 [[package]]
 name = "faster-hex"
