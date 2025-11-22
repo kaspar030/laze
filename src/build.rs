@@ -60,22 +60,71 @@ struct ResolverState<'a> {
     if_then_deps: HashMap<String, Vector<Dependency<String>>>,
     disabled_modules: HashMap<String, HashSet<&'a String>>,
     provided_by: HashMap<&'a String, Vector<&'a Module>>,
+    requires: HashMap<String, HashSet<&'a String>>,
 }
 
 impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
-    fn new(build: &'a Build<'a>, mut disabled_modules: IndexSet<String>) -> Self {
+    fn new(
+        build: &'a Build<'a>,
+        mut disabled_modules: IndexSet<String>,
+        mut required_modules: IndexSet<String>,
+    ) -> Self {
         let mut disabled_modules_map: HashMap<String, HashSet<&String>> = HashMap::new();
         for module_name in disabled_modules.drain(..) {
             disabled_modules_map.entry(module_name).or_default();
+        }
+        let mut required_modules_map: HashMap<String, HashSet<&String>> = HashMap::new();
+        for module_name in required_modules.drain(..) {
+            required_modules_map.entry(module_name).or_default();
         }
         Self {
             build,
             state_stack: Vec::new(),
             state: ResolverState {
                 disabled_modules: disabled_modules_map,
+                requires: required_modules_map,
                 ..Default::default()
             },
         }
+    }
+
+    fn resolve(mut self) -> Result<ResolverResult<'a>, Error> {
+        self.trace(|| {
+            format!(
+                "resolving binary {} for builder {}:",
+                self.build.binary.name, self.build.builder.name
+            )
+        });
+
+        let (binary, builder) = (&self.build.binary.name, &self.build.builder.name);
+
+        let inner = || {
+            self.resolve_module_deep(&self.build.binary)?;
+            self.check_requires()?;
+            self.result()
+        };
+
+        inner().with_context(|| format!("binary \"{}\" for builder \"{}\"", binary, builder))
+    }
+
+    fn result(self) -> Result<ResolverResult<'a>, Error> {
+        let modules = self
+            .state
+            .module_list
+            .iter()
+            .map(|(x, y)| (*x, *y))
+            .collect();
+        let providers = self
+            .state
+            .provided_by
+            .iter()
+            .map(|(x, y)| {
+                let vec = y.iter().cloned().collect();
+                (*x, vec)
+            })
+            .collect();
+
+        Ok(ResolverResult { modules, providers })
     }
 
     fn state_push(&mut self) {
@@ -97,26 +146,6 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
             res.push_str("  ");
         }
         res
-    }
-
-    fn result(self) -> ResolverResult<'a> {
-        let modules = self
-            .state
-            .module_list
-            .iter()
-            .map(|(x, y)| (*x, *y))
-            .collect();
-        let providers = self
-            .state
-            .provided_by
-            .iter()
-            .map(|(x, y)| {
-                let vec = y.iter().cloned().collect();
-                (*x, vec)
-            })
-            .collect();
-
-        ResolverResult { modules, providers }
     }
 
     fn resolve_module_name_deep(&mut self, module_name: &String) -> Result<(), Error> {
@@ -164,6 +193,15 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
                 if self.state.module_set.contains(conflicted) {
                     self.trace(|| format!("resolving {}: conflicts {conflicted}", module.name));
                     return Err(anyhow!("\"{}\" conflicts \"{}\"", module.name, conflicted));
+                }
+
+                if let Some(required_by) = self.state.requires.get(conflicted) {
+                    self.trace(|| {
+                        format!(
+                            "warning: resolving {}: conflicts {conflicted}, which is required by {}",
+                            module.name, required_by.into_iter().join(", ")
+                        )
+                    });
                 }
 
                 if let Some(others) = self.state.provided_by.get(conflicted) {
@@ -217,6 +255,17 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
                 self.state
                     .disabled_modules
                     .entry(conflicted.clone())
+                    .or_default()
+                    .insert(&module.name);
+            }
+        }
+
+        // register this module's "requires"
+        if let Some(requires) = &module.requires {
+            for require in requires {
+                self.state
+                    .requires
+                    .entry(require.clone())
                     .or_default()
                     .insert(&module.name);
             }
@@ -379,6 +428,19 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
             ))
         }
     }
+
+    fn check_requires(&self) -> Result<(), Error> {
+        for (required, required_by) in &self.state.requires {
+            if !self.state.module_set.contains(required) {
+                return Err(anyhow!(
+                    "\"{}\" is required by {}, but not selected",
+                    required,
+                    required_by.iter().join(", ")
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 impl<'a: 'b, 'b> Build<'b> {
@@ -448,38 +510,13 @@ impl<'a: 'b, 'b> Build<'b> {
     pub fn resolve_selects(
         &self,
         disabled_modules: IndexSet<String>,
+        required_modules: IndexSet<String>,
         verbose: bool,
     ) -> Result<ResolverResult<'_>, Error> {
         if verbose {
-            let mut resolver = Resolver::<true>::new(self, disabled_modules);
-            resolver.trace(|| {
-                format!(
-                    "resolving binary {} for builder {}:",
-                    self.binary.name, self.builder.name
-                )
-            });
-            resolver
-                .resolve_module_deep(&self.binary)
-                .with_context(|| {
-                    format!(
-                        "binary \"{}\" for builder \"{}\"",
-                        self.binary.name, self.builder.name
-                    )
-                })?;
-
-            Ok(resolver.result())
+            Resolver::<true>::new(self, disabled_modules, required_modules).resolve()
         } else {
-            let mut resolver = Resolver::<false>::new(self, disabled_modules);
-            resolver
-                .resolve_module_deep(&self.binary)
-                .with_context(|| {
-                    format!(
-                        "binary \"{}\" for builder \"{}\"",
-                        self.binary.name, self.builder.name
-                    )
-                })?;
-
-            Ok(resolver.result())
+            Resolver::<false>::new(self, disabled_modules, required_modules).resolve()
         }
     }
 }
