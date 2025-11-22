@@ -4,6 +4,7 @@ use anyhow::{anyhow, Context as _, Error, Result};
 use im_rc::{HashMap, HashSet, Vector};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{enumerate, Itertools};
+use log::{Level::Debug, debug, log_enabled};
 
 use crate::model::{Context, ContextBag, Dependency, Module};
 use crate::nested_env::{self, Env};
@@ -136,9 +137,7 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
     where
         F: FnOnce() -> String,
     {
-        if VERBOSE {
-            println!("{}{}", self.state_indent(), f());
-        }
+        debug!("{}{}", self.state_indent(), f());
     }
 
     fn resolve_module_deep(&mut self, module: &'a Module) -> Result<(), Error> {
@@ -448,9 +447,8 @@ impl<'a: 'b, 'b> Build<'b> {
     pub fn resolve_selects(
         &self,
         disabled_modules: IndexSet<String>,
-        verbose: bool,
     ) -> Result<ResolverResult<'_>, Error> {
-        if verbose {
+        if log_enabled!(Debug) {
             let mut resolver = Resolver::<true>::new(self, disabled_modules);
             resolver.trace(|| {
                 format!(
