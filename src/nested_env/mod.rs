@@ -14,7 +14,7 @@ pub use expand::{expand, expand_eval, IfMissing};
 
 pub type EnvMap<'a> = std::collections::HashMap<&'a str, Cow<'a, str>>;
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash, Default)]
 pub struct Env {
     #[serde(flatten)]
     inner: im::HashMap<String, EnvKey>,
@@ -515,10 +515,7 @@ mod tests {
     #[test]
     fn test_mergeopts_empty() {
         let mut env = Env::new();
-        env.insert(
-            "mykey".to_string(),
-            EnvKey::List(vector![]),
-        );
+        env.insert("mykey".to_string(), EnvKey::List(vector![]));
 
         let mut merge_opts = im::HashMap::new();
         merge_opts.insert(
@@ -534,10 +531,7 @@ mod tests {
         );
 
         let flattened = env.flatten_with_opts(&merge_opts).unwrap();
-        assert_eq!(
-            flattened.get("mykey").unwrap(),
-            &"()".to_string()
-        );
+        assert_eq!(flattened.get("mykey").unwrap(), &"()".to_string());
     }
 
     #[test]

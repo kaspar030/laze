@@ -15,7 +15,7 @@ use crate::Dependency;
 
 use super::Task;
 
-#[derive(Clone, Eq, Debug)]
+#[derive(Clone, Eq, Debug, Default)]
 pub struct Module {
     pub name: String,
     pub context_name: String,
@@ -59,32 +59,7 @@ impl Module {
         Module {
             name,
             context_name: context_name.unwrap_or_else(|| "default".to_string()),
-            help: None,
-            selects: Vec::new(),
-            imports: Vec::new(),
-            provides: None,
-            conflicts: None,
-            notify_all: false,
-            // exports: Vec::new(),
-            sources: Vec::new(),
-            tasks: HashMap::new(),
-            build: None,
-            sources_optional: None,
-            env_local: Env::new(),
-            env_export: Env::new(),
-            env_global: Env::new(),
-            env_early: Env::new(),
-            context_id: None,
-            is_binary: false,
-            defined_in: None,
-            relpath: None,
-            srcdir: None,
-            build_dep_files: None,
-            is_build_dep: false,
-            is_global_build_dep: false,
-            blocklist: None,
-            allowlist: None,
-            download: None,
+            ..Default::default()
         }
     }
 
