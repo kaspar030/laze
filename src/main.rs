@@ -288,6 +288,7 @@ fn try_main() -> Result<i32> {
             // collect CLI selected/disabled modules
             let select = get_selects(build_matches);
             let disable = get_disables(build_matches);
+            let require = get_requires(build_matches);
 
             // collect CLI env overrides
             let cli_env = get_cli_vars(build_matches)?;
@@ -306,6 +307,7 @@ fn try_main() -> Result<i32> {
                 .apps(apps.clone())
                 .select(select)
                 .disable(disable)
+                .require(require)
                 .cli_env(cli_env)
                 .partitioner(partitioner.as_ref().map(|x| format!("{:?}", x)))
                 .collect_insights(info_outfile.is_some())
@@ -547,16 +549,24 @@ fn get_cli_vars(build_matches: &clap::ArgMatches) -> Result<Option<Env>, Error> 
 }
 
 fn get_disables(build_matches: &clap::ArgMatches) -> Option<Vec<String>> {
-    let disable = build_matches
-        .get_many::<String>("disable")
-        .map(|vr| vr.cloned().collect_vec());
-    disable
+    get_string_arg_vec(build_matches, "disable")
+}
+
+fn get_requires(build_matches: &clap::ArgMatches) -> Option<Vec<String>> {
+    get_string_arg_vec(build_matches, "require")
 }
 
 fn get_selects(build_matches: &clap::ArgMatches) -> Option<Vec<Dependency<String>>> {
     let select = build_matches.get_many::<String>("select");
     // convert CLI --select strings to Vec<Dependency>
     select.map(|vr| vr.map(crate::data::dependency_from_string).collect_vec())
+}
+
+fn get_string_arg_vec(build_matches: &clap::ArgMatches, id: &str) -> Option<Vec<String>> {
+    let res = build_matches
+        .get_many::<String>(id)
+        .map(|vr| vr.cloned().collect_vec());
+    res
 }
 
 #[cfg(test)]

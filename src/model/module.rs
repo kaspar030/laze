@@ -26,6 +26,8 @@ pub struct Module {
     pub imports: Vec<Dependency<String>>,
     pub provides: Option<Vec<String>>,
     pub conflicts: Option<Vec<String>>,
+    pub requires: Option<Vec<String>>,
+
     pub notify_all: bool,
 
     pub blocklist: Option<Vec<String>>,
@@ -253,6 +255,17 @@ impl Module {
         let provides = self.provides.get_or_insert_with(Vec::new);
         for module in provides_unique {
             provides.push(module.as_ref().into());
+        }
+    }
+
+    pub(crate) fn add_requires<I>(&mut self, new_requires: I)
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        let requires = self.requires.get_or_insert_with(Vec::new);
+        for module in new_requires {
+            requires.push(module.as_ref().into());
         }
     }
     // returns all fixed and optional sources with srcdir prepended

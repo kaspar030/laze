@@ -106,6 +106,7 @@ pub struct Generator {
     apps: Selector,
     select: Option<Vec<Dependency<String>>>,
     disable: Option<Vec<String>>,
+    require: Option<Vec<String>>,
     cli_env: Option<Env>,
     partitioner: Option<String>,
     #[builder(default = "false")]
@@ -266,6 +267,7 @@ impl Generator {
                     &laze_env,
                     self.select.as_ref(),
                     self.disable.as_ref(),
+                    self.require.as_ref(),
                     &self.cli_env.as_ref(),
                     self.collect_insights,
                     verbose,
@@ -358,6 +360,7 @@ fn configure_build(
     laze_env: &Env,
     select: Option<&Vec<Dependency<String>>>,
     disable: Option<&Vec<String>>,
+    require: Option<&Vec<String>>,
     cli_env: &Option<&Env>,
     collect_insights: bool,
     verbose: bool,
@@ -428,9 +431,12 @@ fn configure_build(
         disabled_modules.extend(disable.iter().cloned());
     }
 
+    // collect modules "required" by CLI
+    let required_modules: IndexSet<String> = require.into_iter().flatten().cloned().collect();
+
     // resolve all dependency names to specific modules.
     // this also determines if all dependencies are met
-    let resolved = match build.resolve_selects(disabled_modules, verbose) {
+    let resolved = match build.resolve_selects(disabled_modules, required_modules, verbose) {
         Err(e) => {
             reason.msg(format!("laze: not building {:?}", e));
             println!("{}", reason);
@@ -1083,6 +1089,7 @@ pub struct GenerateResult {
 
     select: Option<Vec<Dependency<String>>>,
     disable: Option<Vec<String>>,
+    require: Option<Vec<String>>,
     cli_env_hash: u64,
     treestate: FileTreeState,
     partitioner: Option<String>,
@@ -1100,6 +1107,7 @@ impl GenerateResult {
             apps: generator.apps,
             select: generator.select,
             disable: generator.disable,
+            require: generator.require,
             cli_env_hash: generator.cli_env.as_ref().map_or(0, utils::calculate_hash),
             build_infos,
             treestate,
@@ -1170,6 +1178,9 @@ impl TryFrom<&Generator> for GenerateResult {
         }
         if !res.disable.as_ref().eq(&generator.disable.as_ref()) {
             return Err(anyhow!("CLI disables don't match"));
+        }
+        if !res.require.as_ref().eq(&generator.require.as_ref()) {
+            return Err(anyhow!("CLI requires don't match"));
         }
         if res.cli_env_hash != generator.cli_env.as_ref().map_or(0, utils::calculate_hash) {
             return Err(anyhow!("laze: CLI env doesn't match"));

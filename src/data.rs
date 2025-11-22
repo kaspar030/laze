@@ -132,6 +132,7 @@ struct YamlContext {
     disables: Option<Vec<String>>,
     provides: Option<Vec<String>>,
     provides_unique: Option<Vec<String>>,
+    requires: Option<Vec<String>>,
     rules: Option<Vec<YamlRule>>,
     var_options: Option<im::HashMap<String, MergeOption>>,
     tasks: Option<HashMap<String, YamlTask>>,
@@ -162,6 +163,7 @@ struct YamlModule {
     provides_unique: Option<Vec<String>>,
     #[serde(alias = "disables")]
     conflicts: Option<Vec<String>>,
+    requires: Option<Vec<String>>,
     #[serde(default = "default_as_false")]
     notify_all: bool,
     sources: Option<Vec<StringOrMapVecString>>,
@@ -596,6 +598,10 @@ pub fn load(
             module.provides = Some(provides.clone());
         }
 
+        if let Some(requires) = context.requires.as_ref() {
+            module.requires = Some(requires.clone());
+        }
+
         if let Some(provides_unique) = context.provides_unique.as_ref() {
             if let Some(provides) = module.provides.as_mut() {
                 provides.extend(provides_unique.iter().cloned());
@@ -750,6 +756,10 @@ pub fn load(
             // practically, it means adding to both "provides" and "conflicts"
             m.add_conflicts(provides_unique);
             m.add_provides(provides_unique);
+        }
+
+        if let Some(requires) = &module.requires {
+            m.add_requires(requires);
         }
 
         if module.notify_all {
