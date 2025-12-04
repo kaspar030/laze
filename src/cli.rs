@@ -53,6 +53,17 @@ pub fn clap() -> clap::Command {
             .add(ArgValueCandidates::new(module_completer))
     }
 
+    fn require() -> Arg {
+        Arg::new("require")
+            .help("only configure builds using these modules")
+            .short('r')
+            .long("requires")
+            .env("LAZE_REQUIRES")
+            .action(ArgAction::Append)
+            .value_delimiter(',')
+            .add(ArgValueCandidates::new(module_completer))
+    }
+
     fn define() -> Arg {
         Arg::new("define")
             .help("set/override variable")
@@ -193,6 +204,7 @@ pub fn clap() -> clap::Command {
                 .next_help_heading("Extra build settings")
                 .arg(select())
                 .arg(disable())
+                .arg(require())
                 .arg(define())
                 .add(SubcommandCandidates::new(task_completer)),
         )
