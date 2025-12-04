@@ -50,7 +50,10 @@ fn eval_recursive(input: &str, is_eval: bool) -> Result<Cow<'_, str>, EvalexprEr
     }
 
     if is_eval {
-        let expr = evalexpr::eval(&result)?.to_string();
+        let expr = match evalexpr::eval(&result)? {
+            evalexpr::Value::String(string) => string,
+            other => other.to_string(),
+        };
         input_changed = true;
         result = expr;
     }
@@ -84,7 +87,7 @@ mod tests {
     #[test]
     fn basic_eval_add() {
         let result = eval("$(str::to_uppercase \"foobar\")");
-        assert_eq!(result.unwrap(), "\"FOOBAR\"");
+        assert_eq!(result.unwrap(), "FOOBAR");
     }
     #[test]
     fn unchanged() {
