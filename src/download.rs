@@ -24,7 +24,7 @@ pub mod source {
     }
 
     #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Hash)]
-    #[serde(untagged)]
+    #[serde(untagged, deny_unknown_fields)]
     pub enum Git {
         Commit { url: String, commit: String },
         Branch { url: String, branch: String },
