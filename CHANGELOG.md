@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.39] - 2026-01-27
+
 ### 🚀 Features
 
 - Introduce `requires` ([#820](https://github.com/kaspar030/laze/issues/820))
@@ -594,7 +596,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2021-01-07
 
 <!-- next-url -->
-[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.38...HEAD
+[Unreleased]: https://github.com/kaspar030/laze/compare/0.1.39...HEAD
+[0.1.39]: https://github.com/kaspar030/laze/compare/0.1.38...0.1.39
 [0.1.38]: https://github.com/kaspar030/laze/compare/0.1.37...0.1.38
 [0.1.37]: https://github.com/kaspar030/laze/compare/0.1.36...0.1.37
 [0.1.36]: https://github.com/kaspar030/laze/compare/0.1.35...0.1.36
