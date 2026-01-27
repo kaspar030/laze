@@ -9,6 +9,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### 🚀 Features
+
+- Introduce `requires` ([#820](https://github.com/kaspar030/laze/issues/820))
+
+### 🐛 Bug Fixes
+
+- Don't escape expression string results ([#822](https://github.com/kaspar030/laze/issues/822))
+- Evaluate `${outfile}` ([#816](https://github.com/kaspar030/laze/issues/816))
+- Prevent panic on flattening empty list ([#805](https://github.com/kaspar030/laze/issues/805))
+- Do not panic on clean ([#791](https://github.com/kaspar030/laze/issues/791))
+- book: Typo fix in configuration.md ([#747](https://github.com/kaspar030/laze/issues/747))
+
+### 💼 Other
+
+- Remove .wookpecker.yml ([#841](https://github.com/kaspar030/laze/issues/841))
+- Don't accept arbitrary values ([#824](https://github.com/kaspar030/laze/issues/824))
+
+### 📚 Documentation
+
+- book: Simplify how to source fish completions ([#775](https://github.com/kaspar030/laze/issues/775))
+
+### 🔗  Dependencies
+
+- deps: Bump anyhow from 1.0.98 to 1.1.12
+- deps: Bump clap from 4.5.41 to 4.5.54
+- deps: Bump clap_complete from 4.5.55 to 4.5.65
+- deps: Bump clap_mangen from 0.2.28 to 0.2.31
+- deps: Bump git-cache from 0.2.5 to 0.2.6
+- deps: Bump indexmap from 2.10.0 to 2.13.0
+- deps: Bump jobslot from 0.2.22 to 0.2.23
+- deps: Bump mimalloc from 0.1.47 to 0.1.48
+- deps: Bump rayon from 1.10.0 to 1.11.0
+- deps: Bump rust-embed from 8.7.2 to 8.11.0
+- deps: Bump semver from 1.0.26 to 1.0.228
+- deps: Bump serde_json from 1.0.140 to 1.0.149
+- deps: Bump shell-words from 1.1.0 to 1.1.1
+- deps: Bump signal-hook from 0.3.18 to 0.4.3
+- deps: Bump tempfile from 3.20.0 to 3.24.0
+- deps: Bump thiserror from 2.0.12 to 2.0.18
+
 ## [0.1.38] - 2025-07-17
 
 ### 🚀 Features
