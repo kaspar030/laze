@@ -9,7 +9,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use git_cache::GitCache;
 use itertools::Itertools;
 use jobserver::JOBSERVER;
-use log::{LevelFilter, Level::Debug, error, info, debug, log_enabled};
+use log::{debug, error, info, log_enabled, Level::Debug, LevelFilter};
 use signal_hook::{consts::SIGINT, flag::register_conditional_shutdown};
 
 #[global_allocator]
@@ -140,14 +140,7 @@ fn try_main() -> Result<i32> {
     // Set up the logger
     let env = env_logger::Env::default().filter("LAZE_LOG_LEVEL");
     let mut env_log_builder = env_logger::Builder::from_env(env);
-    let log_builder = env_log_builder
-        .format(|buf, record| {
-            let log_style = buf.default_level_style(record.level());
-            writeln!(buf,
-                "{}",
-                record.args()
-            )
-        });
+    let log_builder = env_log_builder.format(|buf, record| writeln!(buf, "{}", record.args()));
 
     let quiet = matches.get_count("quiet");
     let verbose = matches.get_count("verbose");
@@ -156,8 +149,9 @@ fn try_main() -> Result<i32> {
         (2.., ..) => log_builder.filter_level(LevelFilter::max()),
         (0, 1) => log_builder.filter_level(LevelFilter::Warn),
         (0, 2..) => log_builder.filter_level(LevelFilter::Error),
-        (0, 0) => log_builder,
-    }.init();
+        (0, 0) => log_builder.filter_level(LevelFilter::Info),
+    }
+    .init();
 
     let git_cache_dir = Utf8PathBuf::from(&shellexpand::tilde(
         matches.get_one::<Utf8PathBuf>("git_cache_dir").unwrap(),
