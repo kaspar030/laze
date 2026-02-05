@@ -16,6 +16,7 @@
 - [Apps, Builders, Contexts, Modules, Tasks](./concepts/types.md)
 - [Module Dependencies](./concepts/dependencies.md)
 - [Object Sharing](./concepts/object_sharing.md)
+- [Variables and Environment](./concepts/envvars.md)
 
 # Reference
 
