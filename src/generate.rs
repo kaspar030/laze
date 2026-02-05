@@ -403,7 +403,7 @@ fn configure_build(
             builder.name,
             contexts.context_by_id(binary.context_id.unwrap()).name,
         ));
-        trace!("{}", reason);
+        info!("{}", reason);
         return Ok(reason.into());
     }
 
