@@ -257,13 +257,12 @@ fn try_main() -> Result<i32> {
         start_relpath
     };
 
-    debug!(
+    info!(
         "laze: project root: {project_root} relpath: {start_relpath} project_file: {project_file}",
     );
 
     let global = matches.get_flag("global");
     env::set_current_dir(&project_root).context(format!("cannot change to \"{project_root}\""))?;
-
 
     // If there's a parent jobserver, get it now. Needs to be done early.
     jobserver::maybe_init_fromenv();
@@ -382,7 +381,7 @@ fn try_main() -> Result<i32> {
                         for t in &b.tasks {
                             if t.1.is_err() && t.0 == task {
                                 not_available += 1;
-                                    debug!(
+                                debug!(
                                     "laze: warn: task \"{task}\" for binary \"{}\" on builder \"{}\": {}",
                                     b.binary,
                                     b.builder,
