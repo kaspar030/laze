@@ -2,7 +2,7 @@
 //! It expects data structures as created by the data module.
 
 use core::hash::Hash;
-use log::{debug, error, trace};
+use log::info;
 use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
@@ -125,20 +125,20 @@ impl Generator {
 
         match GenerateResult::try_from(&self) {
             Ok(cached) => {
-                debug!("laze: reading cache took {:?}.", start.elapsed());
+                info!("laze: reading cache took {:?}.", start.elapsed());
                 return Ok(cached);
             }
-            Err(x) => debug!("laze: reading cache: {x}"),
+            Err(x) => info!("laze: reading cache: {x}"),
         }
 
         let (contexts, treestate, load_stats) = load(&self.project_file, &self.build_dir)?;
 
-        debug!(
+        info!(
             "laze: parsing {} files took {:?}",
             load_stats.files, load_stats.parsing_time,
         );
 
-        debug!(
+        info!(
             "laze: stat'ing {} files took {:?}",
             load_stats.files, load_stats.stat_time
         );
@@ -297,7 +297,7 @@ impl Generator {
         }
 
         let num_built = builds.len();
-        debug!(
+        info!(
             "configured {} builds (took {:?}).",
             num_built,
             start.elapsed()
@@ -393,7 +393,7 @@ fn configure_build(
             true
         }
     } {
-        trace!("{}", reason);
+        info!("{}", reason);
         return Ok(reason.into());
     }
 
@@ -406,11 +406,11 @@ fn configure_build(
             builder.name,
             contexts.context_by_id(binary.context_id.unwrap()).name,
         ));
-        trace!("{}", reason);
+        info!("{}", reason);
         return Ok(reason.into());
     }
 
-    debug!("configuring {} for {}", binary.name, builder.name);
+    info!("configuring {} for {}", binary.name, builder.name);
 
     // create build instance (binary A for builder X)
     let build = Build::new(binary, builder, contexts, select);
@@ -437,7 +437,7 @@ fn configure_build(
     let resolved = match build.resolve_selects(disabled_modules, required_modules) {
         Err(e) => {
             reason.msg(format!("laze: not building {:?}", e));
-            debug!("{}", reason);
+            info!("{}", reason);
             return Ok(reason.into());
         }
         Ok(val) => val,
@@ -589,7 +589,7 @@ fn configure_build(
                     "error: {} for {}: build dependency cycle detected.",
                     binary.name, builder.name
                 ));
-                error!("{}", reason);
+                info!("{}", reason);
                 return Ok(reason.into());
             }
         }
@@ -1132,7 +1132,7 @@ impl GenerateResult {
         bincode::serialize_into(&mut buffer, &build_uuid::get().as_bytes())?;
 
         let result = bincode::serialize_into(buffer, self);
-        trace!("laze: writing cache took {:?}.", start.elapsed());
+        info!("laze: writing cache took {:?}.", start.elapsed());
         result
     }
 }
