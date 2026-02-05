@@ -55,6 +55,7 @@ shell-words = "1.1.1"
 subst = "0.3.8"
 path-slash = "0.2.1"
 jobslot = "0.2.23"
+ptree = { version = "0.5.2", default-features = false }
 
 [profile.release]
 lto = "fat"

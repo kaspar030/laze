@@ -209,6 +209,20 @@ pub fn clap() -> clap::Command {
                 .add(SubcommandCandidates::new(task_completer)),
         )
         .subcommand(
+            Command::new("inspect")
+                .about("inspect current configuration")
+                .arg(build_dir())
+                .subcommand(
+                    Command::new("builders").arg(
+                        Arg::new("tree")
+                            .short('t')
+                            .long("tree")
+                            .help("output a tree of the configuration builders")
+                            .action(ArgAction::SetTrue),
+                    ),
+                ),
+        )
+        .subcommand(
             Command::new("clean")
                 .about("clean current configuration")
                 .arg(build_dir())
