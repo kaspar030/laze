@@ -1,0 +1,221 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Variables and Environment - laze Manual</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">User Guide</li><li class="chapter-item expanded "><a href="../installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../configuration.html"><strong aria-hidden="true">2.</strong> Configuration</a></li><li class="chapter-item expanded "><a href="../getting_started.html"><strong aria-hidden="true">3.</strong> Getting Started</a></li><li class="chapter-item expanded "><a href="../execution.html"><strong aria-hidden="true">4.</strong> Running Laze</a></li><li class="chapter-item expanded "><a href="../contributing.html"><strong aria-hidden="true">5.</strong> Contributing</a></li><li class="chapter-item expanded affix "><li class="part-title">Concepts</li><li class="chapter-item expanded "><a href="../concepts/lazefiles.html"><strong aria-hidden="true">6.</strong> Build Files</a></li><li class="chapter-item expanded "><a href="../concepts/types.html"><strong aria-hidden="true">7.</strong> Apps, Builders, Contexts, Modules, Tasks</a></li><li class="chapter-item expanded "><a href="../concepts/dependencies.html"><strong aria-hidden="true">8.</strong> Module Dependencies</a></li><li class="chapter-item expanded "><a href="../concepts/object_sharing.html"><strong aria-hidden="true">9.</strong> Object Sharing</a></li><li class="chapter-item expanded "><a href="../concepts/envvars.html" class="active"><strong aria-hidden="true">10.</strong> Variables and Environment</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/laze_yaml.html"><strong aria-hidden="true">11.</strong> laze file format</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../reference/laze_required_version.html"><strong aria-hidden="true">11.1.</strong> laze_required_version</a></li><li class="chapter-item expanded "><a href="../reference/apps.html"><strong aria-hidden="true">11.2.</strong> apps</a></li><li class="chapter-item expanded "><a href="../reference/builders.html"><strong aria-hidden="true">11.3.</strong> builders</a></li><li class="chapter-item expanded "><a href="../reference/contexts.html"><strong aria-hidden="true">11.4.</strong> contexts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../reference/context/name.html"><strong aria-hidden="true">11.4.1.</strong> name</a></li><li class="chapter-item expanded "><a href="../reference/context/parent.html"><strong aria-hidden="true">11.4.2.</strong> parent</a></li><li class="chapter-item expanded "><a href="../reference/context/env.html"><strong aria-hidden="true">11.4.3.</strong> env</a></li><li class="chapter-item expanded "><a href="../reference/context/selects.html"><strong aria-hidden="true">11.4.4.</strong> selects</a></li><li class="chapter-item expanded "><a href="../reference/context/disables.html"><strong aria-hidden="true">11.4.5.</strong> disables</a></li><li class="chapter-item expanded "><a href="../reference/context/rules.html"><strong aria-hidden="true">11.4.6.</strong> rules</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../reference/context/rule/name.html"><strong aria-hidden="true">11.4.6.1.</strong> name</a></li><li class="chapter-item expanded "><a href="../reference/context/rule/cmd.html"><strong aria-hidden="true">11.4.6.2.</strong> cmd</a></li><li class="chapter-item expanded "><a href="../reference/context/rule/description.html"><strong aria-hidden="true">11.4.6.3.</strong> description</a></li><li class="chapter-item expanded "><a href="../reference/context/rule/in.html"><strong aria-hidden="true">11.4.6.4.</strong> in</a></li><li class="chapter-item expanded "><a href="../reference/context/rule/out.html"><strong aria-hidden="true">11.4.6.5.</strong> out</a></li><li class="chapter-item expanded "><a href="../reference/context/rule/option.html"><strong aria-hidden="true">11.4.6.6.</strong> options</a></li><li class="chapter-item expanded "><a href="../reference/context/rule/gcc_deps.html"><strong aria-hidden="true">11.4.6.7.</strong> gcc_deps</a></li><li class="chapter-item expanded "><a href="../reference/context/rule/rspfile.html"><strong aria-hidden="true">11.4.6.8.</strong> rspfile</a></li><li class="chapter-item expanded "><a href="../reference/context/rule/rspfile_content.html"><strong aria-hidden="true">11.4.6.9.</strong> rspfile_content</a></li><li class="chapter-item expanded "><a href="../reference/context/rule/pool.html"><strong aria-hidden="true">11.4.6.10.</strong> pool</a></li><li class="chapter-item expanded "><a href="../reference/context/rule/always.html"><strong aria-hidden="true">11.4.6.11.</strong> always</a></li><li class="chapter-item expanded "><a href="../reference/context/rule/shareable.html"><strong aria-hidden="true">11.4.6.12.</strong> shareable</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.4.7.</strong> tasks</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">11.4.7.1.</strong> cmd</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.4.7.2.</strong> build</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.4.7.3.</strong> export</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.4.7.4.</strong> ignore_ctrl_c</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.4.7.5.</strong> required_vars</div></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.4.8.</strong> var_options</div></li></ol></li><li class="chapter-item expanded "><a href="../reference/modules.html"><strong aria-hidden="true">11.5.</strong> modules</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../reference/module/name.html"><strong aria-hidden="true">11.5.1.</strong> name</a></li><li class="chapter-item expanded "><a href="../reference/module/sources.html"><strong aria-hidden="true">11.5.2.</strong> sources</a></li><li class="chapter-item expanded "><a href="../reference/module/depends.html"><strong aria-hidden="true">11.5.3.</strong> depends</a></li><li class="chapter-item expanded "><a href="../reference/module/selects.html"><strong aria-hidden="true">11.5.4.</strong> selects</a></li><li class="chapter-item expanded "><a href="../reference/module/uses.html"><strong aria-hidden="true">11.5.5.</strong> uses</a></li><li class="chapter-item expanded "><a href="../reference/module/conflicts.html"><strong aria-hidden="true">11.5.6.</strong> conflicts</a></li><li class="chapter-item expanded "><a href="../reference/module/provides.html"><strong aria-hidden="true">11.5.7.</strong> provides</a></li><li class="chapter-item expanded "><a href="../reference/module/provides_unique.html"><strong aria-hidden="true">11.5.8.</strong> provides_unique</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.5.9.</strong> build</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.5.10.</strong> notify_all</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.5.11.</strong> env</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.5.12.</strong> blocklist</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.5.13.</strong> allowlist</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.5.14.</strong> srcdir</div></li></ol></li><li class="chapter-item expanded "><a href="../reference/subdirs.html"><strong aria-hidden="true">11.6.</strong> subdirs</a></li><li class="chapter-item expanded "><a href="../reference/imports.html"><strong aria-hidden="true">11.7.</strong> imports</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../reference/import/git.html"><strong aria-hidden="true">11.7.1.</strong> git</a></li><li class="chapter-item expanded "><a href="../reference/import/laze.html"><strong aria-hidden="true">11.7.2.</strong> laze</a></li><li class="chapter-item expanded "><a href="../reference/import/path.html"><strong aria-hidden="true">11.7.3.</strong> path</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.8.</strong> defaults</div></li><li class="chapter-item expanded "><a href="../reference/variables.html"><strong aria-hidden="true">11.9.</strong> variables</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Expression evaluation</div></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">laze Manual</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/kaspar030/laze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/kaspar030/laze/edit/master/book/src/concepts/envvars.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h3 id="variables-and-environments"><a class="header" href="#variables-and-environments">Variables and Environments</a></h3>
+<p>Apps/modules and contexts/builders can have <em>variables</em>. Variables are combined
+in <em>environments</em>.</p>
+<p>Laze will collect all variables of a build's builder and its ancestor contexts
+into that build's <em>global environment</em>.</p>
+<p>Each app/module can have <em>local</em>, <em>global</em> and <em>exported</em> variables.
+All <em>global</em> app/module variables get merged into a builds global environment.</p>
+<p>An app/module's <em>local environment</em> consist of the build's global environment,
+the app/module's local variables and its own and all it's dependencies' exported
+environments, transitively.</p>
+<p>An app/module's <em>exported environment</em> consists of its own exported variables
+and all it's dependencies' exported environments, transitively.</p>
+<p>Confusing? Maybe. It is totally possible to only use global variables, and for
+smaller projects, that won't hurt too much.</p>
+<p>But imagine some module needs to be compiled with some <code>CFLAGS</code> define that no
+other module cares about. If set globally, all files would need to be
+recompiled whenever that define changes. If set as a local variable, only that
+module's files need recompilation. But what if that define is evaluated in an
+API defining header that might be included by another module (a dependee of our
+first module)? In that case, the define must also be exported, so all dependees
+that make use of the header get the define.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../concepts/object_sharing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../reference/laze_yaml.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../concepts/object_sharing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../reference/laze_yaml.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>
