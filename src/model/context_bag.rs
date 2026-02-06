@@ -262,6 +262,29 @@ impl ContextBag {
         Ok(res)
     }
 
+    pub fn builder_distances(&self, name: impl AsRef<str>) -> Vec<(usize, &Context)> {
+        let mut distances: Vec<_> = self
+            .builders()
+            .map(|b| (edit_distance::edit_distance(name.as_ref(), &b.name), b))
+            .collect();
+
+        distances.sort_by(|a, b| a.0.cmp(&b.0));
+        distances
+    }
+
+    pub fn closest_builder_within(
+        &self,
+        name: impl AsRef<str>,
+        max_distance: usize,
+    ) -> Option<&Context> {
+        if let Some((distance, context)) = self.builder_distances(name).first() {
+            if *distance <= max_distance {
+                return Some(context);
+            }
+        }
+        None
+    }
+
     pub fn context_by_id(&self, context_id: usize) -> &Context {
         &self.contexts[context_id]
     }
