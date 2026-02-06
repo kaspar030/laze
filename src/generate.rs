@@ -30,7 +30,7 @@ use crate::{
     nested_env::{self, Env, EnvKey, IfMissing},
     ninja::{NinjaBuildBuilder, NinjaRule, NinjaRuleBuilder},
     utils::{self, ContainingPath},
-    Context, ContextBag, Dependency, Module, Task, TaskError,
+    Context, ContextBag, ContextBagError, Dependency, Module, Task, TaskError,
 };
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -185,7 +185,18 @@ impl Generator {
 
         let selected_builders = match &self.builders {
             Selector::All => contexts.builders_vec(),
-            Selector::Some(builders) => contexts.builders_by_name(builders)?,
+            Selector::Some(builders) => contexts.builders_by_name(builders).map_err(|e| {
+                match e.clone() {
+                    ContextBagError::NotABuildContext { name }
+                    | ContextBagError::UnknownBuilder { name } => {
+                        if let Some(builder) = contexts.closest_builder_within(&name, 5) {
+                            return anyhow!(format!("{}, did you mean \"{}\"?", e, &builder.name));
+                        }
+                    }
+                    _ => (),
+                };
+                e.into()
+            })?,
         };
 
         // get all "binary" modules
