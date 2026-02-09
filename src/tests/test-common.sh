@@ -33,8 +33,8 @@ build() {
 
     if [ -f EXPECTED_STDOUT_TAIL ]; then
         echo testing stdout tail
-        LEN=$(cat EXPECTED_STDOUT_TAIL | wc -l)
-        cat stdout | tail -n "$LEN" > stdout.tail
+        LEN=$(wc -l < EXPECTED_STDOUT_TAIL)
+        tail -n "$LEN" < stdout > stdout.tail
         diff -q EXPECTED_STDOUT_TAIL stdout.tail
     fi
 
@@ -45,8 +45,8 @@ build() {
 
     if [ -f EXPECTED_STDERR_TAIL ]; then
         echo testing stderr tail
-        LEN=$(cat EXPECTED_STDERR_TAIL | wc -l)
-        cat stderr | tail -n "$LEN" > stderr.tail
+        LEN=$(wc -l < EXPECTED_STDERR_TAIL)
+        tail -n "$LEN" < stderr > stderr.tail
         diff -q EXPECTED_STDERR_TAIL stderr.tail
     fi
 
