@@ -1,10 +1,12 @@
+#!/bin/sh
+
 cleanup() {
     rm -f single_app.o single_app.elf build.ninja .ninja_deps .ninja_log stderr stdout
     rm -rf build
 }
 
 diff_build_dir() {
-    if [ "$UPDATE_BUILD_EXPECTED" = 1 ]; then
+    if [ "${UPDATE_BUILD_EXPECTED}" = 1 ]; then
         rm -Rf build_expected
         mv build build_expected
     else
@@ -23,7 +25,8 @@ build() {
 
     if [ -f EXPECTED_EXIT_CODE ]; then
         set -e
-        test "$EXIT_CODE" = "$(cat EXPECTED_EXIT_CODE)"
+        EXPECTED_EXIT_CODE="$(cat EXPECTED_EXIT_CODE)"
+        test "${EXIT_CODE}" = "${EXPECTED_EXIT_CODE}"
     fi
 
     if [ -f EXPECTED_STDOUT ]; then
@@ -33,8 +36,8 @@ build() {
 
     if [ -f EXPECTED_STDOUT_TAIL ]; then
         echo testing stdout tail
-        LEN=$(cat EXPECTED_STDOUT_TAIL | wc -l)
-        cat stdout | tail -n "$LEN" > stdout.tail
+        LEN=$(wc -l < EXPECTED_STDOUT_TAIL)
+        tail -n "${LEN}" < stdout > stdout.tail
         diff -q EXPECTED_STDOUT_TAIL stdout.tail
     fi
 
@@ -45,8 +48,8 @@ build() {
 
     if [ -f EXPECTED_STDERR_TAIL ]; then
         echo testing stderr tail
-        LEN=$(cat EXPECTED_STDERR_TAIL | wc -l)
-        cat stderr | tail -n "$LEN" > stderr.tail
+        LEN=$(wc -l < EXPECTED_STDERR_TAIL)
+        tail -n "${LEN}" < stderr > stderr.tail
         diff -q EXPECTED_STDERR_TAIL stderr.tail
     fi
 
