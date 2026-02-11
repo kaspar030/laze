@@ -6,6 +6,7 @@ use anyhow::{Context, Error, Result};
 use im::Vector;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -52,7 +53,6 @@ impl Task {
         &self,
         start_dir: &Path,
         args: Option<&Vec<&str>>,
-        verbose: u8,
         all_tasks: &IndexMap<String, Result<Task, TaskError>>,
         parent_exports: &Vector<VarExportSpec>,
     ) -> Result<(), Error> {
@@ -63,16 +63,14 @@ impl Task {
         });
 
         for cmd_full in &self.cmd {
-            if verbose > 0 {
-                println!("laze: command: `{cmd_full}`{}", *argv_str);
-            }
+            debug!("laze: command: `{cmd_full}`{}", *argv_str);
 
             if let Some(cmd) = cmd_full.strip_prefix(":") {
                 let cmd = create_cmd_vec(cmd, args);
 
-                self.execute_subtask(cmd, start_dir, verbose, all_tasks, parent_exports)
+                self.execute_subtask(cmd, start_dir, all_tasks, parent_exports)
             } else {
-                self.execute_shell_cmd(cmd_full, args, start_dir, verbose, parent_exports)
+                self.execute_shell_cmd(cmd_full, args, start_dir, parent_exports)
             }
             .with_context(|| format!("command `{cmd_full}`"))?;
         }
@@ -84,7 +82,6 @@ impl Task {
         cmd: &str,
         args: Option<&Vec<&str>>,
         start_dir: &Path,
-        verbose: u8,
         parent_exports: &Vector<VarExportSpec>,
     ) -> Result<(), Error> {
         use std::process::Command;
@@ -128,13 +125,11 @@ impl Task {
             }
         }
 
-        if verbose > 0 {
-            let mut full_command = Vec::new();
-            full_command.push(command.get_program().to_string_lossy());
-            full_command.extend(command.get_args().map(OsStr::to_string_lossy));
+        let mut full_command = Vec::new();
+        full_command.push(command.get_program().to_string_lossy());
+        full_command.extend(command.get_args().map(OsStr::to_string_lossy));
 
-            println!("laze: executing `{full_command:?}`");
-        }
+        debug!("laze: executing `{full_command:?}`");
 
         if self.ignore_ctrl_c {
             EXIT_ON_SIGINT
@@ -164,7 +159,6 @@ impl Task {
         &self,
         cmd: Vec<String>,
         start_dir: &Path,
-        verbose: u8,
         all_tasks: &IndexMap<String, std::result::Result<Task, TaskError>>,
         parent_exports: &Vector<VarExportSpec>,
     ) -> Result<(), Error> {
@@ -188,7 +182,7 @@ impl Task {
             parent_exports.append(export.clone());
         }
 
-        other_task.execute(start_dir, Some(&args), verbose, all_tasks, &parent_exports)?;
+        other_task.execute(start_dir, Some(&args), all_tasks, &parent_exports)?;
 
         Ok(())
     }

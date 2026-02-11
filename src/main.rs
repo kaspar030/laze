@@ -1,5 +1,6 @@
 use core::sync::atomic::AtomicBool;
 use std::env;
+use std::io::Write;
 use std::str;
 use std::sync::{Arc, OnceLock};
 
@@ -8,6 +9,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use git_cache::GitCache;
 use itertools::Itertools;
 use jobserver::JOBSERVER;
+use log::{debug, error, info, log_enabled, Level::Debug, LevelFilter};
 use signal_hook::{consts::SIGINT, flag::register_conditional_shutdown};
 
 #[global_allocator]
@@ -57,7 +59,6 @@ pub(crate) fn determine_project_root(start: &Utf8Path) -> Result<(Utf8PathBuf, U
 
 fn ninja_run(
     ninja_buildfile: &Utf8Path,
-    verbose: bool,
     targets: Option<Vec<Utf8PathBuf>>,
     jobs: Option<usize>,
     keep_going: Option<usize>,
@@ -65,8 +66,8 @@ fn ninja_run(
     let mut ninja_cmd = NinjaCmdBuilder::default();
 
     ninja_cmd
-        .verbose(verbose)
         .build_file(ninja_buildfile)
+        .verbose(log_enabled!(Debug))
         .targets(targets);
 
     if let Some(jobs) = jobs {
@@ -108,19 +109,19 @@ fn main() {
             if let Some(expr_err) = e.downcast_ref::<evalexpr::EvalexprError>() {
                 // make expression errors more readable.
                 // TODO: factor out
-                eprintln!("laze: expression error: {expr_err}");
-                eprintln!("laze: the error occured here:");
+                error!("laze: expression error: {expr_err}");
+                error!("laze: the error occured here:");
                 let mut iter = e.chain().peekable();
                 let mut i = 0;
                 while let Some(next) = iter.next() {
                     if iter.peek().is_none() {
                         break;
                     }
-                    eprintln!("{i:>5}: {next}");
+                    error!("{i:>5}: {next}");
                     i += 1;
                 }
             } else {
-                eprintln!("laze: error: {e:#}");
+                error!("laze: error: {e:#}");
             }
             std::process::exit(1);
         }
@@ -137,6 +138,22 @@ fn try_main() -> Result<i32> {
     clap_complete::env::CompleteEnv::with_factory(cli::clap).complete();
 
     let matches = cli::clap().get_matches();
+
+    // Set up the logger
+    let env = env_logger::Env::default().filter("LAZE_LOG_LEVEL");
+    let mut env_log_builder = env_logger::Builder::from_env(env);
+    let log_builder = env_log_builder.format(|buf, record| writeln!(buf, "{}", record.args()));
+
+    let quiet = matches.get_count("quiet");
+    let verbose = matches.get_count("verbose");
+    match (verbose, quiet) {
+        (1, ..) => log_builder.filter_level(LevelFilter::Debug),
+        (2.., ..) => log_builder.filter_level(LevelFilter::max()),
+        (0, 1) => log_builder.filter_level(LevelFilter::Warn),
+        (0, 2..) => log_builder.filter_level(LevelFilter::Error),
+        (0, 0) => log_builder.filter_level(LevelFilter::Info),
+    }
+    .init();
 
     let git_cache_dir = Utf8PathBuf::from(&shellexpand::tilde(
         matches.get_one::<Utf8PathBuf>("git_cache_dir").unwrap(),
@@ -172,29 +189,22 @@ fn try_main_build(matches: clap::ArgMatches) -> Result<i32> {
         start_relpath
     };
 
-    println!(
+    info!(
         "laze: project root: {project_root} relpath: {start_relpath} project_file: {project_file}",
     );
 
     let global = matches.get_flag("global");
     env::set_current_dir(&project_root).context(format!("cannot change to \"{project_root}\""))?;
 
-    let verbose = matches.get_count("verbose");
-
     // If there's a parent jobserver, get it now. Needs to be done early.
-    jobserver::maybe_init_fromenv(verbose);
+    jobserver::maybe_init_fromenv();
 
     match matches.subcommand() {
-        Some(("build", matches)) => cmd_build(
-            matches,
-            global,
-            verbose,
-            project_root,
-            project_file,
-            start_relpath,
-        ),
+        Some(("build", matches)) => {
+            cmd_build(matches, global, project_root, project_file, start_relpath)
+        }
         Some(("inspect", matches)) => cmd_inspect(matches, project_file),
-        Some(("clean", matches)) => cmd_clean(matches, global, verbose, start_relpath),
+        Some(("clean", matches)) => cmd_clean(matches, global, start_relpath),
         _ => Ok(0),
     }
 }
@@ -218,7 +228,7 @@ fn cmd_completion(matches: &clap::ArgMatches) -> Result<i32> {
         .copied()
     {
         let mut cmd = cli::clap();
-        eprintln!("Generating completion file for {}...", generator);
+        info!("Generating completion file for {}...", generator);
         print_completions(generator, &mut cmd);
     }
     Ok(0)
@@ -278,7 +288,6 @@ fn cmd_gitclone(matches: &clap::ArgMatches) -> Result<i32> {
 fn cmd_build(
     matches: &clap::ArgMatches,
     global: bool,
-    verbose: u8,
     project_root: Utf8PathBuf,
     project_file: Utf8PathBuf,
     start_relpath: Utf8PathBuf,
@@ -293,16 +302,13 @@ fn cmd_build(
     let jobs = matches.get_one::<usize>("jobs").copied();
 
     // Unless we've inherited a jobserver, create one.
-    jobserver::maybe_set_limit(
-        jobs.unwrap_or_else(|| {
-            // default to number of logical cores.
-            // TODO: figure out in which case this might error
-            std::thread::available_parallelism()
-                .map(|n| n.get())
-                .unwrap_or(1)
-        }),
-        verbose,
-    );
+    jobserver::maybe_set_limit(jobs.unwrap_or_else(|| {
+        // default to number of logical cores.
+        // TODO: figure out in which case this might error
+        std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1)
+    }));
 
     let keep_going = matches.get_one::<usize>("keep_going").copied();
 
@@ -312,7 +318,7 @@ fn cmd_build(
 
     let info_outfile = matches.get_one::<Utf8PathBuf>("info-export");
 
-    println!("laze: building {apps} for {builders}");
+    debug!("laze: building {apps} for {builders}");
 
     // collect CLI selected/disabled modules
     let select = get_selects(matches);
@@ -345,7 +351,7 @@ fn cmd_build(
         .unwrap();
 
     // arguments parsed, launch generation of ninja file(s)
-    let builds = generator.execute(partitioner, verbose > 1)?;
+    let builds = generator.execute(partitioner)?;
 
     if let Some(info_outfile) = info_outfile {
         use std::fs::File;
@@ -365,7 +371,7 @@ fn cmd_build(
     if matches.get_flag("compile-commands") {
         let mut compile_commands = project_root.clone();
         compile_commands.push("compile_commands.json");
-        println!("laze: generating {compile_commands}");
+        info!("laze: generating {compile_commands}");
         ninja::generate_compile_commands(&ninja_build_file, &compile_commands)?;
     }
 
@@ -398,20 +404,18 @@ fn cmd_build(
                 for t in &b.tasks {
                     if t.1.is_err() && t.0 == task {
                         not_available += 1;
-                        if verbose > 0 {
-                            eprintln!(
-                                    "laze: warn: task \"{task}\" for binary \"{}\" on builder \"{}\": {}",
-                                    b.binary,
-                                    b.builder,
-                                    t.1.as_ref().err().unwrap()
-                                );
-                        }
+                        debug!(
+                            "laze: warn: task \"{task}\" for binary \"{}\" on builder \"{}\": {}",
+                            b.binary,
+                            b.builder,
+                            t.1.as_ref().err().unwrap()
+                        );
                     }
                 }
             }
 
-            if not_available > 0 && verbose == 0 {
-                println!("laze hint: {not_available} target(s) not available, try `--verbose` to list why");
+            if not_available > 0 {
+                info!("laze hint: {not_available} target(s) not available, try `--verbose` to list why");
             }
             return Err(anyhow!("no matching target for task \"{}\" found.", task));
         }
@@ -419,9 +423,9 @@ fn cmd_build(
         let multiple = matches.get_flag("multiple");
 
         if builds.len() > 1 && !multiple {
-            println!("laze: multiple task targets found:");
+            info!("laze: multiple task targets found:");
             for build_info in builds {
-                eprintln!("{} {}", build_info.builder, build_info.binary);
+                info!("{} {}", build_info.builder, build_info.binary);
             }
 
             // TODO: allow running tasks for multiple targets
@@ -449,7 +453,6 @@ fn cmd_build(
             let ninja_build_file = get_ninja_build_file(build_dir, &mode);
             if ninja_run(
                 ninja_build_file.as_path(),
-                verbose > 0,
                 Some(ninja_targets),
                 jobs,
                 None, // have to fail on build error b/c no way of knowing *which* target
@@ -464,7 +467,6 @@ fn cmd_build(
             task_name,
             targets.iter(),
             args.as_ref(),
-            verbose,
             keep_going.unwrap(),
             project_root.as_std_path(),
         )?;
@@ -472,9 +474,9 @@ fn cmd_build(
         if errors > 0 {
             if multiple {
                 // multiple tasks, more than zero errors. print them
-                println!("laze: the following tasks failed:");
+                error!("laze: the following tasks failed:");
                 for result in results.iter().filter(|r| r.result.is_err()) {
-                    println!(
+                    error!(
                         "laze: task \"{task_name}\" on app \"{}\" for builder \"{}\"",
                         result.build.binary, result.build.builder
                     );
@@ -483,7 +485,7 @@ fn cmd_build(
                 // only one error. can't move out of first, cant clone, so print that here.
                 let (first, _rest) = results.split_first().unwrap();
                 if let Err(e) = &first.result {
-                    eprintln!("laze: error: {e:#}");
+                    error!("laze: error: {e:#}");
                 }
             }
             return Ok(1);
@@ -510,23 +512,12 @@ fn cmd_build(
             )
         };
 
-        ninja_run(
-            ninja_build_file.as_path(),
-            verbose > 0,
-            targets,
-            jobs,
-            keep_going,
-        )?;
+        ninja_run(ninja_build_file.as_path(), targets, jobs, keep_going)?;
     }
     Ok(0)
 }
 
-fn cmd_clean(
-    matches: &clap::ArgMatches,
-    global: bool,
-    verbose: u8,
-    start_relpath: Utf8PathBuf,
-) -> Result<i32> {
+fn cmd_clean(matches: &clap::ArgMatches, global: bool, start_relpath: Utf8PathBuf) -> Result<i32> {
     let unused = matches.get_flag("unused");
     let build_dir = matches.get_one::<Utf8PathBuf>("build-dir").unwrap();
     let mode = match global {
@@ -539,13 +530,7 @@ fn cmd_clean(
         false => "clean",
     };
     let clean_target: Option<Vec<Utf8PathBuf>> = Some(vec!["-t".into(), tool.into()]);
-    ninja_run(
-        ninja_build_file.as_path(),
-        verbose > 0,
-        clean_target,
-        None,
-        None,
-    )?;
+    ninja_run(ninja_build_file.as_path(), clean_target, None, None)?;
     Ok(0)
 }
 

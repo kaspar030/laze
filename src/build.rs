@@ -4,6 +4,7 @@ use anyhow::{anyhow, Context as _, Error, Result};
 use im_rc::{HashMap, HashSet, Vector};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{enumerate, Itertools};
+use log::{info, log_enabled, Level::Trace};
 
 use crate::model::{Context, ContextBag, Dependency, Module};
 use crate::nested_env::{self, Env};
@@ -166,7 +167,7 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
         F: FnOnce() -> String,
     {
         if VERBOSE {
-            println!("{}{}", self.state_indent(), f());
+            info!("{}{}", self.state_indent(), f());
         }
     }
 
@@ -511,9 +512,8 @@ impl<'a: 'b, 'b> Build<'b> {
         &self,
         disabled_modules: IndexSet<String>,
         required_modules: IndexSet<String>,
-        verbose: bool,
     ) -> Result<ResolverResult<'_>, Error> {
-        if verbose {
+        if log_enabled!(Trace) {
             Resolver::<true>::new(self, disabled_modules, required_modules).resolve()
         } else {
             Resolver::<false>::new(self, disabled_modules, required_modules).resolve()
