@@ -18,13 +18,17 @@ jobs:
         codename: [ latest ]
         include:
           - os: ubuntu
+            codename: noble
+          - os: ubuntu
             codename: jammy
           - os: ubuntu
             codename: focal
           - os: debian
             codename: bullseye
           - os: debian
-            codename: buster
+            codename: bookworm
+          - os: debian
+            codename: trixie
 
     steps:
       - name: fixup variables
