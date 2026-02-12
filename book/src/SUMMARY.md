@@ -88,3 +88,7 @@
   - [variables](./reference/variables.md)
   - [meta](./reference/meta.md)
 - [Expression evaluation](./reference/expression_evaluation.md)
+
+# Developer
+
+- [Logging](./dev/logging.md)
