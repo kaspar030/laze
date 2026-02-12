@@ -42,12 +42,12 @@ task_partitioner = "0.1.1"
 
 clap_complete = { version = "4.5.66", features = ["unstable-dynamic"] }
 clap_mangen = "0.2.31"
-camino = { version = "1.1.12", features = ["serde1"] }
+camino = { version = "1.2.2", features = ["serde1"] }
 evalexpr = "11.3.1"
 semver = { version = "1.0.27", features = ["serde"] }
 tinytemplate = "1.2.1"
 serde_json = { version = "1.0.149", features = ["indexmap"] }
-git-cache = "0.2.6"
+git-cache = "0.2.7"
 shellexpand = "3.1.1"
 thiserror = "2.0.18"
 im-rc = "15.1.0"
