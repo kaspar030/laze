@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::{iter::Filter, slice::Iter};
 
-use anyhow::{anyhow, Error};
+use camino::Utf8PathBuf;
 use indexmap::IndexSet;
+use thiserror::Error;
 
 use super::{BlockAllow, Context, Module};
 
@@ -18,6 +19,38 @@ pub enum IsAncestor {
     Yes(usize, usize),
 }
 
+#[derive(Error, Debug, Clone)]
+pub enum ContextBagError {
+    #[error("{defined_in:?}: context \"{name}\" has unknown parent \"{parent_name}\"")]
+    UnknownParent {
+        defined_in: Utf8PathBuf,
+        name: String,
+        parent_name: String,
+    },
+    #[error(r#"context name already defined in "{defined_in}""#)]
+    DuplicateContext { defined_in: Utf8PathBuf },
+
+    #[error(r#"{defined_in:?}: module "{name}": undefined context "{context_name}""#)]
+    UndefinedModuleContext {
+        defined_in: Utf8PathBuf,
+        name: String,
+        context_name: String,
+    },
+
+    #[error(r#"{defined_in:?}: module "{name}", context "{context_name}": module name already used in {conflict_in:?}"#)]
+    DuplicateModule {
+        defined_in: Utf8PathBuf,
+        name: String,
+        context_name: String,
+        conflict_in: Utf8PathBuf,
+    },
+
+    #[error("context {name} is not a build context")]
+    NotABuildContext { name: String },
+    #[error("unknown builder {name}")]
+    UnknownBuilder { name: String },
+}
+
 impl ContextBag {
     pub fn new() -> ContextBag {
         Self::default()
@@ -27,7 +60,7 @@ impl ContextBag {
         self.context_map.get(name).map(|id| &self.contexts[*id])
     }
 
-    pub fn finalize(&mut self) -> Result<(), Error> {
+    pub fn finalize(&mut self) -> Result<(), ContextBagError> {
         // ensure there's a "default" context
         if self.get_by_name(&"default".to_string()).is_none() {
             self.add_context(Context::new_default()).unwrap();
@@ -37,12 +70,11 @@ impl ContextBag {
         for context in &mut self.contexts {
             if let Some(parent_name) = &context.parent_name {
                 let parent = self.context_map.get(&parent_name.clone()).ok_or_else(|| {
-                    anyhow!(format!(
-                        "{:?}: context \"{}\" has unknown parent \"{}\"",
-                        context.defined_in.as_ref().unwrap().as_os_str(),
-                        &context.name,
-                        &parent_name
-                    ))
+                    ContextBagError::UnknownParent {
+                        defined_in: context.defined_in.clone().unwrap(),
+                        name: context.name.clone(),
+                        parent_name: parent_name.into(),
+                    }
                 })?;
                 context.parent_index = Some(*parent);
             }
@@ -130,13 +162,13 @@ impl ContextBag {
         &mut self,
         mut context: Context,
         is_builder: bool,
-    ) -> Result<&mut Context, Error> {
+    ) -> Result<&mut Context, ContextBagError> {
         if let Some(context_id) = self.context_map.get(&context.name) {
             let context = self.context_by_id(*context_id);
-            return Err(anyhow!(
-                "context name already defined in {:?}",
-                context.defined_in.as_ref().unwrap()
-            ));
+            return Err(ContextBagError::DuplicateContext {
+                defined_in: context.defined_in.clone().unwrap(),
+            }
+            .into());
         }
 
         let last = self.contexts.len();
@@ -150,31 +182,28 @@ impl ContextBag {
         Ok(&mut self.contexts[last])
     }
 
-    pub fn add_context(&mut self, context: Context) -> Result<&mut Context, Error> {
+    pub fn add_context(&mut self, context: Context) -> Result<&mut Context, ContextBagError> {
         self.add_context_or_builder(context, false)
     }
 
-    pub fn add_module(&mut self, mut module: Module) -> Result<(), Error> {
+    pub fn add_module(&mut self, mut module: Module) -> Result<(), ContextBagError> {
         let context_id = self.context_map.get(&module.context_name).ok_or_else(|| {
-            anyhow!(format!(
-                "{:?}: module \"{}\": undefined context \"{}\"",
-                module.defined_in.as_ref().unwrap().as_os_str(),
-                &module.name,
-                &module.context_name
-            ))
+            ContextBagError::UndefinedModuleContext {
+                defined_in: module.defined_in.clone().unwrap(),
+                name: module.name.clone(),
+                context_name: module.context_name.clone(),
+            }
         })?;
-
         let context = &mut self.contexts[*context_id];
         module.context_id = Some(*context_id);
         match context.modules.entry(module.name.clone()) {
             indexmap::map::Entry::Occupied(other_module) => {
-                return Err(anyhow!(
-                    "{:?}: module \"{}\", context \"{}\": module name already used in {:?}",
-                    module.defined_in.as_ref().unwrap().as_os_str(),
-                    &module.name,
-                    &module.context_name,
-                    other_module.get().defined_in.as_ref().unwrap().as_os_str(),
-                ))
+                return Err(ContextBagError::DuplicateModule {
+                    defined_in: module.defined_in.clone().unwrap(),
+                    name: module.name,
+                    context_name: module.context_name,
+                    conflict_in: other_module.get().defined_in.clone().unwrap(),
+                })
             }
             indexmap::map::Entry::Vacant(entry) => {
                 if let Some(provides) = &module.provides {
@@ -211,7 +240,10 @@ impl ContextBag {
         self.builders().collect()
     }
 
-    pub fn builders_by_name(&self, names: &IndexSet<String>) -> Result<Vec<&Context>, Error> {
+    pub fn builders_by_name(
+        &self,
+        names: &IndexSet<String>,
+    ) -> Result<Vec<&Context>, ContextBagError> {
         let mut res = Vec::new();
         for name in names {
             match self.get_by_name(name) {
@@ -219,16 +251,38 @@ impl ContextBag {
                     if context.is_builder {
                         res.push(context);
                     } else {
-                        return Err(anyhow!(format!(
-                            "context {} is not a build context",
-                            &context.name
-                        )));
+                        return Err(ContextBagError::NotABuildContext {
+                            name: context.name.clone(),
+                        });
                     }
                 }
-                None => return Err(anyhow!(format!("unknown builder {}", &name))),
+                None => return Err(ContextBagError::UnknownBuilder { name: name.into() }),
             }
         }
         Ok(res)
+    }
+
+    pub fn builder_distances(&self, name: impl AsRef<str>) -> Vec<(usize, &Context)> {
+        let mut distances: Vec<_> = self
+            .builders()
+            .map(|b| (edit_distance::edit_distance(name.as_ref(), &b.name), b))
+            .collect();
+
+        distances.sort_by(|a, b| a.0.cmp(&b.0));
+        distances
+    }
+
+    pub fn closest_builder_within(
+        &self,
+        name: impl AsRef<str>,
+        max_distance: usize,
+    ) -> Option<&Context> {
+        if let Some((distance, context)) = self.builder_distances(name).first() {
+            if *distance <= max_distance {
+                return Some(context);
+            }
+        }
+        None
     }
 
     pub fn context_by_id(&self, context_id: usize) -> &Context {

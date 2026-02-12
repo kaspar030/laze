@@ -33,7 +33,7 @@ mod task_runner;
 mod utils;
 
 use inspect::BuildInspector;
-use model::{Context, ContextBag, Dependency, Module, Rule, Task, TaskError};
+use model::{Context, ContextBag, ContextBagError, Dependency, Module, Rule, Task, TaskError};
 
 use generate::{get_ninja_build_file, BuildInfo, GenerateMode, GeneratorBuilder, Selector};
 use nested_env::{Env, MergeOption};
