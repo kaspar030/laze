@@ -138,11 +138,19 @@ fn try_main() -> Result<i32> {
     clap_complete::env::CompleteEnv::with_factory(cli::clap).complete();
 
     let matches = cli::clap().get_matches();
+    let plain = matches.get_flag("plain");
 
     // Set up the logger
     let env = env_logger::Env::default().filter("LAZE_LOG_LEVEL");
     let mut env_log_builder = env_logger::Builder::from_env(env);
-    let log_builder = env_log_builder.format(|buf, record| writeln!(buf, "{}", record.args()));
+    let log_builder = if plain {
+        env_log_builder.format(|buf, record| writeln!(buf, "{}", record.args()))
+    } else {
+        env_log_builder.format(|buf, record| {
+            let style = buf.default_level_style(record.level());
+            writeln!(buf, "{style}{}{style:#}", record.args())
+        })
+    };
 
     let quiet = matches.get_count("quiet");
     let verbose = matches.get_count("verbose");
