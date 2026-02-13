@@ -95,7 +95,7 @@ impl ContextBag {
             .map(|(n, context)| (n, context.count_parents(self)))
             .collect();
 
-        sorted_by_numparents.sort_by(|a, b| a.1.cmp(&b.1));
+        sorted_by_numparents.sort_by_key(|a| a.1);
 
         // 2. merge ordered by number of parents (ascending)
         for (n, m) in &sorted_by_numparents {
@@ -167,8 +167,7 @@ impl ContextBag {
             let context = self.context_by_id(*context_id);
             return Err(ContextBagError::DuplicateContext {
                 defined_in: context.defined_in.clone().unwrap(),
-            }
-            .into());
+            });
         }
 
         let last = self.contexts.len();
@@ -268,7 +267,7 @@ impl ContextBag {
             .map(|b| (edit_distance::edit_distance(name.as_ref(), &b.name), b))
             .collect();
 
-        distances.sort_by(|a, b| a.0.cmp(&b.0));
+        distances.sort_by_key(|a| a.0);
         distances
     }
 
