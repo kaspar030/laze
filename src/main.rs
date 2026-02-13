@@ -9,7 +9,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use git_cache::GitCache;
 use itertools::Itertools;
 use jobserver::JOBSERVER;
-use log::{debug, error, info, log_enabled, Level::Debug, LevelFilter};
+use log::{debug, error, info, log_enabled, warn, Level::Debug, LevelFilter};
 use signal_hook::{consts::SIGINT, flag::register_conditional_shutdown};
 
 #[global_allocator]
@@ -189,7 +189,7 @@ fn try_main_build(matches: clap::ArgMatches) -> Result<i32> {
         start_relpath
     };
 
-    info!(
+    debug!(
         "laze: project root: {project_root} relpath: {start_relpath} project_file: {project_file}",
     );
 
@@ -403,7 +403,7 @@ fn cmd_build(
                 for t in &b.tasks {
                     if t.1.is_err() && t.0 == task {
                         not_available += 1;
-                        debug!(
+                        warn!(
                             "laze: warn: task \"{task}\" for binary \"{}\" on builder \"{}\": {}",
                             b.binary,
                             b.builder,
@@ -414,7 +414,7 @@ fn cmd_build(
             }
 
             if not_available > 0 {
-                info!("laze hint: {not_available} target(s) not available, try `--verbose` to list why");
+                error!("laze hint: {not_available} target(s) not available, try `--verbose` to list why");
             }
             return Err(anyhow!("no matching target for task \"{}\" found.", task));
         }
@@ -422,9 +422,9 @@ fn cmd_build(
         let multiple = matches.get_flag("multiple");
 
         if builds.len() > 1 && !multiple {
-            info!("laze: multiple task targets found:");
+            debug!("laze: multiple task targets found:");
             for build_info in builds {
-                info!("{} {}", build_info.builder, build_info.binary);
+                debug!("{} {}", build_info.builder, build_info.binary);
             }
 
             // TODO: allow running tasks for multiple targets
