@@ -228,7 +228,6 @@ fn cmd_completion(matches: &clap::ArgMatches) -> Result<i32> {
         .copied()
     {
         let mut cmd = cli::clap();
-        info!("Generating completion file for {}...", generator);
         print_completions(generator, &mut cmd);
     }
     Ok(0)
