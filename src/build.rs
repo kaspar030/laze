@@ -4,7 +4,7 @@ use anyhow::{anyhow, Context as _, Error, Result};
 use im_rc::{HashMap, HashSet, Vector};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{enumerate, Itertools};
-use log::{info, log_enabled, Level::Trace};
+use log::trace;
 
 use crate::model::{Context, ContextBag, Dependency, Module};
 use crate::nested_env::{self, Env};
@@ -43,7 +43,7 @@ pub struct Build<'a> {
     pub build_context: Context,
 }
 
-struct Resolver<'a, const VERBOSE: bool> {
+struct Resolver<'a> {
     build: &'a Build<'a>,
     state_stack: Vec<ResolverState<'a>>,
     state: ResolverState<'a>,
@@ -64,7 +64,7 @@ struct ResolverState<'a> {
     requires: HashMap<String, HashSet<&'a String>>,
 }
 
-impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
+impl<'a> Resolver<'a> {
     fn new(
         build: &'a Build<'a>,
         mut disabled_modules: IndexSet<String>,
@@ -166,9 +166,7 @@ impl<'a, const VERBOSE: bool> Resolver<'a, VERBOSE> {
     where
         F: FnOnce() -> String,
     {
-        if VERBOSE {
-            info!("{}{}", self.state_indent(), f());
-        }
+        trace!("{}{}", self.state_indent(), f());
     }
 
     fn resolve_module_deep(&mut self, module: &'a Module) -> Result<(), Error> {
@@ -513,10 +511,6 @@ impl<'a: 'b, 'b> Build<'b> {
         disabled_modules: IndexSet<String>,
         required_modules: IndexSet<String>,
     ) -> Result<ResolverResult<'_>, Error> {
-        if log_enabled!(Trace) {
-            Resolver::<true>::new(self, disabled_modules, required_modules).resolve()
-        } else {
-            Resolver::<false>::new(self, disabled_modules, required_modules).resolve()
-        }
+        Resolver::new(self, disabled_modules, required_modules).resolve()
     }
 }
