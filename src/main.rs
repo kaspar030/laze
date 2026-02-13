@@ -370,8 +370,8 @@ fn cmd_build(
     if matches.get_flag("compile-commands") {
         let mut compile_commands = project_root.clone();
         compile_commands.push("compile_commands.json");
-        info!("laze: generating {compile_commands}");
         ninja::generate_compile_commands(&ninja_build_file, &compile_commands)?;
+        info!("laze: generated {compile_commands}");
     }
 
     // collect (optional) task and it's arguments
