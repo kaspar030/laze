@@ -125,7 +125,7 @@ impl Generator {
 
         match GenerateResult::try_from(&self) {
             Ok(cached) => {
-                debug!("laze: reading cache took {:?}.", start.elapsed());
+                trace!("laze: reading cache took {:?}.", start.elapsed());
                 return Ok(cached);
             }
             Err(x) => debug!("laze: reading cache: {x}"),
@@ -133,14 +133,16 @@ impl Generator {
 
         let (contexts, treestate, load_stats) = load(&self.project_file, &self.build_dir)?;
 
-        debug!(
+        trace!(
             "laze: parsing {} files took {:?}",
-            load_stats.files, load_stats.parsing_time,
+            load_stats.files,
+            load_stats.parsing_time,
         );
 
-        debug!(
+        trace!(
             "laze: stat'ing {} files took {:?}",
-            load_stats.files, load_stats.stat_time
+            load_stats.files,
+            load_stats.stat_time
         );
 
         std::fs::create_dir_all(&self.build_dir)?;
@@ -308,7 +310,7 @@ impl Generator {
         }
 
         let num_built = builds.len();
-        debug!(
+        trace!(
             "configured {} builds (took {:?}).",
             num_built,
             start.elapsed()
