@@ -223,10 +223,7 @@ fn cmd_completion(matches: &clap::ArgMatches) -> Result<i32> {
             &mut std::io::stdout(),
         );
     }
-    if let Some(generator) = matches
-        .get_one::<clap_complete::Shell>("generator")
-        .copied()
-    {
+    if let Some(generator) = matches.get_one::<clap_complete::Shell>("shell").copied() {
         let mut cmd = cli::clap();
         info!("Generating completion file for {}...", generator);
         print_completions(generator, &mut cmd);
