@@ -90,6 +90,7 @@ pub fn clap() -> clap::Command {
         .author("Kaspar Schleiser <kaspar@schleiser.de>")
         .about("Build a lot, fast")
         .infer_subcommands(true)
+        .subcommand_required(true)
         .arg(
             Arg::new("chdir")
                 .short('C')
