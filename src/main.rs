@@ -259,7 +259,7 @@ fn cmd_manpages(matches: &clap::ArgMatches) -> Result<i32> {
         create_manpage(subcommand.clone(), &outpath)?;
     }
 
-    return Ok(0);
+    Ok(0)
 }
 
 fn cmd_gitclone(matches: &clap::ArgMatches) -> Result<i32> {
@@ -282,7 +282,7 @@ fn cmd_gitclone(matches: &clap::ArgMatches) -> Result<i32> {
         .update(matches.get_flag("update"))
         .do_clone()?;
 
-    return Ok(0);
+    Ok(0)
 }
 
 fn cmd_build(
