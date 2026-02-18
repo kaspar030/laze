@@ -127,6 +127,13 @@ pub fn clap() -> clap::Command {
                 .env("LAZE_GLOBAL")
                 .action(ArgAction::SetTrue),
         )
+        .arg(
+            Arg::new("plain")
+                .long("plain")
+                .help("disable color output on log messages")
+                .global(true)
+                .action(ArgAction::SetTrue),
+        )
         .arg(git_cache::clap_git_cache_dir_arg())
         .subcommand(
             Command::new("build")
