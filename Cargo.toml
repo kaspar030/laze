@@ -54,7 +54,7 @@ im-rc = "15.1.0"
 shell-words = "1.1.1"
 subst = "0.3.8"
 path-slash = "0.2.1"
-jobslot = "0.2.23"
+jobslot = "0.2.24"
 ptree = { version = "0.5.2", default-features = false }
 env_logger = "0.11.9"
 log = "0.4.29"
