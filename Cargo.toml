@@ -48,7 +48,7 @@ semver = { version = "1.0.27", features = ["serde"] }
 tinytemplate = "1.2.1"
 serde_json = { version = "1.0.149", features = ["indexmap"] }
 git-cache = "0.2.7"
-shellexpand = "3.1.1"
+shellexpand = "3.1.2"
 thiserror = "2.0.18"
 im-rc = "15.1.0"
 shell-words = "1.1.1"
