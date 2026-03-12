@@ -52,7 +52,7 @@
       - [required_vars](./reference/context/task/required_vars.md)
       - [required_modules](./reference/context/task/required_modules.md)
       - [workdir](./reference/context/task/workdir.md)
-    - [var_options]()
+    - [var_options](./reference/context/var_options.md)
   - [modules](./reference/modules.md)
     - [name](./reference/module/name.md)
     - [sources](./reference/module/sources.md)
