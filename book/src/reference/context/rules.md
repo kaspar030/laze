@@ -20,7 +20,7 @@ contexts:
 
 - [`name`](./rule/name.md)
 - [`description`](./rule/description.md)
-- [`cmd`](./rule/name.md)
+- [`cmd`](./rule/cmd.md)
 - [`in`](./rule/in.md)
 - [`out`](./rule/out.md)
 - [`options`](./rule/option.md)
@@ -30,3 +30,5 @@ contexts:
 - [`pool`](./rule/pool.md)
 - [`always`](./rule/always.md)
 - [`shareable`](./rule/shareable.md)
+- [`export`](./rule/export.md)
+- [`meta`](../meta.md)

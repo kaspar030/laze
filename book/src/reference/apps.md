@@ -19,6 +19,8 @@ apps:
 As an app is just a special kind of module, they share all fields.
 
 - [`name`](./module/name.md)
+- [`context`](./module/context.md)
+- [`help`](./module/help.md)
 - [`sources`](./module/sources.md)
 - [`env`](./module/env.md)
 - [`depends`](./module/depends.md)
@@ -26,4 +28,11 @@ As an app is just a special kind of module, they share all fields.
 - [`uses`](./module/uses.md)
 - [`conflicts`](./module/conflicts.md)
 - [`provides`](./module/provides.md)
+- [`provides_unique`](./module/provides_unique.md)
+- [`requires`](./module/requires.md)
 - [`build`](./module/build.md)
+- [`download`](./module/download.md)
+- [`tasks`](./tasks.md)
+- [`notify_all`](./module/notify_all.md)
+- [`srcdir`](./module/srcdir.md)
+- [`meta`](./meta.md)

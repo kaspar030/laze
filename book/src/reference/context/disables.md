@@ -1,4 +1,4 @@
-### `disable`
+# disables
 
 List of modules that are disabled for builds in this context or any of
 its children.
