@@ -76,3 +76,7 @@
   - [defaults]()
   - [variables](./reference/variables.md)
 - [Expression evaluation]()
+
+# Developer
+
+- [Logging](./dev/logging.md)
