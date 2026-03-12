@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d82418d3.js";
+            window.path_to_searchindex_js = "../searchindex-bdd2e215.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-cf32fe35.js"></script>
+        <script src="../toc-f78e1de0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,9 +189,11 @@
  - name: name_of_other_context
    # ... possible other fields
 </code></pre>
-<h1 id="module-fields"><a class="header" href="#module-fields">module fields</a></h1>
+<h2 id="module-fields"><a class="header" href="#module-fields">module fields</a></h2>
 <ul>
 <li><a href="./module/name.html"><code>name</code></a></li>
+<li><a href="./module/context.html"><code>context</code></a></li>
+<li><a href="./module/help.html"><code>help</code></a></li>
 <li><a href="./module/sources.html"><code>sources</code></a></li>
 <li><a href="./module/env.html"><code>env</code></a></li>
 <li><a href="./module/depends.html"><code>depends</code></a></li>
@@ -199,14 +201,23 @@
 <li><a href="./module/uses.html"><code>uses</code></a></li>
 <li><a href="./module/conflicts.html"><code>conflicts</code></a></li>
 <li><a href="./module/provides.html"><code>provides</code></a></li>
+<li><a href="./module/provides_unique.html"><code>provides_unique</code></a></li>
+<li><a href="./module/requires.html"><code>requires</code></a></li>
 <li><a href="./module/build.html"><code>build</code></a></li>
+<li><a href="./module/download.html"><code>download</code></a></li>
+<li><a href="./tasks.html"><code>tasks</code></a></li>
+<li><a href="./module/notify_all.html"><code>notify_all</code></a></li>
+<li><a href="./module/srcdir.html"><code>srcdir</code></a></li>
+<li><a href="./module/is_build_dep.html"><code>is_build_dep</code></a></li>
+<li><a href="./module/is_global_build_dep.html"><code>is_global_build_dep</code></a></li>
+<li><a href="./meta.html"><code>meta</code></a></li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../reference/context/var_options.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../reference/task/workdir.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -220,7 +231,7 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../reference/context/var_options.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../reference/task/workdir.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

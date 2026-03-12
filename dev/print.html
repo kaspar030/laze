@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d82418d3.js";
+            window.path_to_searchindex_js = "searchindex-bdd2e215.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-cf32fe35.js"></script>
+        <script src="toc-f78e1de0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -436,7 +436,6 @@ that make use of the header get the define.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="laze-file-reference"><a class="header" href="#laze-file-reference">Laze File Reference</a></h1>
 <p>This chapter contains the reference of laze’s YAML build file format.</p>
-<p>TODO: it is currently incomplete …</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="laze_required_version"><a class="header" href="#laze_required_version">laze_required_version</a></h1>
 <p>Expects a semver version string (<code>a.b.c</code>). Laze will refuse to read the file if
@@ -459,14 +458,23 @@ its own version is smaller.</p>
 <p>As an app is just a special kind of module, they share all fields.</p>
 <ul>
 <li><a href="#name-2"><code>name</code></a></li>
+<li><a href="#context"><code>context</code></a></li>
+<li><a href="#help-2"><code>help</code></a></li>
 <li><a href="#sources"><code>sources</code></a></li>
-<li><a href="reference/module/env.html"><code>env</code></a></li>
+<li><a href="#env-1"><code>env</code></a></li>
 <li><a href="#depends"><code>depends</code></a></li>
 <li><a href="#selects-1"><code>selects</code></a></li>
 <li><a href="#uses"><code>uses</code></a></li>
 <li><a href="#conflicts"><code>conflicts</code></a></li>
-<li><a href="#provides"><code>provides</code></a></li>
-<li><a href="reference/module/build.html"><code>build</code></a></li>
+<li><a href="#provides-1"><code>provides</code></a></li>
+<li><a href="#provides_unique-1"><code>provides_unique</code></a></li>
+<li><a href="#requires-1"><code>requires</code></a></li>
+<li><a href="#build-1"><code>build</code></a></li>
+<li><a href="#download"><code>download</code></a></li>
+<li><a href="#tasks"><code>tasks</code></a></li>
+<li><a href="#notify_all"><code>notify_all</code></a></li>
+<li><a href="#srcdir"><code>srcdir</code></a></li>
+<li><a href="#meta"><code>meta</code></a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="builders"><a class="header" href="#builders">builders</a></h1>
@@ -489,12 +497,17 @@ contexts:
 <ul>
 <li><a href="#name-3"><code>name</code></a></li>
 <li><a href="#parent-1"><code>parent</code></a></li>
-<li><a href="#env-1"><code>env</code></a></li>
+<li><a href="#help"><code>help</code></a></li>
+<li><a href="#env-2"><code>env</code></a></li>
 <li><a href="#selects-2"><code>selects</code></a></li>
 <li><a href="#disables"><code>disables</code></a></li>
+<li><a href="#provides"><code>provides</code></a></li>
+<li><a href="#provides_unique"><code>provides_unique</code></a></li>
+<li><a href="#requires"><code>requires</code></a></li>
 <li><a href="#rules"><code>rules</code></a></li>
-<li><a href="#var_options"><code>var_options</code></a></li>
 <li><a href="#tasks"><code>tasks</code></a></li>
+<li><a href="#var_options"><code>var_options</code></a></li>
+<li><a href="#meta"><code>meta</code></a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="contexts"><a class="header" href="#contexts">contexts</a></h1>
@@ -509,14 +522,19 @@ contexts:
 <h2 id="context-fields"><a class="header" href="#context-fields">context fields</a></h2>
 <ul>
 <li><a href="#name-3"><code>name</code></a></li>
-<li><a href="reference/context/buildable.html"><code>buildable</code></a></li>
+<li><a href="#buildable-1"><code>buildable</code></a></li>
 <li><a href="#parent-1"><code>parent</code></a></li>
-<li><a href="#env-1"><code>env</code></a></li>
+<li><a href="#help"><code>help</code></a></li>
+<li><a href="#env-2"><code>env</code></a></li>
 <li><a href="#selects-2"><code>selects</code></a></li>
 <li><a href="#disables"><code>disables</code></a></li>
+<li><a href="#provides"><code>provides</code></a></li>
+<li><a href="#provides_unique"><code>provides_unique</code></a></li>
+<li><a href="#requires"><code>requires</code></a></li>
 <li><a href="#rules"><code>rules</code></a></li>
-<li><a href="#var_options"><code>var_options</code></a></li>
 <li><a href="#tasks"><code>tasks</code></a></li>
+<li><a href="#var_options"><code>var_options</code></a></li>
+<li><a href="#meta"><code>meta</code></a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="name-3"><a href="#name-3" class="header">name</a></h1>
@@ -533,6 +551,17 @@ file- and directory names, so better keep it simple.</p>
    # ... possible other fields
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="buildable-1"><a href="#buildable-1" class="header">buildable</a></h1>
+<h3 id="buildable"><a class="header" href="#buildable"><code>buildable</code></a></h3>
+<p>Set if this <code>context</code> if <code>apps</code> can be built for this context.
+Possible values: [<code>true</code>, <code>false</code>]. Defaults to <code>false</code>.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">context:
+ - name: kids_birthday_party
+   parent: birthday_party
+   buildable: true
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="parent-1"><a href="#parent-1" class="header">parent</a></h1>
 <h3 id="parent"><a class="header" href="#parent"><code>parent</code></a></h3>
 <p>The parent of this context. If unset, defaults to <code>default</code>.</p>
@@ -542,7 +571,16 @@ file- and directory names, so better keep it simple.</p>
    parent: other_context_name
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="env-1"><a href="#env-1" class="header">env</a></h1>
+<h1 id="help"><a class="header" href="#help">help</a></h1>
+<p>This field contains an optional <em>string</em> with help text for the context.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">contexts:
+  - name: nrf52840
+    parent: cortex-m4
+    help: "Nordic nRF52840 SoC with BLE support"
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="env-2"><a href="#env-2" class="header">env</a></h1>
 <h3 id="env"><a class="header" href="#env"><code>env</code></a></h3>
 <p>A <em>map</em> of variables.
 Each map key correspondents to the variable name.
@@ -569,8 +607,7 @@ its children.</p>
      - music
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="disables"><a href="#disables" class="header">disables</a></h1>
-<h3 id="disable"><a class="header" href="#disable"><code>disable</code></a></h3>
+<h1 id="disables"><a class="header" href="#disables">disables</a></h1>
 <p>List of modules that are disabled for builds in this context or any of
 its children.</p>
 <p>Example:</p>
@@ -579,6 +616,55 @@ its children.</p>
    parent: birthday_party
    disables:
      - beer
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="provides"><a class="header" href="#provides">provides</a></h1>
+<p>This field contains an optional <em>list</em> of virtual module names that this
+context provides.</p>
+<p>This works the same as <a href="#provides-1"><code>provides</code></a> on modules. The
+listed names are set on the context’s associated module, making the context
+satisfy dependencies on those names.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">contexts:
+  - name: context_with_hw_support
+    parent: default
+    provides:
+      - hardware_abstraction
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="provides_unique"><a class="header" href="#provides_unique">provides_unique</a></h1>
+<p>This field contains an optional <em>list</em> of virtual module names that this
+context uniquely provides.</p>
+<p>Like <a href="#provides"><code>provides</code></a>, but also adds the listed names to
+<code>conflicts</code>. This means only one context (or module) that provides the same
+name via <code>provides_unique</code> can be active in a build.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">contexts:
+  - name: context_uart
+    parent: default
+    provides_unique:
+      - serial_backend
+
+  - name: context_usb
+    parent: default
+    provides_unique:
+      - serial_backend
+</code></pre>
+<p>In this example, a build cannot use both <code>context_uart</code> and <code>context_usb</code>
+since they both uniquely provide <code>serial_backend</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="requires"><a class="header" href="#requires">requires</a></h1>
+<p>This field contains an optional <em>list</em> of module names that must be present
+when this context is used.</p>
+<p>Unlike <a href="#selects-2"><code>selects</code></a>, <code>requires</code> does not automatically select the
+listed modules. The build fails if a required module is not selected by
+something else.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">contexts:
+  - name: secure_context
+    parent: default
+    requires:
+      - crypto_support
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="rules"><a class="header" href="#rules">rules</a></h1>
@@ -597,7 +683,7 @@ its children.</p>
 <ul>
 <li><a href="#name-1"><code>name</code></a></li>
 <li><a href="#description"><code>description</code></a></li>
-<li><a href="#name-1"><code>cmd</code></a></li>
+<li><a href="#cmd"><code>cmd</code></a></li>
 <li><a href="#in"><code>in</code></a></li>
 <li><a href="#out"><code>out</code></a></li>
 <li><a href="#options"><code>options</code></a></li>
@@ -607,6 +693,8 @@ its children.</p>
 <li><a href="#pool"><code>pool</code></a></li>
 <li><a href="#always"><code>always</code></a></li>
 <li><a href="#shareable"><code>shareable</code></a></li>
+<li><a href="#export"><code>export</code></a></li>
+<li><a href="#meta"><code>meta</code></a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="name-1"><a class="header" href="#name-1">name</a></h1>
@@ -767,6 +855,85 @@ would end up in <code>${bindir}/out/host/bar/some-module/foo.o</code>.</p>
    # ... possible other fields
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="export"><a class="header" href="#export">export</a></h1>
+<p>This field contains an optional <em>list</em> of variables to export to the rule’s
+build environment.</p>
+<p>Each entry can be either a bare variable name or a key-value <em>map</em>.
+A bare variable name exports the corresponding laze variable’s value.
+A key-value map exports the given value under the given name.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">    rules:
+      - name: CC
+        cmd: "${CC} -c ${in} -o ${out}"
+        export:
+          - CFLAGS
+          - CC_VERSION: 12
+        # ... other fields ...
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="var_options"><a class="header" href="#var_options">var_options</a></h1>
+<p>This field contains a <em>map</em> that controls how variables are flattened into
+strings during the build process.</p>
+<p>Each map key is a variable name. The value is a set of formatting options
+that are applied when the variable’s list of values is joined into a single
+string.</p>
+<h2 id="options-1"><a class="header" href="#options-1">options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>from</code></td><td><em>string</em></td><td>-</td><td>Read values from another variable instead of this one</td></tr>
+<tr><td><code>joiner</code></td><td><em>string</em></td><td><code>" "</code></td><td>String used to join list elements</td></tr>
+<tr><td><code>prefix</code></td><td><em>string</em></td><td>-</td><td>String prepended before each element</td></tr>
+<tr><td><code>suffix</code></td><td><em>string</em></td><td>-</td><td>String appended after each element</td></tr>
+<tr><td><code>start</code></td><td><em>string</em></td><td>-</td><td>String prepended once before the entire result</td></tr>
+<tr><td><code>end</code></td><td><em>string</em></td><td>-</td><td>String appended once after the entire result</td></tr>
+</tbody>
+</table>
+</div>
+<p>Using <code>from</code> creates a new variable from another variable’s values. A variable
+cannot have both its own values and a <code>from</code> option.</p>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<p>Adding a prefix to each element:</p>
+<pre><code class="language-yaml">builders:
+  - name: my_builder
+    var_options:
+      notify:
+        prefix: -DMODULE_
+    env:
+      notify:
+        - apple
+        - banana
+</code></pre>
+<p>This flattens <code>notify</code> to <code>-DMODULE_apple -DMODULE_banana</code>.</p>
+<p>Using a custom joiner and wrapping the result:</p>
+<pre><code class="language-yaml">contexts:
+  - name: default
+    var_options:
+      includes:
+        joiner: ","
+        prefix: "-I"
+        start: "("
+        end: ")"
+    env:
+      includes:
+        - src
+        - lib
+</code></pre>
+<p>This flattens <code>includes</code> to <code>(-Isrc,-Ilib)</code>.</p>
+<p>Creating a new variable from an existing one:</p>
+<pre><code class="language-yaml">contexts:
+  - name: default
+    var_options:
+      module_defines:
+        from: modules_used
+        prefix: -DMODULE_
+</code></pre>
+<p>This creates <code>module_defines</code> by reading the values of <code>modules_used</code> and
+prefixing each element with <code>-DMODULE_</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="tasks"><a class="header" href="#tasks">tasks</a></h1>
 <p>This field contains a <em>map</em> of named task entries.</p>
 <p>Tasks are operations that are executed by laze (not ninja), after optionally
@@ -774,6 +941,10 @@ building the app binary. They can be used to execute a compiled binary, run
 it through a debugger, flash an embedded target, and more.</p>
 <p>Each map key is the task name, which is used to invoke the task from the command
 line (e.g., <code>laze run</code>, <code>laze size</code>).</p>
+<p>Tasks can be defined on contexts, builders, and modules. Tasks defined in parent
+contexts are inherited by child contexts and builders. Module tasks can override
+context tasks of the same name. If two modules define a task with the same name,
+they are treated as conflicting and cannot both be selected in the same build.</p>
 <p>Example:</p>
 <pre><code class="language-yaml">contexts:
   - name: default
@@ -781,20 +952,36 @@ line (e.g., <code>laze run</code>, <code>laze size</code>).</p>
       info:
         cmd:
           - "echo binary: ${out}"
+      size:
+        cmd:
+          - "${SIZE} ${out}"
+
+builders:
+  - name: host
+    tasks:
       run:
         cmd:
           - ${out}
+</code></pre>
+<p>Tasks on modules:</p>
+<pre><code class="language-yaml">modules:
+  - name: my_module
+    tasks:
+      test:
+        cmd:
+          - ${out} --run-tests
 </code></pre>
 <h2 id="task-fields"><a class="header" href="#task-fields">task fields</a></h2>
 <ul>
 <li><a href="#cmd-1"><code>cmd</code></a></li>
 <li><a href="#build"><code>build</code></a></li>
-<li><a href="#help"><code>help</code></a></li>
-<li><a href="#export"><code>export</code></a></li>
+<li><a href="#help-1"><code>help</code></a></li>
+<li><a href="#export-1"><code>export</code></a></li>
 <li><a href="#ignore_ctrl_c"><code>ignore_ctrl_c</code></a></li>
 <li><a href="#required_vars"><code>required_vars</code></a></li>
 <li><a href="#required_modules"><code>required_modules</code></a></li>
 <li><a href="#workdir"><code>workdir</code></a></li>
+<li><a href="#meta"><code>meta</code></a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cmd-1"><a class="header" href="#cmd-1">cmd</a></h1>
@@ -832,7 +1019,7 @@ cleaning up or printing configuration information.</p>
           - rm -rf ${bindir}
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="help"><a class="header" href="#help">help</a></h1>
+<h1 id="help-1"><a class="header" href="#help-1">help</a></h1>
 <p>This field contains an optional <em>string</em> with help text for the task.
 It is used for CLI shell completion.</p>
 <p>Example:</p>
@@ -843,7 +1030,7 @@ It is used for CLI shell completion.</p>
           - flash-tool ${out}
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="export"><a class="header" href="#export">export</a></h1>
+<h1 id="export-1"><a class="header" href="#export-1">export</a></h1>
 <p>This field contains an optional <em>list</em> of variables to export to the task’s
 shell environment.</p>
 <p>Each entry can be either a bare variable name or a key-value <em>map</em>.
@@ -913,69 +1100,6 @@ An absolute path is used as-is.</p>
           - ./run-tests.sh ${out}
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="var_options"><a class="header" href="#var_options">var_options</a></h1>
-<p>This field contains a <em>map</em> that controls how variables are flattened into
-strings during the build process.</p>
-<p>Each map key is a variable name. The value is a set of formatting options
-that are applied when the variable’s list of values is joined into a single
-string.</p>
-<h2 id="options-1"><a class="header" href="#options-1">options</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>from</code></td><td><em>string</em></td><td>-</td><td>Read values from another variable instead of this one</td></tr>
-<tr><td><code>joiner</code></td><td><em>string</em></td><td><code>" "</code></td><td>String used to join list elements</td></tr>
-<tr><td><code>prefix</code></td><td><em>string</em></td><td>-</td><td>String prepended before each element</td></tr>
-<tr><td><code>suffix</code></td><td><em>string</em></td><td>-</td><td>String appended after each element</td></tr>
-<tr><td><code>start</code></td><td><em>string</em></td><td>-</td><td>String prepended once before the entire result</td></tr>
-<tr><td><code>end</code></td><td><em>string</em></td><td>-</td><td>String appended once after the entire result</td></tr>
-</tbody>
-</table>
-</div>
-<p>Using <code>from</code> creates a new variable from another variable’s values. A variable
-cannot have both its own values and a <code>from</code> option.</p>
-<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
-<p>Adding a prefix to each element:</p>
-<pre><code class="language-yaml">builders:
-  - name: my_builder
-    var_options:
-      notify:
-        prefix: -DMODULE_
-    env:
-      notify:
-        - apple
-        - banana
-</code></pre>
-<p>This flattens <code>notify</code> to <code>-DMODULE_apple -DMODULE_banana</code>.</p>
-<p>Using a custom joiner and wrapping the result:</p>
-<pre><code class="language-yaml">contexts:
-  - name: default
-    var_options:
-      includes:
-        joiner: ","
-        prefix: "-I"
-        start: "("
-        end: ")"
-    env:
-      includes:
-        - src
-        - lib
-</code></pre>
-<p>This flattens <code>includes</code> to <code>(-Isrc,-Ilib)</code>.</p>
-<p>Creating a new variable from an existing one:</p>
-<pre><code class="language-yaml">contexts:
-  - name: default
-    var_options:
-      module_defines:
-        from: modules_used
-        prefix: -DMODULE_
-</code></pre>
-<p>This creates <code>module_defines</code> by reading the values of <code>modules_used</code> and
-prefixing each element with <code>-DMODULE_</code>.</p>
-<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="modules"><a class="header" href="#modules">modules</a></h1>
 <p>‘modules’ contains a <em>list</em> of module entries.</p>
 <p>Example:</p>
@@ -985,17 +1109,28 @@ prefixing each element with <code>-DMODULE_</code>.</p>
  - name: name_of_other_context
    # ... possible other fields
 </code></pre>
-<h1 id="module-fields"><a class="header" href="#module-fields">module fields</a></h1>
+<h2 id="module-fields"><a class="header" href="#module-fields">module fields</a></h2>
 <ul>
 <li><a href="#name-2"><code>name</code></a></li>
+<li><a href="#context"><code>context</code></a></li>
+<li><a href="#help-2"><code>help</code></a></li>
 <li><a href="#sources"><code>sources</code></a></li>
-<li><a href="reference/module/env.html"><code>env</code></a></li>
+<li><a href="#env-1"><code>env</code></a></li>
 <li><a href="#depends"><code>depends</code></a></li>
 <li><a href="#selects-1"><code>selects</code></a></li>
 <li><a href="#uses"><code>uses</code></a></li>
 <li><a href="#conflicts"><code>conflicts</code></a></li>
-<li><a href="#provides"><code>provides</code></a></li>
-<li><a href="reference/module/build.html"><code>build</code></a></li>
+<li><a href="#provides-1"><code>provides</code></a></li>
+<li><a href="#provides_unique-1"><code>provides_unique</code></a></li>
+<li><a href="#requires-1"><code>requires</code></a></li>
+<li><a href="#build-1"><code>build</code></a></li>
+<li><a href="#download"><code>download</code></a></li>
+<li><a href="#tasks"><code>tasks</code></a></li>
+<li><a href="#notify_all"><code>notify_all</code></a></li>
+<li><a href="#srcdir"><code>srcdir</code></a></li>
+<li><a href="#is_build_dep"><code>is_build_dep</code></a></li>
+<li><a href="#is_global_build_dep"><code>is_global_build_dep</code></a></li>
+<li><a href="#meta"><code>meta</code></a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="name-2"><a class="header" href="#name-2">name</a></h1>
@@ -1012,6 +1147,31 @@ is used.</p>
    # ... possible other fields
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="context"><a class="header" href="#context">context</a></h1>
+<p>This field specifies which context(s) a module belongs to.</p>
+<p>Can be a single <em>string</em> or a <em>list</em> of strings. If omitted, the module belongs
+to the <code>"default"</code> context.</p>
+<p>When a list is given, the module is available in each of the specified contexts
+(and their children).</p>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: platform_support
+    context: linux
+
+  - name: shared_module
+    context:
+      - builder_arm
+      - builder_riscv
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="help-2"><a class="header" href="#help-2">help</a></h1>
+<p>This field contains an optional <em>string</em> with help text for the module.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: crypto_support
+    help: "provides AES and SHA256 implementations"
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="sources"><a class="header" href="#sources">sources</a></h1>
 <p><em>List</em> of source files used to build this module.</p>
 <p>This field is optional.</p>
@@ -1025,6 +1185,33 @@ is described in.</p>
      - flour.c
      - dressings/cream.c
    # ... possible other fields
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="env-1"><a class="header" href="#env-1">env</a></h1>
+<p>This field contains a <em>map</em> of environment variable scopes for the module.</p>
+<p>Three scopes are available:</p>
+<ul>
+<li><code>local</code>: Variables only visible to this module’s own build commands. Applied
+after exported variables from dependencies, so it can override imported values.</li>
+<li><code>export</code>: Variables visible to this module and transitively to all modules
+that depend on or use this module.</li>
+<li><code>global</code>: Variables merged into the build’s global environment, visible to
+all modules in the build.</li>
+</ul>
+<p>Each scope is a <em>map</em> where keys are variable names and values are either a
+single value or a list of values.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: my_module
+    env:
+      local:
+        CFLAGS:
+          - -DLOCAL_ONLY
+      export:
+        CFLAGS:
+          - -I${relpath}/include
+      global:
+        GLOBAL_VAR: my_module_was_here
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="depends"><a class="header" href="#depends">depends</a></h1>
@@ -1083,7 +1270,7 @@ Two conflicting modules cannot both be part of a build.</p>
 <p><code>A</code> conflicting <code>B</code> implies <code>B</code> conflicting <code>A</code>.</p>
 <p>It is possible to <em>conflict</em> a <em>provided</em> feature to ensure a module is the
 only selected module <em>providing</em> a feature, but
-<a href="#provides_unique"><code>provides_unique</code></a> <em>should</em> be used for this.</p>
+<a href="#provides_unique-1"><code>provides_unique</code></a> <em>should</em> be used for this.</p>
 <p>Example:</p>
 <pre><code class="language-yaml">modules:
  - name: gnu_libc
@@ -1092,14 +1279,14 @@ only selected module <em>providing</em> a feature, but
    # ... possible other fields
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="provides"><a class="header" href="#provides">provides</a></h1>
+<h1 id="provides-1"><a class="header" href="#provides-1">provides</a></h1>
 <p><em>List</em> of features that this module <em>provides</em>.</p>
 <p>If a module depends on or selects something <em>provided</em> by another module, it
 works like an alias.</p>
 <p>A feature can be <em>provided</em> by multiple modules. In that case, all providing
 modules will be considered. Unless the dependency is optional, it fails if not
 at least one module can be resolved. All modules that resolve will be used.</p>
-<p>See also <a href="#provides_unique"><code>provides_unique</code></a></p>
+<p>See also <a href="#provides_unique-1"><code>provides_unique</code></a></p>
 <p>Example:</p>
 <pre><code class="language-yaml">modules:
  - name: amazon_s3
@@ -1117,7 +1304,7 @@ at least one module can be resolved. All modules that resolve will be used.</p>
      - s3_api
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="provides_unique"><a class="header" href="#provides_unique">provides_unique</a></h1>
+<h1 id="provides_unique-1"><a class="header" href="#provides_unique-1">provides_unique</a></h1>
 <p><em>List</em> of features that this module provides, but needs to be the only provider.</p>
 <p><code>provides_unique</code> can be used for this.</p>
 <p>Adding to <code>provides_unique</code> is equivalent to adding to both <code>provides</code> and
@@ -1134,12 +1321,187 @@ at least one module can be resolved. All modules that resolve will be used.</p>
    # ... possible other fields
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="requires-1"><a class="header" href="#requires-1">requires</a></h1>
+<p>This field contains an optional <em>list</em> of module names that must be present in
+the build for this module to be valid.</p>
+<p>Unlike <a href="#depends"><code>depends</code></a>, <code>requires</code> does not automatically select the
+listed modules. The build fails if a required module is not selected by
+something else.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: network_driver
+    requires:
+      - hardware_abstraction
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="build-1"><a class="header" href="#build-1">build</a></h1>
+<p>This field defines a custom build step for the module.</p>
+<p>It is used for code generation or pre-processing steps where a module needs to
+produce source files or other artifacts before normal compilation. The build
+commands have access to the module’s environment variables.</p>
+<h2 id="fields"><a class="header" href="#fields">fields</a></h2>
+<ul>
+<li><code>cmd</code>: Required. A <em>list</em> of shell commands. They are joined with <code>&amp;&amp;</code> to
+form a single ninja build command.</li>
+<li><code>out</code>: Optional. A <em>list</em> of output files produced by the custom build.</li>
+<li><code>gcc_deps</code>: Optional. A <em>string</em> specifying a file for gcc-style dependency
+tracking.</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: generated_code
+    is_build_dep: true
+    depends:
+      - config_module
+    build:
+      cmd:
+        - echo ${VARIABLE} &gt; build/${builder}/generated.c
+      out:
+        - build/${builder}/generated.c
+    sources:
+      - build/${builder}/generated.c
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="download"><a class="header" href="#download">download</a></h1>
+<p>This field specifies a git repository to download the module’s source files
+from.</p>
+<p>Modules with <code>download</code> automatically have <a href="#is_build_dep"><code>is_build_dep</code></a>
+set to <code>true</code>, and their <a href="#srcdir"><code>srcdir</code></a> points to the download
+directory.</p>
+<p>The context must define <code>GIT_DOWNLOAD</code> and (if using patches) <code>GIT_PATCH</code> rules.</p>
+<h2 id="fields-1"><a class="header" href="#fields-1">fields</a></h2>
+<ul>
+<li><code>git</code>: Required. A <em>map</em> with <code>url</code> and one of <code>commit</code>, <code>branch</code>, or <code>tag</code>.</li>
+<li><code>patches</code>: Optional. A <em>list</em> of patch files to apply after download.</li>
+<li><code>dldir</code>: Optional. A <em>string</em> overriding the download directory. Defaults to
+<code>build/dl/&lt;relpath&gt;/&lt;module_name&gt;</code>.</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: external_lib
+    download:
+      git:
+        url: https://github.com/example/lib.git
+        commit: abc123
+    sources:
+      - lib.c
+
+  - name: patched_lib
+    download:
+      git:
+        url: https://github.com/example/lib.git
+        commit: main
+      patches:
+        - 0001-fix-build.patch
+    sources:
+      - lib.c
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="notify_all"><a class="header" href="#notify_all">notify_all</a></h1>
+<p>This field controls the content of the <code>${notify}</code> variable for this module.</p>
+<p>Possible values: [<code>true</code>, <code>false</code>]. Defaults to <code>false</code>.</p>
+<p>When <code>false</code>, <code>${notify}</code> contains only the names of this module’s recursive
+dependencies. When <code>true</code>, <code>${notify}</code> contains the names of ALL modules in
+the build.</p>
+<p>Module names in <code>${notify}</code> are converted to uppercase with <code>-</code>, <code>/</code>, <code>.</code>, and
+<code>:</code> replaced by <code>_</code>.</p>
+<p>The <code>${notify}</code> variable is typically used with
+<a href="#var_options"><code>var_options</code></a> to generate preprocessor defines.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">builders:
+  - name: my_builder
+    var_options:
+      notify:
+        prefix: -DMODULE_
+
+modules:
+  - name: auto_init
+    notify_all: true
+    sources:
+      - auto_init.c
+</code></pre>
+<p>With modules <code>auto_init</code> and <code>my_driver</code> in the build, <code>${notify}</code> for the
+<code>auto_init</code> module would contain <code>MY_DRIVER AUTO_INIT</code>, and with the
+<code>var_options</code> above, it flattens to <code>-DMODULE_MY_DRIVER -DMODULE_AUTO_INIT</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="srcdir"><a class="header" href="#srcdir">srcdir</a></h1>
+<p>This field contains an optional <em>string</em> that overrides the base path for the
+module’s source files.</p>
+<p>By default, <code>srcdir</code> is the module’s <a href="#relpath"><code>relpath</code></a> (the
+directory containing the laze YAML file), or the download directory for modules
+with <a href="#download"><code>download</code></a>.</p>
+<p>The value is also available as the <code>${srcdir}</code> variable in the module’s
+environment.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: vendor_lib
+    srcdir: vendor/lib/src
+    sources:
+      - lib.c
+      - util.c
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="is_build_dep"><a class="header" href="#is_build_dep">is_build_dep</a></h1>
+<p>This field controls whether modules that depend on or use this module wait for
+its build outputs before compiling.</p>
+<p>Possible values: [<code>true</code>, <code>false</code>]. Defaults to <code>false</code>.</p>
+<p>This is useful for modules with a custom <a href="#build-1"><code>build</code></a> step that
+generates headers or source files needed by other modules.</p>
+<p>Modules with <a href="#download"><code>download</code></a> automatically have <code>is_build_dep</code> set
+to <code>true</code>.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: code_generator
+    is_build_dep: true
+    build:
+      cmd:
+        - generate-headers --out build/${builder}/generated.h
+      out:
+        - build/${builder}/generated.h
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="is_global_build_dep"><a class="header" href="#is_global_build_dep">is_global_build_dep</a></h1>
+<p>This field controls whether ALL modules in the build wait for this module’s
+build outputs before compiling.</p>
+<p>Possible values: [<code>true</code>, <code>false</code>]. Defaults to <code>false</code>.</p>
+<p>This is a stronger variant of <a href="#is_build_dep"><code>is_build_dep</code></a>. While
+<code>is_build_dep</code> only affects direct dependees, <code>is_global_build_dep</code> affects
+every module in the entire build.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: global_config_generator
+    is_global_build_dep: true
+    build:
+      cmd:
+        - generate-config &gt; build/${builder}/config.h
+      out:
+        - build/${builder}/config.h
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="subdirs"><a class="header" href="#subdirs">subdirs</a></h1>
 <p><code>subdirs</code> contains a <em>list</em> of directory names. Laze will parse <code>&lt;directory name&gt;/laze.yml</code>.</p>
 <p>Example:</p>
 <pre><code class="language-yaml">subdirs:
   - drivers
   - utils
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="includes"><a class="header" href="#includes">includes</a></h1>
+<p>This field contains a <em>list</em> of YAML file paths to include.</p>
+<p>Paths are relative to the directory of the current file. Each included file is
+loaded and processed as if its content were part of the including file. Included
+files share the same <code>relpath</code> context as the including file.</p>
+<p>Unlike <a href="#subdirs"><code>subdirs</code></a>, which looks for <code>laze.yml</code> in subdirectories
+and adjusts <code>relpath</code>, <code>includes</code> loads files directly without changing the
+path context.</p>
+<p>Example:</p>
+<pre><code class="language-yaml"># in laze.yml
+includes:
+  - extra-modules.yml
+  - generated.yml
+
+apps:
+  - name: my_app
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="imports"><a class="header" href="#imports"><code>imports</code></a></h1>
@@ -1211,6 +1573,32 @@ be desirable for privacy reasons, or help with reproducible builds.</p>
     name: directory3
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="defaults"><a class="header" href="#defaults">defaults</a></h1>
+<p>This field contains a <em>map</em> that defines default properties for modules and/or
+apps defined in the same file and its subdirectories.</p>
+<p>The map keys are <code>"module"</code> and/or <code>"app"</code>. Each value is a module entry
+whose fields are inherited by all modules (or apps) in the same file and any
+files included via <a href="#subdirs"><code>subdirs</code></a>. Defaults propagate down through
+subdirectories and can be overridden at each level.</p>
+<p>Any module field can be set in defaults, including
+<a href="#context"><code>context</code></a>, <a href="#sources"><code>sources</code></a>,
+<a href="#env-1"><code>env</code></a>, <a href="#depends"><code>depends</code></a>, and others.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">defaults:
+  module:
+    context: my_builder
+    env:
+      export:
+        CFLAGS:
+          - -Wall
+
+apps:
+  - name: my_app
+    # inherits context: my_builder and CFLAGS from defaults
+    sources:
+      - main.c
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="variables-defined-by-laze"><a class="header" href="#variables-defined-by-laze">Variables defined by laze</a></h1>
 <h2 id="appdir"><a class="header" href="#appdir">appdir</a></h2>
 <p>This variable contains the path in which the app of a build was defined.</p>
@@ -1242,6 +1630,19 @@ modules:
 </code></pre>
 <h2 id="modules-1"><a class="header" href="#modules-1">modules</a></h2>
 <p>This variable evaluates to a list of all modules used in a build.</p>
+<h2 id="outfile"><a class="header" href="#outfile">outfile</a></h2>
+<p>This variable contains the full path to the linked output binary of a build.
+Defaults to <code>${bindir}/${app}.elf</code>.</p>
+<p>Can be overridden in <code>env:</code> to change the output filename or extension.
+The final resolved value becomes available as <code>${out}</code> in tasks.</p>
+<p>If a <code>POST_LINK</code> rule is defined, its <code>out</code> extension replaces the original
+extension (e.g., <code>.elf</code> becomes <code>.bin</code>).</p>
+<p>Example:</p>
+<pre><code class="language-yaml">builders:
+  - name: my_builder
+    env:
+      outfile: "${bindir}/${app}.bin"
+</code></pre>
 <h2 id="relpath"><a class="header" href="#relpath">relpath</a></h2>
 <p>This variable is evaluated early and will be replaced with the relative (to the
 project root) path of the laze yaml file.</p>
@@ -1277,10 +1678,114 @@ modules:
           - -I${root}/include
           # this will evaluate to `-Ibuild/imports/foo-&lt;hash&gt;/include`
 </code></pre>
-<h2 id="srcdir"><a class="header" href="#srcdir">srcdir</a></h2>
+<h2 id="srcdir-1"><a class="header" href="#srcdir-1">srcdir</a></h2>
 <p>Contains the relative (to project root) base path of a module’s source files.
 If a module has not been downloaded, this is usually identical to <code>${relpath}</code>.
 For downloaded modules, it points to the module’s download directory.</p>
+<h2 id="app-1"><a class="header" href="#app-1">app</a></h2>
+<p>This variable contains the name of the app being built.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: foo
+    env:
+      export:
+        CFLAGS:
+          - -DAPP_NAME=\"${app}\"
+</code></pre>
+<h2 id="build-dir"><a class="header" href="#build-dir">build-dir</a></h2>
+<p>This variable contains the top-level build output directory. Defaults to
+<code>build</code>, and can be changed with the <code>--build-dir</code> / <code>-B</code> CLI flag.</p>
+<h2 id="contexts-1"><a class="header" href="#contexts-1">contexts</a></h2>
+<p>This variable evaluates to a list of all context names in the current builder’s
+context chain, from root to builder.</p>
+<h2 id="laze_bin"><a class="header" href="#laze_bin">LAZE_BIN</a></h2>
+<p>This variable contains the absolute path to the currently running laze binary.
+Used internally by download rules.</p>
+<h2 id="notify"><a class="header" href="#notify">notify</a></h2>
+<p>This variable contains a list of module names relevant to the current module.
+By default, it contains only the names of recursive dependencies. If
+<a href="#notify_all"><code>notify_all</code></a> is set to <code>true</code>, it contains all
+modules in the build.</p>
+<p>Module names are converted to uppercase with <code>-</code>, <code>/</code>, <code>.</code>, and <code>:</code> replaced
+by <code>_</code>.</p>
+<p>Typically used with <a href="#var_options"><code>var_options</code></a> to generate
+preprocessor defines.</p>
+<h2 id="out-1"><a class="header" href="#out-1">out</a></h2>
+<p>In build rules, this variable passes through to ninja’s <code>$out</code> variable.</p>
+<p>In tasks, this variable contains the final output binary path (the resolved
+value of <a href="#outfile"><code>outfile</code></a>, possibly with a changed extension from a
+<code>POST_LINK</code> rule).</p>
+<h2 id="project-root"><a class="header" href="#project-root">project-root</a></h2>
+<p>This variable contains the path to the project root directory.</p>
+<h2 id="relroot"><a class="header" href="#relroot">relroot</a></h2>
+<p>This variable contains the relative path from the current module’s location
+back to the project root. For example, a module at <code>src/drivers/</code> would have
+<code>relroot</code> set to <code>../..</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="meta"><a class="header" href="#meta">meta</a></h1>
+<p>This field is ignored by laze and can contain arbitrary data.</p>
+<p>It is available on the top level, on contexts, modules, rules, and tasks, and
+can be used by external tools to attach metadata to laze build files.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: my_module
+    meta:
+      maintainer: alice
+      license: MIT
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="expression-evaluation"><a class="header" href="#expression-evaluation">Expression evaluation</a></h1>
+<p>Laze supports inline expression evaluation using the <code>$(...)</code> syntax.</p>
+<p>Expressions are evaluated after variable expansion (<code>${...}</code>), so variables are
+resolved first, then expressions are evaluated.</p>
+<p>Expression evaluation is powered by the
+<a href="https://crates.io/crates/evalexpr">evalexpr</a> crate.</p>
+<h2 id="syntax"><a class="header" href="#syntax">Syntax</a></h2>
+<ul>
+<li><code>$(expression)</code> evaluates the expression and substitutes the result.</li>
+<li>Nesting is supported: inner expressions are evaluated first.</li>
+<li><code>$$(...)</code> escapes the dollar sign and is not evaluated.</li>
+</ul>
+<h2 id="examples-1"><a class="header" href="#examples-1">Examples</a></h2>
+<p>Arithmetic:</p>
+<pre><code class="language-yaml">env:
+  RESULT: "$(1 + 1)"
+  # evaluates to "2"
+</code></pre>
+<p>Nested expressions:</p>
+<pre><code class="language-yaml">env:
+  RESULT: "$(1 + $(1 + 1))"
+  # evaluates to "3"
+</code></pre>
+<p>Functions:</p>
+<pre><code class="language-yaml">env:
+  MAX_VAL: "$(max(1, 2, 3, 4))"
+  # evaluates to "4"
+</code></pre>
+<p>String functions:</p>
+<pre><code class="language-yaml">env:
+  UPPER: '$(str::to_uppercase "foobar")'
+  # evaluates to "FOOBAR"
+</code></pre>
+<p>Combined with variable expansion:</p>
+<pre><code class="language-yaml">env:
+  BASE: "10"
+  OFFSET: "$(${BASE} + 5)"
+  # evaluates to "15"
+</code></pre>
+<h2 id="supported-operations"><a class="header" href="#supported-operations">Supported operations</a></h2>
+<ul>
+<li>Arithmetic: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code></li>
+<li>Comparison: <code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code></li>
+<li>Boolean: <code>&amp;&amp;</code>, <code>||</code>, <code>!</code></li>
+<li>String concatenation: <code>+</code> (on strings)</li>
+<li>Conditional: <code>if(condition, then, else)</code></li>
+</ul>
+<h2 id="supported-functions"><a class="header" href="#supported-functions">Supported functions</a></h2>
+<p>Math: <code>min</code>, <code>max</code>, <code>floor</code>, <code>ceil</code>, <code>round</code>, <code>abs</code>, <code>sqrt</code>, <code>exp</code>, <code>ln</code>, <code>log</code></p>
+<p>String: <code>str::to_uppercase</code>, <code>str::to_lowercase</code>, <code>str::trim</code>,
+<code>str::contains</code>, <code>str::starts_with</code>, <code>str::ends_with</code>, <code>str::len</code>,
+<code>str::from</code>, <code>str::substring</code>, <code>str::regex_matches</code>, <code>str::regex_replace</code></p>
 
                     </main>
 

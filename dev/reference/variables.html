@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d82418d3.js";
+            window.path_to_searchindex_js = "../searchindex-bdd2e215.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-cf32fe35.js"></script>
+        <script src="../toc-f78e1de0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -211,6 +211,19 @@ modules:
 </code></pre>
 <h2 id="modules"><a class="header" href="#modules">modules</a></h2>
 <p>This variable evaluates to a list of all modules used in a build.</p>
+<h2 id="outfile"><a class="header" href="#outfile">outfile</a></h2>
+<p>This variable contains the full path to the linked output binary of a build.
+Defaults to <code>${bindir}/${app}.elf</code>.</p>
+<p>Can be overridden in <code>env:</code> to change the output filename or extension.
+The final resolved value becomes available as <code>${out}</code> in tasks.</p>
+<p>If a <code>POST_LINK</code> rule is defined, its <code>out</code> extension replaces the original
+extension (e.g., <code>.elf</code> becomes <code>.bin</code>).</p>
+<p>Example:</p>
+<pre><code class="language-yaml">builders:
+  - name: my_builder
+    env:
+      outfile: "${bindir}/${app}.bin"
+</code></pre>
 <h2 id="relpath"><a class="header" href="#relpath">relpath</a></h2>
 <p>This variable is evaluated early and will be replaced with the relative (to the
 project root) path of the laze yaml file.</p>
@@ -250,15 +263,57 @@ modules:
 <p>Contains the relative (to project root) base path of a module’s source files.
 If a module has not been downloaded, this is usually identical to <code>${relpath}</code>.
 For downloaded modules, it points to the module’s download directory.</p>
+<h2 id="app"><a class="header" href="#app">app</a></h2>
+<p>This variable contains the name of the app being built.</p>
+<p>Example:</p>
+<pre><code class="language-yaml">modules:
+  - name: foo
+    env:
+      export:
+        CFLAGS:
+          - -DAPP_NAME=\"${app}\"
+</code></pre>
+<h2 id="build-dir"><a class="header" href="#build-dir">build-dir</a></h2>
+<p>This variable contains the top-level build output directory. Defaults to
+<code>build</code>, and can be changed with the <code>--build-dir</code> / <code>-B</code> CLI flag.</p>
+<h2 id="contexts"><a class="header" href="#contexts">contexts</a></h2>
+<p>This variable evaluates to a list of all context names in the current builder’s
+context chain, from root to builder.</p>
+<h2 id="laze_bin"><a class="header" href="#laze_bin">LAZE_BIN</a></h2>
+<p>This variable contains the absolute path to the currently running laze binary.
+Used internally by download rules.</p>
+<h2 id="notify"><a class="header" href="#notify">notify</a></h2>
+<p>This variable contains a list of module names relevant to the current module.
+By default, it contains only the names of recursive dependencies. If
+<a href="./module/notify_all.html"><code>notify_all</code></a> is set to <code>true</code>, it contains all
+modules in the build.</p>
+<p>Module names are converted to uppercase with <code>-</code>, <code>/</code>, <code>.</code>, and <code>:</code> replaced
+by <code>_</code>.</p>
+<p>Typically used with <a href="./context/var_options.html"><code>var_options</code></a> to generate
+preprocessor defines.</p>
+<h2 id="out"><a class="header" href="#out">out</a></h2>
+<p>In build rules, this variable passes through to ninja’s <code>$out</code> variable.</p>
+<p>In tasks, this variable contains the final output binary path (the resolved
+value of <a href="#outfile"><code>outfile</code></a>, possibly with a changed extension from a
+<code>POST_LINK</code> rule).</p>
+<h2 id="project-root"><a class="header" href="#project-root">project-root</a></h2>
+<p>This variable contains the path to the project root directory.</p>
+<h2 id="relroot"><a class="header" href="#relroot">relroot</a></h2>
+<p>This variable contains the relative path from the current module’s location
+back to the project root. For example, a module at <code>src/drivers/</code> would have
+<code>relroot</code> set to <code>../..</code>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../reference/import/path.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../reference/defaults.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
+                            <a rel="next prefetch" href="../reference/meta.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -266,10 +321,13 @@ For downloaded modules, it points to the module’s download directory.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../reference/import/path.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../reference/defaults.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
+                    <a rel="next prefetch" href="../reference/meta.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
             </nav>
 
         </div>
