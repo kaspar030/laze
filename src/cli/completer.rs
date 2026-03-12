@@ -28,9 +28,14 @@ impl CompleterState {
         let cwd = Utf8PathBuf::try_from(env::current_dir().unwrap()).expect("cwd not UTF8");
         let project_root = crate::determine_project_root(&cwd);
         if let Ok((project_root, project_file)) = project_root {
-            let build_dir = project_root.join("build");
+            // project_root was previously found by `determine_project_root()`, so we know it
+            // exists and is a directory. `unwrap()` here is fine, if that fails, something is
+            // really wrong.
+            env::set_current_dir(&project_root).unwrap();
+
+            let build_dir = "build".into();
             let project_file = project_root.join(project_file);
-            let res = crate::data::load(&project_file, &build_dir);
+            let res = crate::data::load(&project_file, build_dir);
             // TODO: this is where the error is eaten, when this fails. log?
             let contexts = res.ok().map(|(contexts, _, _)| contexts);
             Self { contexts }
