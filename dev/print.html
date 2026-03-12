@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c0bae522.js";
+            window.path_to_searchindex_js = "searchindex-d82418d3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b7a4d649.js"></script>
+        <script src="toc-cf32fe35.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -493,7 +493,7 @@ contexts:
 <li><a href="#selects-2"><code>selects</code></a></li>
 <li><a href="#disables"><code>disables</code></a></li>
 <li><a href="#rules"><code>rules</code></a></li>
-<li><a href="reference/context/var_options.html"><code>var_options</code></a></li>
+<li><a href="#var_options"><code>var_options</code></a></li>
 <li><a href="#tasks"><code>tasks</code></a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -515,7 +515,7 @@ contexts:
 <li><a href="#selects-2"><code>selects</code></a></li>
 <li><a href="#disables"><code>disables</code></a></li>
 <li><a href="#rules"><code>rules</code></a></li>
-<li><a href="reference/context/var_options.html"><code>var_options</code></a></li>
+<li><a href="#var_options"><code>var_options</code></a></li>
 <li><a href="#tasks"><code>tasks</code></a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -912,6 +912,69 @@ An absolute path is used as-is.</p>
         cmd:
           - ./run-tests.sh ${out}
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="var_options"><a class="header" href="#var_options">var_options</a></h1>
+<p>This field contains a <em>map</em> that controls how variables are flattened into
+strings during the build process.</p>
+<p>Each map key is a variable name. The value is a set of formatting options
+that are applied when the variable’s list of values is joined into a single
+string.</p>
+<h2 id="options-1"><a class="header" href="#options-1">options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>from</code></td><td><em>string</em></td><td>-</td><td>Read values from another variable instead of this one</td></tr>
+<tr><td><code>joiner</code></td><td><em>string</em></td><td><code>" "</code></td><td>String used to join list elements</td></tr>
+<tr><td><code>prefix</code></td><td><em>string</em></td><td>-</td><td>String prepended before each element</td></tr>
+<tr><td><code>suffix</code></td><td><em>string</em></td><td>-</td><td>String appended after each element</td></tr>
+<tr><td><code>start</code></td><td><em>string</em></td><td>-</td><td>String prepended once before the entire result</td></tr>
+<tr><td><code>end</code></td><td><em>string</em></td><td>-</td><td>String appended once after the entire result</td></tr>
+</tbody>
+</table>
+</div>
+<p>Using <code>from</code> creates a new variable from another variable’s values. A variable
+cannot have both its own values and a <code>from</code> option.</p>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<p>Adding a prefix to each element:</p>
+<pre><code class="language-yaml">builders:
+  - name: my_builder
+    var_options:
+      notify:
+        prefix: -DMODULE_
+    env:
+      notify:
+        - apple
+        - banana
+</code></pre>
+<p>This flattens <code>notify</code> to <code>-DMODULE_apple -DMODULE_banana</code>.</p>
+<p>Using a custom joiner and wrapping the result:</p>
+<pre><code class="language-yaml">contexts:
+  - name: default
+    var_options:
+      includes:
+        joiner: ","
+        prefix: "-I"
+        start: "("
+        end: ")"
+    env:
+      includes:
+        - src
+        - lib
+</code></pre>
+<p>This flattens <code>includes</code> to <code>(-Isrc,-Ilib)</code>.</p>
+<p>Creating a new variable from an existing one:</p>
+<pre><code class="language-yaml">contexts:
+  - name: default
+    var_options:
+      module_defines:
+        from: modules_used
+        prefix: -DMODULE_
+</code></pre>
+<p>This creates <code>module_defines</code> by reading the values of <code>modules_used</code> and
+prefixing each element with <code>-DMODULE_</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="modules"><a class="header" href="#modules">modules</a></h1>
 <p>‘modules’ contains a <em>list</em> of module entries.</p>
