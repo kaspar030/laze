@@ -101,9 +101,9 @@ impl<'a, 'b: 'a> EvalContext<'a, 'b> {
             ));
         }
 
-        let input = args[0].to_string();
-        let from = args[1].to_string();
-        let to = args[2].to_string();
+        let input = args[0].as_string()?;
+        let from = args[1].as_string()?;
+        let to = args[2].as_string()?;
 
         if from.len() != to.len() {
             return EvalexprResult::Err(evalexpr::EvalexprError::CustomMessage(
