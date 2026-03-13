@@ -172,6 +172,12 @@ impl Generator {
         laze_env.insert("project-root".to_string(), self.project_root.clone());
         laze_env.insert("root".to_string(), ".");
 
+        // some useful variables
+        laze_env.insert("host::tuple".to_string(), env!("TARGET_TRIPLE"));
+        laze_env.insert("host::os".to_string(), std::env::consts::OS);
+        laze_env.insert("host::arch".to_string(), std::env::consts::ARCH);
+        laze_env.insert("host::family".to_string(), std::env::consts::FAMILY);
+
         // make our binary path available, used by e.g., the default download rules.
         laze_env.insert(
             "LAZE_BIN".to_string(),
