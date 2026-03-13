@@ -60,6 +60,7 @@ env_logger = "0.11.9"
 log = "0.4.29"
 edit-distance = "2.2.2"
 normalize-path = "0.2.1"
+bumpalo = "3.20.2"
 
 [profile.release]
 lto = "fat"

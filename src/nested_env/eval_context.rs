@@ -1,21 +1,27 @@
 use camino::Utf8PathBuf;
-use evalexpr::{EvalexprError, EvalexprResult};
+use evalexpr::{EvalexprError, EvalexprResult, Value};
 
 use super::EnvMap;
 
 pub struct EvalContext<'a, 'b: 'a> {
     inner: &'a EnvMap<'b>,
+    values: bumpalo::Bump,
 }
 
 impl<'a, 'b: 'a> EvalContext<'a, 'b> {
     pub fn new(env: &'a EnvMap<'b>) -> Self {
-        Self { inner: env }
+        Self {
+            inner: env,
+            values: bumpalo::Bump::new(),
+        }
     }
 }
 
 impl evalexpr::Context for EvalContext<'_, '_> {
-    fn get_value(&self, _identifier: &str) -> Option<&evalexpr::Value> {
-        None
+    fn get_value(&self, identifier: &str) -> Option<&Value> {
+        self.inner
+            .get(identifier)
+            .map(|s| &*self.values.alloc(Value::String(s.to_string())))
     }
 
     fn call_function(
