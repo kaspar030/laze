@@ -138,6 +138,26 @@ This variable contains the top-level build output directory. Defaults to
 This variable evaluates to a list of all context names in the current builder's
 context chain, from root to builder.
 
+## host::arch
+
+This variable contains the CPU architecture of the host machine running laze
+(e.g., `x86_64`, `aarch64`).
+
+## host::family
+
+This variable contains the OS family of the host machine running laze
+(e.g., `unix`, `windows`).
+
+## host::os
+
+This variable contains the operating system of the host machine running laze
+(e.g., `linux`, `macos`, `windows`).
+
+## host::tuple
+
+This variable contains the full target triple of the host machine running laze
+(e.g., `x86_64-unknown-linux-gnu`).
+
 ## LAZE_BIN
 
 This variable contains the absolute path to the currently running laze binary.
