@@ -1,0 +1,1 @@
+laze: error: builder "single_builder": binary "single_app": module "single_app": rule "CC": while expanding cmd "echo ${LOCAL_VAR} ${GLOBAL_VAR} ${in} > ${out}": expression error: An operator expected 2 arguments, but got 1.

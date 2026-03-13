@@ -4,6 +4,8 @@ use std::fmt;
 
 use evalexpr::EvalexprError;
 
+use crate::nested_env::eval_context::EvalContext;
+
 use super::EnvMap;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -48,15 +50,22 @@ where
     expand_recursive::<SI>(f, r, seen, if_missing)
 }
 
-pub fn expand_eval<SI>(f: SI, r: &EnvMap, if_missing: IfMissing) -> Result<String, ExpandError>
+pub fn expand_eval<'b, 'a: 'b, SI>(
+    s: SI,
+    env: &'b EnvMap<'a>,
+    if_missing: IfMissing,
+) -> Result<String, ExpandError>
 where
     SI: AsRef<str>,
 {
     use crate::nested_env::Eval;
     let seen = Vec::new();
-    Ok(expand_recursive::<SI>(f, r, seen, if_missing)?
-        .eval()
-        .map_err(ExpandError::Expr))?
+
+    let expanded = expand_recursive::<SI>(s, env, seen, if_missing)?;
+    let eval_context = EvalContext::new(env);
+    Ok(expanded
+        .eval_with_context(eval_context)
+        .map_err(ExpandError::Expr)?)
 }
 
 fn expand_recursive<'a, SI>(

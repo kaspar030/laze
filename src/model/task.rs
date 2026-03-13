@@ -188,12 +188,13 @@ impl Task {
     }
 
     fn _with_env(&self, env: &EnvMap, do_eval: bool) -> Result<Task, Error> {
-        let expand = |s| {
+        let expand = |s: &String| {
             if do_eval {
                 nested_env::expand_eval(s, env, nested_env::IfMissing::Empty)
             } else {
                 nested_env::expand(s, env, nested_env::IfMissing::Ignore)
             }
+            .with_context(|| format!("\"{s}\""))
         };
 
         Ok(Task {
@@ -216,14 +217,14 @@ impl Task {
     /// It will not evaluate expressions, and pass-through variables that are not
     /// found in `env`.
     pub fn with_env(&self, env: &EnvMap) -> Result<Task, Error> {
-        self._with_env(env, false)
+        self._with_env(env, false).context("expanding")
     }
 
     /// This is called to generate the final task.
     /// It will evaluate expressions, and variables that are not
     /// found in `env` will be replaced with the empty string.
     pub fn with_env_eval(&self, env: &EnvMap) -> Result<Task, Error> {
-        self._with_env(env, true)
+        self._with_env(env, true).context("evaluating")
     }
 
     fn expand_export(&self, env: &EnvMap) -> Option<Vector<VarExportSpec>> {
