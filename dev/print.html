@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bdd2e215.js";
+            window.path_to_searchindex_js = "searchindex-fcaa0d17.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f78e1de0.js"></script>
@@ -1698,6 +1698,18 @@ For downloaded modules, it points to the module’s download directory.</p>
 <h2 id="contexts-1"><a class="header" href="#contexts-1">contexts</a></h2>
 <p>This variable evaluates to a list of all context names in the current builder’s
 context chain, from root to builder.</p>
+<h2 id="hostarch"><a class="header" href="#hostarch">host::arch</a></h2>
+<p>This variable contains the CPU architecture of the host machine running laze
+(e.g., <code>x86_64</code>, <code>aarch64</code>).</p>
+<h2 id="hostfamily"><a class="header" href="#hostfamily">host::family</a></h2>
+<p>This variable contains the OS family of the host machine running laze
+(e.g., <code>unix</code>, <code>windows</code>).</p>
+<h2 id="hostos"><a class="header" href="#hostos">host::os</a></h2>
+<p>This variable contains the operating system of the host machine running laze
+(e.g., <code>linux</code>, <code>macos</code>, <code>windows</code>).</p>
+<h2 id="hosttuple"><a class="header" href="#hosttuple">host::tuple</a></h2>
+<p>This variable contains the full target triple of the host machine running laze
+(e.g., <code>x86_64-unknown-linux-gnu</code>).</p>
 <h2 id="laze_bin"><a class="header" href="#laze_bin">LAZE_BIN</a></h2>
 <p>This variable contains the absolute path to the currently running laze binary.
 Used internally by download rules.</p>
