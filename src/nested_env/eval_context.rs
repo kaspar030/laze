@@ -31,6 +31,7 @@ impl evalexpr::Context for EvalContext<'_, '_> {
     ) -> evalexpr::EvalexprResult<evalexpr::Value> {
         // This match lists the custom functions available to laze evaluations.
         match identifier {
+            "tr" => self.fn_tr(argument),
             "joinpath" => self.fn_joinpath(argument),
             "relroot" => self.fn_relroot(argument),
             _ => EvalexprResult::Err(evalexpr::EvalexprError::FunctionIdentifierNotFound(
@@ -71,6 +72,48 @@ impl<'a, 'b: 'a> EvalContext<'a, 'b> {
             result.push(path.as_string()?);
         }
         EvalexprResult::Ok(evalexpr::Value::String(result.into()))
+    }
+
+    fn fn_tr(&self, argument: &evalexpr::Value) -> Result<Value, EvalexprError> {
+        // from Gemini Pro 3.1 (2026-03-13):
+        fn tr_iterative(input: &str, from: &str, to: &str) -> String {
+            input
+                .chars()
+                .map(|c| {
+                    // Find the index of the current char in the 'from' set
+                    if let Some(pos) = from.chars().position(|f| f == c) {
+                        // If found, return the char at the same position in 'to'
+                        // (Defaults to the original char if 'to' is shorter than 'from')
+                        to.chars().nth(pos).unwrap_or(c)
+                    } else {
+                        // If not found, keep the original character
+                        c
+                    }
+                })
+                .collect()
+        }
+
+        let args = argument.as_tuple()?;
+        if args.len() != 3 {
+            return EvalexprResult::Err(evalexpr::EvalexprError::wrong_function_argument_amount(
+                args.len(),
+                3,
+            ));
+        }
+
+        let input = args[0].to_string();
+        let from = args[1].to_string();
+        let to = args[2].to_string();
+
+        if from.len() != to.len() {
+            return EvalexprResult::Err(evalexpr::EvalexprError::CustomMessage(
+                "from and to have different lengths".to_string(),
+            ));
+        }
+
+        let result = tr_iterative(&input, &from, &to);
+
+        EvalexprResult::Ok(Value::String(result))
     }
 }
 
