@@ -4,6 +4,7 @@
 [![Packaging status](https://repology.org/badge/tiny-repos/laze.svg)](https://repology.org/project/laze/versions)
 [![latest packaged version(s)](https://repology.org/badge/latest-versions/laze.svg)](https://repology.org/project/laze/versions)
 ![MSRV](https://img.shields.io/crates/msrv/laze)
+[![Matrix](https://img.shields.io/badge/chat-Matrix-brightgreen.svg)](https://matrix.to/#/#laze:schleiser.de)
 
 <img src="./book/images/logo_col_bg.svg">
 
