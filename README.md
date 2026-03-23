@@ -9,7 +9,7 @@
 
 # Introduction
 
-Welcome to laze, powerful meta build system designed to handle large build
+Welcome to laze, a powerful meta build system designed to handle large build
 matrices of highly modular projects.
 
 
