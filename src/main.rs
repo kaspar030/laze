@@ -419,15 +419,19 @@ fn cmd_build(
         let multiple = matches.get_flag("multiple");
 
         if builds.len() > 1 && !multiple {
-            debug!("laze: multiple task targets found:");
-            for build_info in builds {
-                debug!("{} {}", build_info.builder, build_info.binary);
-            }
-
-            // TODO: allow running tasks for multiple targets
-            return Err(anyhow!(
-                "please specify one of these builders, or -m/--multiple-tasks."
+            if log_enabled!(Debug) {
+                debug!("laze: multiple task targets found:");
+                for build_info in builds {
+                    debug!("{} {}", build_info.builder, build_info.binary);
+                }
+                return Err(anyhow!(
+                    "please specify only one builder, or add `-m`/`--multiple-tasks`."
+                ));
+            } else {
+                return Err(anyhow!(
+                "multiple task targets found. Choose one (use `--verbose` to see options), or add `-m`/`--multiple-tasks`."
             ));
+            }
         }
 
         let task_name = task;
