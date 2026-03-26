@@ -7,9 +7,11 @@ The [env_logger] crate is used as frontend for the logger,
 with a plain output configuration.
 
 Log messages must be clear and plain language for the user (humans).
-It must be clear for the user wether a messages is informational or an error.
+It must be clear for the user whether a messages is informational or an error.
 
 ## Log levels
+
+There are five log levels:
 
 - Error
 - Warn(ing)
@@ -17,12 +19,22 @@ It must be clear for the user wether a messages is informational or an error.
 - Debug
 - Trace
 
+`Error` has the highest priority (but lowest volume), `Trace` the lowest
+priority (but highest volume).
+
+Enabling a lower priority log level also implicitly enables all higher priority
+log levels. E.g., setting the log level to `Trace` shows all log messages,
+setting it to `Info` enables `Info`, `Warn` and `Error` log messages.
+Setting the log level to `Error` only enables `Error` log messages.
+
 ### Error
 
 Indicates a very serious error to the user. Fatal to the operation.
 It must be clear for the user what went wrong.
 
-- preferably indicating which input caused the issue
+Examples:
+
+- Indications which input caused the issue
   (a laze file error or a command line argument error).
 - Actions required to resolve the error.
 
@@ -37,27 +49,31 @@ and what potential action can be taken to resolve the warning.
 Information messages to the user indicate success on an operation.
 These should be used sparingly as to not flood the user output.
 
+Examples:
+
 - Indications of overal success.
-- introduce long running tasks (should really use an activity indicator).
+- Introduce long running tasks (should really use an activity indicator).
 
 ## Debug
 
-Debug log level produces more information for the user
-when they have to figure out issues in their laze file.
+Debug log level produces more information to give the user a detailed picture
+of what laze is doing.
+
 Allows the user to debug the `laze-project.yaml` file,
 for example by showing the exact command for a task.
+
+Examples:
 
 - Outcomes of the parsed laze-project.yaml
 
 ## Trace
 
-Trace provides detailed operation of the internals of Laze.
-Trace is the lowest level and produces the most output.
-Users should not need this level at all
-and it is only useful to developers of laze.
+Trace provides even more verbose output. Usually only necessary for debugging
+issues in laze files or the dependency resolution.
 
-- Internals of laze
-- Statistics
+Examples:
+
+- Detailed dependency resolution steps.
 
 [log]: https://crates.io/crates/log
 [env_logger]: https://crates.io/crates/env_logger
