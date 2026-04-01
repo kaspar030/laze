@@ -538,6 +538,18 @@ fn cmd_inspect(matches: &clap::ArgMatches, project_file: Utf8PathBuf) -> Result<
             let build_inspector = BuildInspector::from_project(project_file, build_dir.clone())?;
             if matches.get_flag("tree") {
                 build_inspector.write_tree(&std::io::stdout())?;
+            } else if matches.get_flag("mermaid") {
+                let mermaid = build_inspector.gen_mermaid()?;
+                println!("{}", mermaid);
+            } else if matches.get_flag("sixel") {
+                let image = build_inspector.gen_png()?;
+                let data = icy_sixel::SixelImage::try_from_rgba(
+                    image.to_vec(),
+                    image.width() as _,
+                    image.height() as _,
+                )
+                .unwrap();
+                println!("{data}");
             } else {
                 let builders = build_inspector.inspect_builders();
                 builders

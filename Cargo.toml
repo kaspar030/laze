@@ -62,6 +62,12 @@ edit-distance = "2.2.2"
 normalize-path = "0.2.1"
 bumpalo = "3.20.2"
 
+mermaid-rs-renderer = { version = "0.2.1", default-features = false, features = ["png"] }
+resvg = { version = "0.46.0", default-features = false }
+usvg = { version = "0.46.0", default-features = false, features = ["system-fonts", "text"] }
+image = { version = "0.25.10", default-features = false }
+icy_sixel = "0.5.0"
+
 [profile.release]
 lto = "fat"
 incremental = false

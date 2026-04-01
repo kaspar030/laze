@@ -214,13 +214,26 @@ pub fn clap() -> clap::Command {
                 .about("inspect current configuration")
                 .arg(build_dir())
                 .subcommand(
-                    Command::new("builders").arg(
-                        Arg::new("tree")
-                            .short('t')
-                            .long("tree")
-                            .help("output a tree of the configuration builders")
-                            .action(ArgAction::SetTrue),
-                    ),
+                    Command::new("builders")
+                        .arg(
+                            Arg::new("tree")
+                                .short('t')
+                                .long("tree")
+                                .help("output a tree of the configuration builders")
+                                .action(ArgAction::SetTrue),
+                        )
+                        .arg(
+                            Arg::new("sixel")
+                                .long("sixel")
+                                .help("output an image of the tree of the configuration builders")
+                                .action(ArgAction::SetTrue),
+                        )
+                        .arg(
+                            Arg::new("mermaid")
+                                .long("mermaid")
+                                .help("output mermaid of the tree of the configuration builders")
+                                .action(ArgAction::SetTrue),
+                        ),
                 ),
         )
         .subcommand(
