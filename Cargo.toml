@@ -61,6 +61,8 @@ log = "0.4.29"
 edit-distance = "2.2.2"
 normalize-path = "0.2.1"
 bumpalo = "3.20.2"
+indicatif = { version = "0.18.4", features = ["rayon", "unicode-width"], default-features = false }
+indicatif-log-bridge = "0.2.3"
 
 [profile.release]
 lto = "fat"

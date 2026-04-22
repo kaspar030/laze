@@ -2,7 +2,8 @@
 //! It expects data structures as created by the data module.
 
 use core::hash::Hash;
-use log::{debug, error, trace};
+use indicatif::{ParallelProgressIterator, ProgressBar, ProgressIterator, ProgressStyle};
+use log::{debug, error, info, trace};
 use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
@@ -271,9 +272,21 @@ impl Generator {
             builder_bin_tuples.collect_vec()
         };
 
+        // Set up progress bar
+        let progress = ProgressBar::new(builder_bin_tuples.len().try_into().unwrap());
+        progress.set_style(ProgressStyle::with_template("{msg} [{bar}] ({percent}%)").unwrap());
+
+        let progress = crate::MULTI_PROGRESS
+            .get()
+            .map(|multi| multi.add(progress))
+            .unwrap();
+
+        progress.set_message("Configuring");
+
         // actually configure builds
         let mut builds = builder_bin_tuples
             .par_iter()
+            .progress_with(progress.clone())
             // `.par_bridge()` instead of `collect()+par_iter()` yields slight (1%) configure time
             // speedup, at the price of changing the order of build rules. not worth losing
             // reproducible output.
@@ -310,12 +323,16 @@ impl Generator {
             })
             .collect::<Vec<_>>();
 
-        for entry in combined_ninja_entries {
+        progress.reset();
+        progress.set_length(combined_ninja_entries.len().try_into().unwrap());
+        progress.set_message("Writing ninja file");
+
+        for entry in combined_ninja_entries.iter().progress_with(progress) {
             ninja_build_file.write_all(entry.as_bytes())?;
         }
 
         let num_built = builds.len();
-        trace!(
+        info!(
             "configured {} builds (took {:?}).",
             num_built,
             start.elapsed()

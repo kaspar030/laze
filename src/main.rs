@@ -7,6 +7,8 @@ use std::sync::{Arc, OnceLock};
 use anyhow::{anyhow, Context as _, Error, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use git_cache::GitCache;
+use indicatif::MultiProgress;
+use indicatif_log_bridge::LogWrapper;
 use itertools::Itertools;
 use jobserver::JOBSERVER;
 use log::{debug, error, info, log_enabled, warn, Level::Debug, LevelFilter};
@@ -41,6 +43,7 @@ use nested_env::{Env, MergeOption};
 use ninja::NinjaCmdBuilder;
 
 pub static GIT_CACHE: OnceLock<GitCache> = OnceLock::new();
+pub static MULTI_PROGRESS: OnceLock<MultiProgress> = OnceLock::new();
 
 pub(crate) fn determine_project_root(start: &Utf8Path) -> Result<(Utf8PathBuf, Utf8PathBuf)> {
     let mut cwd = start.to_owned();
@@ -147,14 +150,22 @@ fn try_main() -> Result<i32> {
 
     let quiet = matches.get_count("quiet");
     let verbose = matches.get_count("verbose");
-    match (verbose, quiet) {
+    let logger = match (verbose, quiet) {
         (1, ..) => log_builder.filter_level(LevelFilter::Debug),
         (2.., ..) => log_builder.filter_level(LevelFilter::max()),
         (0, 1) => log_builder.filter_level(LevelFilter::Warn),
         (0, 2..) => log_builder.filter_level(LevelFilter::Error),
         (0, 0) => log_builder.filter_level(LevelFilter::Info),
     }
-    .init();
+    .build();
+
+    let level = logger.filter();
+    let multi = MultiProgress::new();
+
+    LogWrapper::new(multi.clone(), logger).try_init().unwrap();
+    log::set_max_level(level);
+
+    MULTI_PROGRESS.set(multi).unwrap();
 
     let git_cache_dir = Utf8PathBuf::from(&shellexpand::tilde(
         matches.get_one::<Utf8PathBuf>("git_cache_dir").unwrap(),
