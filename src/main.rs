@@ -16,6 +16,7 @@ use signal_hook::{consts::SIGINT, flag::register_conditional_shutdown};
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 mod build;
+mod cached;
 mod cli;
 mod data;
 mod download;

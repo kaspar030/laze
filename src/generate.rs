@@ -6,7 +6,6 @@ use log::{debug, error, trace};
 use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
-use std::fs::File;
 use std::hash::Hasher;
 use std::io::prelude::*;
 use std::time::Instant;
@@ -324,7 +323,7 @@ impl Generator {
 
         let build_dir = self.build_dir.clone();
         let result = GenerateResult::new(self, builds, treestate);
-        result.to_cache(&build_dir)?;
+        result.write_to_cache(&build_dir)?;
         Ok(result)
     }
 }
@@ -1141,20 +1140,10 @@ impl GenerateResult {
         }
     }
 
-    pub fn to_cache(
-        &self,
-        build_dir: &Utf8Path,
-    ) -> std::result::Result<(), Box<bincode::ErrorKind>> {
-        let start = Instant::now();
+    pub fn write_to_cache(&self, build_dir: &Utf8Path) -> anyhow::Result<(), anyhow::Error> {
         let file = Self::cache_file(build_dir, &self.mode);
-        let file = File::create(file)?;
-        let mut buffer = std::io::BufWriter::new(file);
-
-        bincode::serialize_into(&mut buffer, &build_uuid::get().as_bytes())?;
-
-        let result = bincode::serialize_into(buffer, self);
-        trace!("laze: writing cache took {:?}.", start.elapsed());
-        result
+        use crate::cached::{Bincode, Cached};
+        Self::to_cache::<Bincode>(self, file)
     }
 }
 
@@ -1165,16 +1154,12 @@ impl TryFrom<&Generator> for GenerateResult {
         if generator.disable_cache {
             return Err(anyhow!("cache disabled"));
         }
+
         let file = Self::cache_file(&generator.build_dir, &generator.mode);
-        let file = File::open(file)?;
-        let mut buffer = std::io::BufReader::new(file);
 
-        let build_uuid: [u8; 16] = bincode::deserialize_from(&mut buffer)?;
-        if &build_uuid != build_uuid::get().as_bytes() {
-            return Err(anyhow!("cache from different laze version"));
-        }
+        use crate::cached::{Bincode, Cached};
 
-        let res: GenerateResult = bincode::deserialize_from(buffer)?;
+        let res = GenerateResult::load_from_cache::<Bincode>(&file)?;
 
         if generator.partitioner != res.partitioner {
             return Err(anyhow!("partition values don't match"));
