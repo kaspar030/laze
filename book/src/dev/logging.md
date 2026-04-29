@@ -11,6 +11,10 @@ It must be clear for the user whether a messages is informational or an error.
 
 ## Log levels
 
+The log level is set by the user of Laze via the command line or via
+an environment variable (`LAZE_LOG_LEVEL`). Users can both silence logging or
+enable all logging, with the default log level set to `Info`.
+
 There are five log levels:
 
 - Error
