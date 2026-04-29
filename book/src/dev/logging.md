@@ -31,6 +31,11 @@ log levels. E.g., setting the log level to `Trace` shows all log messages,
 setting it to `Info` enables `Info`, `Warn` and `Error` log messages.
 Setting the log level to `Error` only enables `Error` log messages.
 
+When configured via the command line flags, the `--verbose` and `--quiet` flags
+modify the output log level. These flags are treated as additive, the
+difference between the number of `--verbose` and `--quiet` flags modifies the
+default log level to more or less output.
+
 ### Error
 
 Indicates a very serious error to the user. Fatal to the operation.
