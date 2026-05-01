@@ -46,10 +46,23 @@ impl super::Import for Local {
             std::fs::create_dir_all(path_parent).with_context(|| format!("creating {path}"))?;
 
             let link_target = if self.path.is_relative() {
-                pathdiff::diff_utf8_paths(&self.path, path_parent).unwrap()
+                let relative = pathdiff::diff_utf8_paths(&self.path, path_parent).unwrap();
+                // If the symlink is itself accessed via a symlink, then the final symlink's target resolves relative to the real directory of the intermediate symlink, not the current directory.
+                // This may happen if build/ is symlinked (e.g. to save space).
+                let from_canonical = self.path.canonicalize_utf8()?;
+                let canonical_path = self.get_path(build_dir.as_ref().canonicalize_utf8()?)?;
+                let from_relative = canonical_path.join(&relative).canonicalize_utf8();
+                // An error means the path is not valid already.
+                // std::io::Error does not support PartialEq, so map it to ()
+                if from_relative.as_ref().map_err(|_| ()) != Ok(&from_canonical) {
+                    from_canonical
+                } else {
+                    relative
+                }
             } else {
                 self.path.clone()
             };
+        
 
             let mut link_is_missing = true;
             if path.is_symlink() {
