@@ -23,6 +23,11 @@ modules:
         CFLAGS:
           - -DAPPDIR=\"${appdir}\"
 ```
+
+> [!WARNING]
+> Variables without braces are not evaluated by Laze,
+> and are retained as is in the command.
+
 ## builder
 
 This variable contains the name of the builder.
