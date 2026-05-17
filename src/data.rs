@@ -454,7 +454,7 @@ pub fn load(
                     // import action), so probably better handling of any errors is
                     // in order.
                     filenames.insert(FileInclude::new_import(
-                        import.handle(build_dir)?,
+                        import.handle(build_dir, new.import_root.as_ref())?,
                         new.doc_idx,
                     ));
                 }
