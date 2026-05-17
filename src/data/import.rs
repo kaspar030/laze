@@ -2,6 +2,8 @@ use anyhow::{anyhow, Error};
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 
+use crate::data::{ImportRoot, import::local::LocalRelative};
+
 mod cmd;
 mod download;
 mod local;
@@ -15,11 +17,11 @@ pub enum ImportEntry {
 }
 
 impl ImportEntry {
-    pub fn handle<T: AsRef<Utf8Path>>(&self, build_dir: T) -> Result<Utf8PathBuf, Error> {
+    pub fn handle<T: AsRef<Utf8Path>>(&self, build_dir: T, import_root: Option<&ImportRoot>) -> Result<Utf8PathBuf, Error> {
         match self {
             Self::Download(download) => download.handle(build_dir),
             Self::Command(command) => command.handle(build_dir),
-            Self::Local(local) => local.handle(build_dir),
+            Self::Local(local) => LocalRelative { local, import_root }.handle(build_dir),
         }
     }
 }

@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context, Error};
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 
-use crate::serde_bool_helpers::default_as_false;
+use crate::{data::ImportRoot, serde_bool_helpers::default_as_false};
 
 #[derive(Debug, Serialize, Deserialize, Hash)]
 pub struct Local {
@@ -13,7 +13,13 @@ pub struct Local {
     symlink: bool,
 }
 
-impl super::Import for Local {
+#[derive(Debug, Hash)]
+pub struct LocalRelative<'a> {
+    pub local: &'a Local,
+    pub import_root: Option<&'a ImportRoot>,
+}
+
+impl<'a> super::Import for LocalRelative<'a> {
     fn get_path<T: AsRef<Utf8Path>>(&self, build_dir: T) -> Result<Utf8PathBuf, Error> {
         let mut res = Utf8PathBuf::from(build_dir.as_ref());
         res.push("imports");
@@ -22,45 +28,52 @@ impl super::Import for Local {
         } else if let Some(name) = self.get_name() {
             res.push(name);
         } else {
-            res.push(self.path.file_name().unwrap());
+            res.push(self.local.path.file_name().unwrap());
         }
         Ok(res)
     }
 
     fn get_name(&self) -> Option<String> {
-        self.name.clone()
+        self.local.name.clone()
     }
 
     fn get_dldir(&self) -> Option<&String> {
-        self.dldir.as_ref()
+        self.local.dldir.as_ref()
     }
 
     fn handle<T: AsRef<camino::Utf8Path>>(
         &self,
         build_dir: T,
     ) -> Result<camino::Utf8PathBuf, anyhow::Error> {
-        if self.symlink {
-            let path = self.get_path(&build_dir)?;
+        let import_root = match self.import_root {
+            Some(root) => root.path().canonicalize_utf8()?,
+            None => ".".into(),
+        };
+        let target_path = import_root.join(&self.local.path);
+        let target_path_canonical = target_path
+            .canonicalize_utf8()
+            .map_err(|e| anyhow!(format!("Path {target_path} is invalid: {e}?")))?;
 
+        if self.local.symlink {
+            let path = self.get_path(&build_dir)?;
             let path_parent = path.parent().unwrap();
             std::fs::create_dir_all(path_parent).with_context(|| format!("creating {path}"))?;
 
-            let link_target = if self.path.is_relative() {
-                let relative = pathdiff::diff_utf8_paths(&self.path, path_parent).unwrap();
+            let link_target = if target_path.is_relative() {
+                let relative = pathdiff::diff_utf8_paths(&target_path, path_parent).unwrap();
                 // If the symlink is itself accessed via a symlink, then the final symlink's target resolves relative to the real directory of the intermediate symlink, not the current directory.
                 // This may happen if build/ is symlinked (e.g. to save space).
-                let from_canonical = self.path.canonicalize_utf8()?;
                 let canonical_path = self.get_path(build_dir.as_ref().canonicalize_utf8()?)?;
                 let from_relative = canonical_path.join(&relative).canonicalize_utf8();
                 // An error means the path is not valid already.
                 // std::io::Error does not support PartialEq, so map it to ()
-                if from_relative.as_ref().map_err(|_| ()) != Ok(&from_canonical) {
-                    from_canonical
+                if from_relative.as_ref().map_err(|_| ()) != Ok(&target_path_canonical) {
+                    target_path_canonical.clone()
                 } else {
                     relative
                 }
             } else {
-                self.path.clone()
+                target_path_canonical.clone()
             };
         
 
@@ -82,12 +95,12 @@ impl super::Import for Local {
                 let res = std::os::unix::fs::symlink(&link_target, &path);
 
                 res.with_context(|| format!("creating symlink {link_target}"))
-                    .with_context(|| format!("importing path {}", self.path))?;
+                    .with_context(|| format!("importing path {}", target_path_canonical))?;
             }
             // using `path` here as that is the path relative to the project root.
             super::get_lazefile(&path)
         } else {
-            super::get_lazefile(&self.path)
+            super::get_lazefile(&target_path_canonical)
         }
     }
 }
