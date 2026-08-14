@@ -7,8 +7,9 @@
 #    `COPY --from=kaspar030/laze:<version>-<codename>` /laze /usr/bin
 #
 # `version`: every semver combination should work (0, 0.1, 0.1.17, ...)
-# `codename` is either one of "bullseye", "bookworm" or "trixie", or one of "focal", "jammy", or "noble"
-# or "debian-latest", or "ubuntu-latest".
+# `codename` is either one of "bullseye", "bookworm" or "trixie" for Debian,
+#            or one of "focal", "jammy", "noble" or "resolute" for Ubuntu,
+#            or "debian-latest", or "ubuntu-latest".
 #
 ARG DEBIAN_FROM=ubuntu:latest
 FROM ${DEBIAN_FROM} AS builder
