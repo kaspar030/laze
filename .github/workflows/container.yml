@@ -23,6 +23,8 @@ jobs:
             codename: jammy
           - os: ubuntu
             codename: focal
+          - os: ubuntu
+            codename: resolute
           - os: debian
             codename: bullseye
           - os: debian
