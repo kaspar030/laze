@@ -47,7 +47,7 @@ where
     SI: AsRef<str>,
 {
     let seen = Vec::new();
-    expand_recursive::<SI>(f, r, seen, if_missing)
+    Ok(unescape(expand_recursive::<SI>(f, r, seen, if_missing)?))
 }
 
 pub fn expand_eval<'b, 'a: 'b, SI>(
@@ -63,9 +63,15 @@ where
 
     let expanded = expand_recursive::<SI>(s, env, seen, if_missing)?;
     let eval_context = EvalContext::new(env);
-    Ok(expanded
-        .eval_with_context(eval_context)
-        .map_err(ExpandError::Expr)?)
+    Ok(unescape(
+        expanded
+            .eval_with_context(eval_context)
+            .map_err(ExpandError::Expr)?,
+    ))
+}
+
+fn unescape(escaped: String) -> String {
+    escaped.replace("\\$", "$")
 }
 
 fn expand_recursive<'a, SI>(
@@ -85,12 +91,17 @@ where
     // Current position in the format string
     let mut cursor = 0;
 
-    let mut escapes = false;
     while cursor < f.len() {
-        if let Some(start) = (f[cursor..]).find("${") {
-            if start > 0 && (&f[cursor..])[start - 1..start] == *"\\" {
+        if let Some(start) = (f[cursor..]).find(['$', '\\']) {
+            let next = &(f[cursor..])[start + 1..start + 2];
+            // skip double $ or '\$'
+            if next == "$" {
+                cursor += start + 2;
+                continue;
+            }
+            //
+            if next != "{" {
                 cursor += start + 1;
-                escapes = true;
                 continue;
             }
             let start = start + cursor;
@@ -154,10 +165,6 @@ where
     // If there's more text after the final `${}`
     if cursor < f.len() {
         result.push_str(&f[cursor..]);
-    }
-
-    if escapes {
-        result = result.replace("\\${", "${");
     }
 
     Ok(result)
@@ -229,10 +236,31 @@ mod tests {
     #[test]
     fn single_expansion_escaped() {
         let mut vars = EnvMap::new();
-        vars.insert("A", "\\${a}".into());
+        vars.insert("A", "$${a}".into());
         assert_eq!(
             expand("${A} simple string", &vars, IfMissing::Error),
-            Ok("${a} simple string".to_string())
+            Ok("$${a} simple string".to_string())
+        );
+    }
+
+    #[test]
+    fn single_expansion_escaped_twice() {
+        let mut vars = EnvMap::new();
+        vars.insert("A", "$$${a}".into());
+        vars.insert("a", "X".into());
+        assert_eq!(
+            expand("${A} simple string", &vars, IfMissing::Error),
+            Ok("$$X simple string".to_string())
+        );
+    }
+
+    #[test]
+    fn single_expansion_backslash() {
+        let mut vars = EnvMap::new();
+        vars.insert("a", "\\${a}".into());
+        assert_eq!(
+            expand("${a}", &vars, IfMissing::Ignore),
+            Ok("${a}".to_string())
         );
     }
 }

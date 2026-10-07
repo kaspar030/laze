@@ -45,16 +45,25 @@ fn eval_recursive<'a>(
     let mut start = 0;
     let mut level = 0;
     let mut input_changed = false;
+    let mut in_escape = false;
 
     for (i, character) in input.char_indices() {
-        if character == '$'
-            && i + 1 < input.len()
-            && input[i + 1..i + 2] == *"("
-            && (i == 0 || (input[i - 1..i] != *"$"))
-        {
-            if level == 0 {
-                start = i + 1;
+        if character == '$' {
+            if in_escape {
+                in_escape = false;
+                result.push_str("$");
+                continue;
+            } else {
+                in_escape = true;
             }
+        } else {
+            if in_escape {
+                in_escape = false;
+            }
+        }
+
+        if character == '$' && i + 1 < input.len() && input[i + 1..i + 2] == *"(" && level == 0 {
+            start = i + 1;
         } else if character == '(' && start > 0 {
             level += 1;
         } else if character == ')' && level > 0 && start > 0 {
@@ -122,8 +131,14 @@ mod tests {
     }
     #[test]
     fn escaped_dollar_with_another() {
-        let literal = "$(1) just some $$(1) text";
+        let literal = "$(1+1) just some $$(2+2) text";
         let result = eval(literal);
-        assert_eq!(result.unwrap(), "1 just some $$(1) text");
+        assert_eq!(result.unwrap(), "2 just some $$(2+2) text");
+    }
+    #[test]
+    fn escaped_dollar_with_another_another() {
+        let literal = "$(1+1) just some $$$(2+2) text";
+        let result = eval(literal);
+        assert_eq!(result.unwrap(), "2 just some $$4 text");
     }
 }
